@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="icon.png" alt="DaCollector logo" width="160">
+</p>
+
 # DaCollector
 
 DaCollector is a self-hosted movie and TV collection manager. It combines a server-first media library backend with provider-driven collection automation and Plex-facing relay workflows.
