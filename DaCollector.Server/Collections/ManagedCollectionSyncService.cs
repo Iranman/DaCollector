@@ -77,7 +77,7 @@ public class ManagedCollectionSyncService(
 
     private async Task<CollectionSyncResult> Evaluate(CollectionDefinition definition, bool apply, CancellationToken cancellationToken)
     {
-        var preview = collectionService.Preview(definition);
+        var preview = await collectionService.Preview(definition, cancellationToken).ConfigureAwait(false);
         var warnings = preview.Warnings.ToList();
         var effectiveMode = CollectionSyncMode.Preview;
         var target = "preview";

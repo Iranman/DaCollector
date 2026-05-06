@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using DaCollector.Abstractions.Collections;
@@ -32,11 +34,11 @@ public class CollectionBuilderController(
     /// Preview the local output for a collection builder rule.
     /// </summary>
     [HttpPost("Preview")]
-    public ActionResult<CollectionBuilderPreview> Preview([FromBody] CollectionRule rule)
+    public async Task<ActionResult<CollectionBuilderPreview>> Preview([FromBody] CollectionRule rule, CancellationToken cancellationToken = default)
     {
         try
         {
-            return previewService.Preview(rule);
+            return await previewService.Preview(rule, cancellationToken).ConfigureAwait(false);
         }
         catch (ArgumentException e)
         {

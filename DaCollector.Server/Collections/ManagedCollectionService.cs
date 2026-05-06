@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using DaCollector.Abstractions.Collections;
 using DaCollector.Server.Settings;
 
@@ -74,13 +76,13 @@ public class ManagedCollectionService(ISettingsProvider settingsProvider, Collec
         }
     }
 
-    public CollectionPreview? Preview(Guid collectionID)
+    public async Task<CollectionPreview?> Preview(Guid collectionID, CancellationToken cancellationToken = default)
     {
         var collection = Get(collectionID);
-        return collection is null ? null : Preview(collection);
+        return collection is null ? null : await Preview(collection, cancellationToken).ConfigureAwait(false);
     }
 
-    public CollectionPreview Preview(CollectionDefinition definition)
+    public async Task<CollectionPreview> Preview(CollectionDefinition definition, CancellationToken cancellationToken = default)
     {
         var collection = Normalize(definition, definition.ID == Guid.Empty ? Guid.NewGuid() : definition.ID);
         Validate(collection);
@@ -90,7 +92,7 @@ public class ManagedCollectionService(ISettingsProvider settingsProvider, Collec
 
         foreach (var rule in collection.Rules)
         {
-            var preview = previewService.Preview(rule);
+            var preview = await previewService.Preview(rule, cancellationToken).ConfigureAwait(false);
             items.AddRange(preview.Items);
             warnings.AddRange(preview.Warnings.Select(warning => $"{rule.Builder}: {warning}"));
         }

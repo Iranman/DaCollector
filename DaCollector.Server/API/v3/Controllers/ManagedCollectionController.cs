@@ -88,11 +88,11 @@ public class ManagedCollectionController(
     /// Preview a saved managed collection definition.
     /// </summary>
     [HttpPost("{collectionID:guid}/Preview")]
-    public ActionResult<CollectionPreview> PreviewCollection([FromRoute] Guid collectionID)
+    public async Task<ActionResult<CollectionPreview>> PreviewCollection([FromRoute] Guid collectionID, CancellationToken cancellationToken = default)
     {
         try
         {
-            var preview = collectionService.Preview(collectionID);
+            var preview = await collectionService.Preview(collectionID, cancellationToken).ConfigureAwait(false);
             return preview is null ? NotFound("No managed collection exists for the given collectionID.") : preview;
         }
         catch (ArgumentException e)
@@ -106,11 +106,11 @@ public class ManagedCollectionController(
     /// Preview an unsaved managed collection definition.
     /// </summary>
     [HttpPost("Preview")]
-    public ActionResult<CollectionPreview> PreviewCollection([FromBody] CollectionDefinition collection)
+    public async Task<ActionResult<CollectionPreview>> PreviewCollection([FromBody] CollectionDefinition collection, CancellationToken cancellationToken = default)
     {
         try
         {
-            return collectionService.Preview(collection);
+            return await collectionService.Preview(collection, cancellationToken).ConfigureAwait(false);
         }
         catch (ArgumentException e)
         {

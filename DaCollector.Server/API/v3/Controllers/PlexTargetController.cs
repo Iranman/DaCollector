@@ -109,7 +109,7 @@ public class PlexTargetController(
     {
         try
         {
-            var preview = collectionService.Preview(body.Collection);
+            var preview = await collectionService.Preview(body.Collection).ConfigureAwait(false);
             return new(await plexTargetService.MatchItems(sectionKey, preview.Items, body.BaseUrl, body.Token));
         }
         catch (Exception e) when (e is ArgumentException or InvalidOperationException)
@@ -127,7 +127,7 @@ public class PlexTargetController(
     {
         try
         {
-            var preview = collectionService.Preview(body.Collection);
+            var preview = await collectionService.Preview(body.Collection).ConfigureAwait(false);
             return new(await plexTargetService.ApplyCollection(
                 sectionKey,
                 preview.Collection.Name,
