@@ -392,6 +392,7 @@ public class SystemService : ISystemService
             services.AddSingleton<ExactDuplicateService>();
             services.AddSingleton<MediaCatalogService>();
             services.AddSingleton<PlexTargetService>();
+            services.AddSingleton<DaCollectorStatusService>();
             services.AddSingleton<IFilterEvaluator, FilterEvaluator>();
             services.AddSingleton<LegacyFilterConverter>();
             services.AddSingleton<ActionService>();
