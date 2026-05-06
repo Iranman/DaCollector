@@ -9,7 +9,7 @@
                 "build",
                 "-f",
                 "net10.0",
-                "${workspaceFolder}/Shoko.CLI/Shoko.CLI.csproj",
+                "${workspaceFolder}/DaCollector.CLI/DaCollector.CLI.csproj",
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary"
             ],
@@ -23,7 +23,7 @@
                 "build",
                 "-f",
                 "net10.0",
-                "${workspaceFolder}/Shoko.TrayService/Shoko.TrayService.csproj",
+                "${workspaceFolder}/DaCollector.TrayService/DaCollector.TrayService.csproj",
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary"
             ],
@@ -35,7 +35,7 @@
             "type": "process",
             "args": [
                 "publish",
-                "${workspaceFolder}/Shoko.CLI/Shoko.CLI.csproj",
+                "${workspaceFolder}/DaCollector.CLI/DaCollector.CLI.csproj",
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary"
             ],
@@ -48,7 +48,7 @@
             "args": [
                 "watch",
                 "run",
-                "${workspaceFolder}/Shoko.CLI/Shoko.CLI.csproj",
+                "${workspaceFolder}/DaCollector.CLI/DaCollector.CLI.csproj",
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary"
             ],

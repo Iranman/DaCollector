@@ -1,5 +1,5 @@
 {
-    "name": "Shoko Server Dev Container",
+    "name": "DaCollector Dev Container",
     "image":"mcr.microsoft.com/devcontainers/dotnet:8.0-jammy",
     "appPort": 8111,
     "onCreateCommand": "sudo apt update; sudo apt install -y librhash-dev mediainfo",

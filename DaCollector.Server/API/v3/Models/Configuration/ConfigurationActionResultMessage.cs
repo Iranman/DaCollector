@@ -1,0 +1,34 @@
+using System.ComponentModel.DataAnnotations;
+using Newtonsoft.Json;
+using DaCollector.Abstractions.Config.Enums;
+
+using AbstractConfigurationActionResultMessage = DaCollector.Abstractions.Config.ConfigurationActionResultMessage;
+
+#nullable enable
+namespace DaCollector.Server.API.v3.Models.Configuration;
+
+/// <summary>
+/// A message to display to the user upon completing a configuration action, be
+/// it successfully or not.
+/// </summary>
+/// <param name="message">Abstract message.</param>
+public class ConfigurationActionResultMessage(AbstractConfigurationActionResultMessage message)
+{
+    /// <summary>
+    /// The title of the message to display to the user.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public string? Title { get; init; } = message.Title;
+
+    /// <summary>
+    /// The message to display to the user.
+    /// </summary>
+    [Required]
+    public string Message { get; init; } = message.Message;
+
+    /// <summary>
+    /// The color theme to use.
+    /// </summary>
+    [Required]
+    public DisplayColorTheme Theme { get; init; } = message.Theme;
+}

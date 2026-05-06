@@ -59,7 +59,7 @@ jobs:
       matrix:
         dotnet: [ '10.x' ]
 
-    name: Publish Shoko.Abstractions Nuget
+    name: Publish DaCollector.Abstractions Nuget
 
     steps:
       - name: Checkout "${{ github.ref }}"
@@ -73,14 +73,14 @@ jobs:
           dotnet-version: ${{ matrix.dotnet }}
 
       - name: Run dotnet build
-        run: dotnet build -c Release Shoko.Abstractions
+        run: dotnet build -c Release DaCollector.Abstractions
 
-      - name: Publish Shoko.Abstractions Nuget
+      - name: Publish DaCollector.Abstractions Nuget
         uses: brandedoutcast/publish-nuget@v2.5.2
         with:
-          PROJECT_FILE_PATH: Shoko.Abstractions/Shoko.Abstractions.csproj
+          PROJECT_FILE_PATH: DaCollector.Abstractions/DaCollector.Abstractions.csproj
           NUGET_KEY: ${{secrets.NUGET_API_KEY}}
-          TAG_FORMAT: Shoko.Abstractions-v*
+          TAG_FORMAT: DaCollector.Abstractions-v*
 
   webui:
     runs-on: ubuntu-latest
@@ -91,7 +91,7 @@ jobs:
       - name: Get Latest Stable Web UI Release
         id: webui_release
         run: |
-          download_url=$(curl -s https://api.github.com/repos/ShokoAnime/Shoko-WebUI/releases/latest | jq -r '.assets[0].browser_download_url')
+          download_url=$(curl -s https://api.github.com/repos/Iranman/DaCollector-WebUI/releases/latest | jq -r '.assets[0].browser_download_url')
           echo "download_url=${download_url}" >> "$GITHUB_OUTPUT"
 
       - name: Download and Extract Web UI
@@ -118,7 +118,7 @@ jobs:
       - name: Get Latest Stable Offline Importer Release
         id: plugin_release
         run: |
-          download_url=$(curl -s https://api.github.com/repos/revam/dotnet-shoko-plugin-offline-importer/releases/latest | jq -r '.assets[0].browser_download_url')
+          download_url=$(curl -s https://api.github.com/repos/Iranman/dotnet-dacollector-plugin-offline-importer/releases/latest | jq -r '.assets[0].browser_download_url')
           echo "download_url=${download_url}" >> "$GITHUB_OUTPUT"
 
       - name: Download and Extract Offline Importer
@@ -174,13 +174,13 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: webui
-          path: Shoko.Server/webui
+          path: DaCollector.Server/webui
 
       - name: Download Offline Importer
         uses: actions/download-artifact@v4
         with:
           name: offline-importer
-          path: Shoko.Server/plugins
+          path: DaCollector.Server/plugins
 
       - name: Replace Sentry DSN and other keys
         shell: pwsh
@@ -200,17 +200,17 @@ jobs:
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
-      - run: dotnet publish -c Release -r ${{ matrix.rid }} -f net10.0 ${{ matrix.build_props }} Shoko.CLI /p:Version="${{ needs.current_info.outputs.version }}" /p:InformationalVersion="\"channel=stable,commit=${{  needs.current_info.outputs.sha }},tag=${{ needs.current_info.outputs.tag }},date=${{ needs.current_info.outputs.date }},\""
+      - run: dotnet publish -c Release -r ${{ matrix.rid }} -f net10.0 ${{ matrix.build_props }} DaCollector.CLI /p:Version="${{ needs.current_info.outputs.version }}" /p:InformationalVersion="\"channel=stable,commit=${{  needs.current_info.outputs.sha }},tag=${{ needs.current_info.outputs.tag }},date=${{ needs.current_info.outputs.date }},\""
 
       - name: Archive Release
         shell: pwsh
-        run: Compress-Archive .\\Shoko.Server\\bin\\Release\\net10.0\\${{matrix.rid}}\\publish .\\Shoko.CLI_${{ matrix.build_type }}_${{ matrix.display_id }}.zip
+        run: Compress-Archive .\\DaCollector.Server\\bin\\Release\\net10.0\\${{matrix.rid}}\\publish .\\DaCollector.CLI_${{ matrix.build_type }}_${{ matrix.display_id }}.zip
 
       - name: Upload Release
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: ./Shoko.CLI*.zip
+          file: ./DaCollector.CLI*.zip
           tag: ${{ needs.current_info.outputs.tag }}
           file_glob: true
 
@@ -240,13 +240,13 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: webui
-          path: Shoko.Server/webui
+          path: DaCollector.Server/webui
 
       - name: Download Offline Importer
         uses: actions/download-artifact@v4
         with:
           name: offline-importer
-          path: Shoko.Server/plugins
+          path: DaCollector.Server/plugins
 
       - name: Replace Sentry DSN and other keys
         shell: pwsh
@@ -266,17 +266,17 @@ jobs:
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
-      - run: dotnet publish -c Release -r ${{ matrix.rid }} -f net10.0 --no-self-contained Shoko.TrayService /p:Version="${{ needs.current_info.outputs.version }}" /p:InformationalVersion="\"channel=stable,commit=${{ needs.current_info.outputs.sha }},tag=${{ needs.current_info.outputs.tag }},date=${{ needs.current_info.outputs.date }},\""
+      - run: dotnet publish -c Release -r ${{ matrix.rid }} -f net10.0 --no-self-contained DaCollector.TrayService /p:Version="${{ needs.current_info.outputs.version }}" /p:InformationalVersion="\"channel=stable,commit=${{ needs.current_info.outputs.sha }},tag=${{ needs.current_info.outputs.tag }},date=${{ needs.current_info.outputs.date }},\""
 
       - name: Archive Release
         shell: pwsh
-        run: Compress-Archive ./Shoko.Server/bin/Release/net10.0/${{ matrix.rid }}/publish ./Shoko.TrayService_Framework_${{ matrix.rid }}.zip
+        run: Compress-Archive ./DaCollector.Server/bin/Release/net10.0/${{ matrix.rid }}/publish ./DaCollector.TrayService_Framework_${{ matrix.rid }}.zip
 
       - name: Upload Release
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: ./Shoko.TrayService*.zip
+          file: ./DaCollector.TrayService*.zip
           tag: ${{ needs.current_info.outputs.tag }}
           file_glob: true
 
@@ -305,13 +305,13 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: webui
-          path: Shoko.Server/webui
+          path: DaCollector.Server/webui
 
       - name: Download Offline Importer
         uses: actions/download-artifact@v4
         with:
           name: offline-importer
-          path: Shoko.Server/plugins
+          path: DaCollector.Server/plugins
 
       - name: Replace Sentry DSN and other keys
         shell: pwsh
@@ -325,17 +325,17 @@ jobs:
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
-      - run: dotnet publish -c Release -r win-x64 --no-self-contained Shoko.TrayService /p:Version="${{ needs.current_info.outputs.version }}" /p:InformationalVersion="channel=stable%2ccommit=${{ github.sha }}%2ctag=${{ needs.current_info.outputs.tag }}%2cdate=${{ needs.current_info.outputs.date }}%2c" # %2c is comma, blame windows/pwsh
+      - run: dotnet publish -c Release -r win-x64 --no-self-contained DaCollector.TrayService /p:Version="${{ needs.current_info.outputs.version }}" /p:InformationalVersion="channel=stable%2ccommit=${{ github.sha }}%2ctag=${{ needs.current_info.outputs.tag }}%2cdate=${{ needs.current_info.outputs.date }}%2c" # %2c is comma, blame windows/pwsh
 
       - name: Archive Release
         shell: pwsh
-        run: Compress-Archive .\\Shoko.Server\\bin\\Release\\net10.0\\win-x64\\publish .\\Shoko.TrayService_Framework_win-x64.zip
+        run: Compress-Archive .\\DaCollector.Server\\bin\\Release\\net10.0\\win-x64\\publish .\\DaCollector.TrayService_Framework_win-x64.zip
 
       - name: Upload Release
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: ./Shoko.TrayService*.zip
+          file: ./DaCollector.TrayService*.zip
           tag: ${{ needs.current_info.outputs.tag }}
           file_glob: true
 
@@ -364,13 +364,13 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: webui
-          path: Shoko.Server/webui
+          path: DaCollector.Server/webui
 
       - name: Download Offline Importer
         uses: actions/download-artifact@v4
         with:
           name: offline-importer
-          path: Shoko.Server/plugins
+          path: DaCollector.Server/plugins
 
       - name: Replace Sentry DSN and other keys
         shell: pwsh
@@ -384,28 +384,28 @@ jobs:
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
-      - run: dotnet publish -c Release -r win-x64 --self-contained true Shoko.TrayService /p:Version="${{ needs.current_info.outputs.version }}" /p:InformationalVersion="channel=stable%2ccommit=${{ github.sha }}%2ctag=${{ needs.current_info.outputs.tag }}%2cdate=${{ needs.current_info.outputs.date }}%2c" # %2c is comma, blame windows/pwsh
+      - run: dotnet publish -c Release -r win-x64 --self-contained true DaCollector.TrayService /p:Version="${{ needs.current_info.outputs.version }}" /p:InformationalVersion="channel=stable%2ccommit=${{ github.sha }}%2ctag=${{ needs.current_info.outputs.tag }}%2cdate=${{ needs.current_info.outputs.date }}%2c" # %2c is comma, blame windows/pwsh
 
       - name: Archive Release
         shell: pwsh
-        run: Compress-Archive .\\Shoko.Server\\bin\\Release\\net10.0\\win-x64\\publish .\\Shoko.TrayService_Standalone_win-x64.zip
+        run: Compress-Archive .\\DaCollector.Server\\bin\\Release\\net10.0\\win-x64\\publish .\\DaCollector.TrayService_Standalone_win-x64.zip
 
       - name: Upload Release
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: ./Shoko.TrayService*.zip
+          file: ./DaCollector.TrayService*.zip
           tag: ${{ needs.current_info.outputs.tag }}
           file_glob: true
 
       - name: Build Installer
-        run: iscc /O".\\" ".\\Installer\\ShokoServer.iss"
+        run: iscc /O".\\" ".\\Installer\\DaCollector.iss"
 
       - name: Upload Installer to GitHub
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: ./Shoko.Setup.exe
+          file: ./DaCollector.Setup.exe
           tag: ${{ needs.current_info.outputs.tag }}
           file_glob: true
 
@@ -427,7 +427,7 @@ jobs:
           SSH_USERNAME: ${{ secrets.FILES_USERNAME }}
           SSH_SERVER: ${{ secrets.FILES_SERVER }}
         run:
-          .\\.github\\workflows\\UploadRelease.ps1 -remote "ShokoServer-${{ needs.current_info.outputs.version_short }}-Win.exe" -local "Shoko.Setup.exe";
+          .\\.github\\workflows\\UploadRelease.ps1 -remote "DaCollector-${{ needs.current_info.outputs.version_short }}-Win.exe" -local "DaCollector.Setup.exe";
 
   docker-release-build:
     runs-on: ubuntu-latest
@@ -460,13 +460,13 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: webui
-          path: Shoko.Server/webui
+          path: DaCollector.Server/webui
 
       - name: Download Offline Importer
         uses: actions/download-artifact@v4
         with:
           name: offline-importer
-          path: Shoko.Server/plugins
+          path: DaCollector.Server/plugins
 
       - name: Replace Sentry DSN and other keys
         shell: pwsh

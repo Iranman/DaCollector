@@ -1,0 +1,51 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <OutputType>WinExe</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+        <RuntimeIdentifiers>win-x64;linux-x64;linux-arm64;osx-arm64</RuntimeIdentifiers>
+        <Platforms>x64;AnyCPU</Platforms>
+        <Deterministic>false</Deterministic>
+        <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+        <GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
+        <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
+        <GenerateAssemblyCopyrightAttribute>false</GenerateAssemblyCopyrightAttribute>
+        <AssemblyName>DaCollector</AssemblyName>
+        <LangVersion>latest</LangVersion>
+        <Configurations>Debug;Release;ApiLogging;Benchmarks</Configurations>
+        <ApplicationIcon>..\DaCollector.Server\db.ico</ApplicationIcon>
+        <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
+        <Nullable>enable</Nullable>
+        <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    </PropertyGroup>
+    <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+        <OutputPath>..\DaCollector.Server\bin\Debug\</OutputPath>
+    </PropertyGroup>
+    <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+        <OutputPath>..\DaCollector.Server\bin\Release\</OutputPath>
+    </PropertyGroup>
+    <ItemGroup>
+        <Compile Include="..\SharedAssemblyInfo.cs">
+            <Link>Properties\SharedAssemblyInfo.cs</Link>
+        </Compile>
+    </ItemGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\DaCollector.Server\DaCollector.Server.csproj" />
+    </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="Avalonia" Version="11.3.12" />
+        <PackageReference Include="Avalonia.Desktop" Version="11.3.12" />
+        <!-- Needed for the windows' native tray system menu to function properly. -->
+        <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.12" />
+    </ItemGroup>
+    <ItemGroup>
+        <AvaloniaResource Include="..\DaCollector.Server\db.ico">
+            <Link>db.ico</Link>
+        </AvaloniaResource>
+    </ItemGroup>
+    <ItemGroup>
+        <Reference Include="Quartz">
+            <HintPath>..\Dependencies\Quartz\Quartz.dll</HintPath>
+        </Reference>
+    </ItemGroup>
+</Project>

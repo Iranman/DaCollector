@@ -31,9 +31,9 @@ jobs:
         id: webui_release
         run: |
           if [ "${{ github.event.inputs.release }}" = "stable" ]; then
-            download_url=$(curl -s https://api.github.com/repos/ShokoAnime/Shoko-WebUI/releases/latest | jq -r '.assets[0].browser_download_url')
+            download_url=$(curl -s https://api.github.com/repos/Iranman/DaCollector-WebUI/releases/latest | jq -r '.assets[0].browser_download_url')
           else
-            download_url=$(curl -s https://api.github.com/repos/ShokoAnime/Shoko-WebUI/releases | jq -r '.[0].assets[0].browser_download_url')
+            download_url=$(curl -s https://api.github.com/repos/Iranman/DaCollector-WebUI/releases | jq -r '.[0].assets[0].browser_download_url')
           fi
           echo "download_url=${download_url}" >> "$GITHUB_OUTPUT"
 
@@ -79,7 +79,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: webui
-          path: Shoko.Server/webui
+          path: DaCollector.Server/webui
 
       - name: Replace Sentry DSN and other keys
         shell: pwsh

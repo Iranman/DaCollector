@@ -1,0 +1,444 @@
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+using DaCollector.Abstractions.Metadata.Enums;
+using DaCollector.Abstractions.Metadata;
+using DaCollector.Abstractions.Metadata.Services;
+using DaCollector.Server.Extensions;
+using DaCollector.Server.Models;
+using DaCollector.Server.Models.TMDB;
+using DaCollector.Server.Repositories;
+using DaCollector.Server.Utilities;
+
+#nullable enable
+namespace DaCollector.Server.API.v3.Models.Common;
+
+/// <summary>
+/// Image container
+/// </summary>
+public class Image
+{
+    /// <summary>
+    /// The image's ID.
+    /// /// </summary>
+    [Required]
+    public int ID { get; set; }
+
+    /// <summary>
+    /// text representation of type of image. fanart, poster, etc. Mainly so clients know what they are getting
+    /// </summary>
+    [Required]
+    public ImageType Type { get; set; }
+
+    /// <summary>
+    /// AniDB, TMDB, etc.
+    /// </summary>
+    [Required]
+    public ImageSource Source { get; set; }
+
+    /// <summary>
+    /// Language code for the language used for the text in the image, if any.
+    /// Or null if the image doesn't contain any language specifics.
+    /// </summary>
+    public string? LanguageCode { get; set; }
+
+    /// <summary>
+    /// The relative path from the base image directory. A client with access to the server's filesystem can map
+    /// these for quick access and no need for caching
+    /// </summary>
+    public string? RelativeFilepath { get; set; }
+
+    /// <summary>
+    /// Indicates the image is available locally and can be served through the
+    /// API.
+    /// </summary>
+    [Required]
+    public bool Available { get; set; }
+
+    /// <summary>
+    /// Indicates this is the preferred image for the <see cref="Type"/> for the
+    /// selected entity.
+    /// </summary>
+    [Required]
+    public bool Preferred { get; set; }
+
+    /// <summary>
+    /// Indicates the images is disabled. You must explicitly ask for these, for
+    /// hopefully obvious reasons.
+    /// </summary>
+    [Required]
+    public bool Disabled { get; set; }
+
+    /// <summary>
+    /// Width of the image.
+    /// </summary>
+    public int? Width { get; set; }
+
+    /// <summary>
+    /// Height of the image.
+    /// </summary>
+    public int? Height { get; set; }
+
+    /// <summary>
+    /// Community rating for the image, if available.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public Rating? CommunityRating { get; set; }
+
+    /// <summary>
+    /// Series info for the image, currently only set when sending a random
+    /// image.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public ImageSeriesInfo? Series { get; set; } = null;
+
+    public Image(IImage imageMetadata, bool? preferredOverride = null)
+    {
+        ID = imageMetadata.ID;
+        Type = imageMetadata.ImageType.ToV3Dto();
+        Source = imageMetadata.Source.ToV3Dto();
+
+        Available = imageMetadata.IsEnabled;
+        Preferred = preferredOverride ?? imageMetadata.IsPreferred;
+        Disabled = !imageMetadata.IsEnabled;
+        LanguageCode = imageMetadata.LanguageCode;
+        if (imageMetadata.HasRating)
+            CommunityRating = new()
+            {
+                Value = imageMetadata.Rating.Value,
+                Votes = imageMetadata.RatingVotes.Value,
+                MaxValue = 10,
+                Type = "User",
+                Source = imageMetadata.Source.ToString(),
+            };
+
+        // we need to set _something_ for the clients that determine
+        // if an image exists by checking if a relative path is set,
+        // so we set the id.
+        RelativeFilepath = imageMetadata.IsLocalAvailable ? $"/{ID}" : null;
+        if (imageMetadata is TMDB_Image tmdbImage)
+        {
+            Width = tmdbImage.Width;
+            Height = tmdbImage.Height;
+        }
+        else if (imageMetadata is Image_Base imageBase && imageBase._width.HasValue && imageBase._height.HasValue)
+        {
+            Width = imageBase._width.Value;
+            Height = imageBase._height.Value;
+        }
+        else if (imageMetadata.IsLocalAvailable && Utils.SettingsProvider.GetSettings().LoadImageMetadata)
+        {
+            Width = imageMetadata.Width;
+            Height = imageMetadata.Height;
+        }
+    }
+
+    public Image(int id, ImageEntityType imageEntityType, DataSource dataSource, bool preferred = false, bool disabled = false)
+    {
+        ID = id;
+        Type = imageEntityType.ToV3Dto();
+        Source = dataSource.ToV3Dto();
+
+        Preferred = preferred;
+        Disabled = disabled;
+        switch (dataSource)
+        {
+            case DataSource.User:
+                if (imageEntityType == ImageEntityType.Art)
+                {
+                    if (RepoFactory.JMMUser.GetByID(id) is { HasAvatarImage: true } user)
+                    {
+                        var imageMetadata = user.AvatarImageMetadata;
+                        Available = true;
+                        // we need to set _something_ for the clients that determine
+                        // if an image exists by checking if a relative path is set,
+                        // so we set the id.
+                        RelativeFilepath = $"/{id}";
+                        Width = imageMetadata.Width;
+                        Height = imageMetadata.Height;
+                    }
+                }
+                break;
+
+            // We can now grab the metadata from the database(!)
+            case DataSource.TMDB:
+                var tmdbImage = RepoFactory.TMDB_Image.GetByID(id);
+                if (tmdbImage != null)
+                {
+                    Available = true;
+                    LanguageCode = tmdbImage.LanguageCode;
+                    var relativePath = tmdbImage.RelativePath;
+                    if (!string.IsNullOrEmpty(relativePath))
+                    {
+                        RelativeFilepath = relativePath.Replace("\\", "/");
+                        if (RelativeFilepath[0] != '/')
+                            RelativeFilepath = "/" + RelativeFilepath;
+                    }
+                    Width = tmdbImage.Width;
+                    Height = tmdbImage.Height;
+                    CommunityRating = new()
+                    {
+                        Value = tmdbImage.UserRating,
+                        Votes = tmdbImage.UserVotes,
+                        MaxValue = 10,
+                        Type = "User",
+                        Source = "TMDB",
+                    };
+                }
+                break;
+
+            default:
+                var metadata = Utils.ServiceContainer.GetRequiredService<IImageManager>().GetImage(dataSource, imageEntityType, id);
+                if (metadata is not null && metadata.IsLocalAvailable)
+                {
+                    Available = true;
+                    RelativeFilepath = metadata.LocalPath!.Replace(ImageUtils.BaseImagesPath, "").Replace("\\", "/");
+                    if (RelativeFilepath[0] != '/')
+                        RelativeFilepath = "/" + RelativeFilepath;
+                    // This causes serious IO lag on some systems. Enable at own risk.
+                    if (Utils.SettingsProvider.GetSettings().LoadImageMetadata)
+                    {
+                        Width = metadata.Width;
+                        Height = metadata.Height;
+                    }
+                }
+                break;
+        }
+    }
+
+    private static readonly List<DataSource> _bannerImageSources =
+    [
+        DataSource.TMDB,
+    ];
+
+    private static readonly List<DataSource> _posterImageSources =
+    [
+        DataSource.AniDB,
+        DataSource.TMDB,
+    ];
+
+    private static readonly List<DataSource> _thumbImageSources =
+    [
+        DataSource.TMDB,
+    ];
+
+    private static readonly List<DataSource> _backdropImageSources =
+    [
+        DataSource.TMDB,
+    ];
+
+    private static readonly List<DataSource> _characterImageSources =
+    [
+        DataSource.AniDB,
+    ];
+
+    private static readonly List<DataSource> _staffImageSources =
+    [
+        DataSource.AniDB,
+    ];
+
+    internal static DataSource GetRandomImageSource(ImageType imageType)
+    {
+        var sourceList = imageType switch
+        {
+            ImageType.Poster => _posterImageSources,
+            ImageType.Banner => _bannerImageSources,
+            ImageType.Thumb => _thumbImageSources,
+            ImageType.Backdrop => _backdropImageSources,
+            ImageType.Character => _characterImageSources,
+            ImageType.Staff => _staffImageSources,
+            _ => [],
+        };
+
+        return sourceList.GetRandomElement();
+    }
+
+    /// <summary>
+    /// Image source.
+    /// </summary>
+    [JsonConverter(typeof(StringEnumConverter))]
+    public enum ImageSource
+    {
+        /// <summary>
+        /// AniDB.
+        /// </summary>
+        AniDB = 1,
+
+        /// <summary>
+        /// The Movie DataBase (TMDB).
+        /// </summary>
+        TMDB = 3,
+
+        /// <summary>
+        /// User provided data.
+        /// </summary>
+        User = 99,
+
+        /// <summary>
+        /// DaCollector.
+        /// </summary>
+        DaCollector = 100,
+    }
+
+    /// <summary>
+    /// Image type.
+    /// </summary>
+    [JsonConverter(typeof(StringEnumConverter))]
+    public enum ImageType
+    {
+        /// <summary>
+        /// The standard poster image. May or may not contain text.
+        /// </summary>
+        Poster = 1,
+
+        /// <summary>
+        /// A long/wide banner image, usually with text.
+        /// </summary>
+        Banner = 2,
+
+        /// <summary>
+        /// Thumbnail image.
+        /// </summary>
+        Thumbnail = 3,
+
+        /// <summary>
+        /// Temp. synonym until it's safe to remove it.
+        /// </summary>
+        Thumb = Thumbnail,
+
+        /// <summary>
+        /// Backdrop / background images. Usually doesn't contain any text, but
+        /// it might.
+        /// </summary>
+        Backdrop = 4,
+
+        /// <summary>
+        /// Temp. synonym until it's safe to remove it.
+        /// </summary>
+        Fanart = Backdrop,
+
+        /// <summary>
+        /// Character image. May be a close up portrait of the character, or a
+        /// full-body view of the character.
+        /// </summary>
+        Character = 5,
+
+        /// <summary>
+        /// Creator image. For people, it may be a close up portrait of the
+        /// person, or a full-body view of the person. For companies, it may be
+        /// their logo. For collaborations, it may be a group photo or similar.
+        /// </summary>
+        Creator = 6,
+
+        /// <summary>
+        /// Staff image. May be a close up portrait of the person, or a
+        /// full-body view of the person.
+        /// </summary>
+        Staff = Creator,
+
+        /// <summary>
+        /// Clear-text logo.
+        /// </summary>
+        Logo = 7,
+
+        /// <summary>
+        /// User avatar.
+        /// </summary>
+        Avatar = 99,
+    }
+
+    public class ImageSeriesInfo
+    {
+        /// <summary>
+        /// The dacollector series id.
+        /// </summary>
+        [Required]
+        public int ID { get; set; }
+
+        /// <summary>
+        /// The preferred series name for the user.
+        /// </summary>
+        [Required]
+        public string Name { get; set; }
+
+        public ImageSeriesInfo(int id, string name)
+        {
+            ID = id;
+            Name = name;
+        }
+    }
+
+    /// <summary>
+    /// Input models.
+    /// </summary>
+    public class Input
+    {
+        public class DefaultImageBody
+        {
+            /// <summary>
+            /// The ID. A stringified int since we send the ID as a string
+            /// from the API. Also see <seealso cref="Image.ID"/>.
+            /// </summary>
+            /// <value></value>
+            [Required]
+            [Range(0, int.MaxValue)]
+            public int ID { get; set; }
+
+            /// <summary>
+            /// The image source.
+            /// </summary>
+            /// <value></value>
+            [Required]
+            public ImageSource Source { get; set; }
+        }
+
+        public class EnableImageBody
+        {
+            /// <summary>
+            /// Indicates that the image should be enabled.
+            /// </summary>
+            [Required]
+            public bool Enabled { get; set; }
+        }
+    }
+}
+
+public static class ImageExtensions
+{
+    public static ImageEntityType ToServer(this Image.ImageType type)
+        => type switch
+        {
+            Image.ImageType.Avatar => ImageEntityType.Art,
+            Image.ImageType.Banner => ImageEntityType.Banner,
+            Image.ImageType.Character => ImageEntityType.Character,
+            Image.ImageType.Backdrop => ImageEntityType.Backdrop,
+            Image.ImageType.Poster => ImageEntityType.Poster,
+            Image.ImageType.Staff => ImageEntityType.Creator,
+            Image.ImageType.Thumb => ImageEntityType.Thumbnail,
+            Image.ImageType.Logo => ImageEntityType.Logo,
+            _ => ImageEntityType.None,
+        };
+
+    public static Image.ImageType ToV3Dto(this ImageEntityType type)
+        => type switch
+        {
+            ImageEntityType.Art => Image.ImageType.Avatar,
+            ImageEntityType.Banner => Image.ImageType.Banner,
+            ImageEntityType.Character => Image.ImageType.Character,
+            ImageEntityType.Backdrop => Image.ImageType.Backdrop,
+            ImageEntityType.Poster => Image.ImageType.Poster,
+            ImageEntityType.Creator => Image.ImageType.Staff,
+            ImageEntityType.Thumbnail => Image.ImageType.Thumb,
+            ImageEntityType.Logo => Image.ImageType.Logo,
+            _ => Image.ImageType.Staff,
+        };
+
+    public static DataSource ToServer(this Image.ImageSource source)
+        => Enum.Parse<DataSource>(source.ToString());
+
+    public static Image.ImageSource ToV3Dto(this DataSource source)
+        => Enum.Parse<Image.ImageSource>(source.ToString());
+}

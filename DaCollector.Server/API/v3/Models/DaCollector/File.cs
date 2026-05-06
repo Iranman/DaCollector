@@ -1,0 +1,699 @@
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
+using System.Linq;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+using DaCollector.Abstractions.Video.Hashing;
+using DaCollector.Abstractions.User;
+using DaCollector.Abstractions.User.Services;
+using DaCollector.Abstractions.Video.Media;
+using DaCollector.Server.API.v3.Models.Release;
+using DaCollector.Server.Models.DaCollector;
+using DaCollector.Server.Repositories;
+using DaCollector.Server.Utilities;
+using DaCollector.Server.Models.Release;
+
+#nullable enable
+namespace DaCollector.Server.API.v3.Models.DaCollector;
+
+public partial class File
+{
+    /// <summary>
+    /// The ID of the File. You'll need this to play it.
+    /// </summary>
+    [Required]
+    public int ID { get; set; }
+
+    /// <summary>
+    /// The Cross Reference Models for every episode this file belongs to, created in a reverse tree and
+    /// transformed back into a tree. Series -> Episode such that only episodes that this file is linked to are
+    /// shown. In many cases, this will have arrays of 1 item
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public List<FileCrossReference>? SeriesIDs { get; set; }
+
+    /// <summary>
+    /// The Filesize in bytes
+    /// </summary>
+    [Required]
+    public long Size { get; set; }
+
+    /// <summary>
+    /// If this file is marked as a file variation.
+    /// </summary>
+    [Required]
+    public bool IsVariation { get; set; }
+
+    /// <summary>
+    /// If this file is marked as ignored.
+    /// </summary>
+    [Required]
+    public bool IsIgnored { get; set; }
+
+    /// <summary>
+    /// The calculated hashes of the file
+    /// </summary>
+    /// <returns></returns>
+    [Required]
+    public List<HashDigest> Hashes { get; set; }
+
+    /// <summary>
+    /// All of the Locations that this file exists in
+    /// </summary>
+    [Required]
+    public List<Location> Locations { get; set; }
+
+    /// <summary>
+    /// AVDump info for the file.
+    /// </summary>
+    [Required]
+    public AVDumpInfo AVDump { get; set; }
+
+    /// <summary>
+    /// Try to fit this file's resolution to something like 1080p, 480p, etc
+    /// </summary>
+    public string? Resolution { get; set; }
+
+    /// <summary>
+    /// The duration of the file.
+    /// </summary>
+    [Required]
+    public TimeSpan Duration { get; set; }
+
+    /// <summary>
+    /// Where to resume the next playback.
+    /// </summary>
+    public TimeSpan? ResumePosition { get; set; }
+
+    /// <summary>
+    /// The last time the current user viewed the file. Will be null if the user
+    /// have not viewed the file yet.
+    /// </summary>
+    [JsonConverter(typeof(IsoDateTimeConverter))]
+    public DateTime? Viewed { get; set; }
+
+    /// <summary>
+    /// The last time the current user watched the file until completion, or
+    /// otherwise marked the file was watched. Will be null if the user have not
+    /// watched the file yet.
+    /// </summary>
+    [JsonConverter(typeof(IsoDateTimeConverter))]
+    public DateTime? Watched { get; set; }
+
+    /// <summary>
+    /// When the file was last imported. Usually is a file only imported once,
+    /// but there may be exceptions.
+    /// </summary>
+    [JsonConverter(typeof(IsoDateTimeConverter))]
+    public DateTime? Imported { get; set; }
+
+    /// <summary>
+    /// The file creation date of this file
+    /// </summary>
+    [JsonConverter(typeof(IsoDateTimeConverter))]
+    [Required]
+    public DateTime Created { get; set; }
+
+    /// <summary>
+    /// When the file was last updated (e.g. the hashes were added/updated).
+    /// </summary>
+    [JsonConverter(typeof(IsoDateTimeConverter))]
+    [Required]
+    public DateTime Updated { get; set; }
+
+    /// <summary>
+    /// The <see cref="ReleaseInfo"/>, if to-be included in the response data.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public ReleaseInfo? Release { get; set; }
+
+    /// <summary>
+    /// The <see cref="MediaInfo"/>, if to-be included in the response data.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public MediaInfo? MediaInfo { get; set; }
+
+    public File(HttpContext context, VideoLocal file, bool withXRefs = false, bool includeReleaseInfo = false, bool includeMediaInfo = false, bool includeAbsolutePaths = false) :
+        this(RepoFactory.VideoLocalUser.GetByUserAndVideoLocalID(context?.GetUser()?.JMMUserID ?? 0, file.VideoLocalID), file, withXRefs, includeReleaseInfo, includeMediaInfo, includeAbsolutePaths)
+    { }
+
+    public File(VideoLocal_User? userRecord, VideoLocal file, bool withXRefs = false, bool includeReleaseInfo = false, bool includeMediaInfo = false, bool includeAbsolutePaths = false)
+    {
+        var mediaInfo = file.MediaInfo as IMediaInfo;
+        ID = file.VideoLocalID;
+        Size = file.FileSize;
+        IsVariation = file.IsVariation;
+        IsIgnored = file.IsIgnored;
+        Hashes = file.Hashes is { Count: > 0 } hashes
+            ? hashes.Select(h => new HashDigest(h)).ToList()
+            : [new() { Type = "ED2K", Value = file.Hash }];
+        Resolution = mediaInfo?.VideoStream?.Resolution;
+        Locations = file.Places.Select(location => new Location(location, includeAbsolutePaths)).ToList();
+        AVDump = new AVDumpInfo(file);
+        Duration = file.DurationTimeSpan;
+        ResumePosition = userRecord?.ProgressPosition;
+        Viewed = userRecord?.LastUpdated.ToUniversalTime();
+        Watched = userRecord?.WatchedDate?.ToUniversalTime();
+        Imported = file.DateTimeImported?.ToUniversalTime();
+        Created = file.DateTimeCreated.ToUniversalTime();
+        Updated = file.DateTimeUpdated.ToUniversalTime();
+        if (withXRefs)
+            SeriesIDs = FileCrossReference.From(file.EpisodeCrossReferences);
+
+        if (includeReleaseInfo && file.ReleaseInfo is { } releaseInfo)
+            Release = new(releaseInfo);
+
+        if (includeMediaInfo && mediaInfo is not null)
+            MediaInfo = new MediaInfo(file, mediaInfo);
+    }
+
+    /// <summary>
+    /// Represents a file location.
+    /// </summary>
+    public partial class Location
+    {
+        /// <summary>
+        /// The file location id.
+        /// </summary>
+        [Required]
+        public int ID { get; set; }
+
+        /// <summary>
+        /// The id of the <see cref="File"/> this location belong to.
+        /// </summary>
+        [Required]
+        public int FileID { get; set; }
+
+        /// <summary>
+        /// The Managed Folder that this file resides in
+        /// </summary>
+        [Required]
+        public int ManagedFolderID { get; set; }
+
+        /// <summary>
+        /// The relative path from the managed folder's path on the server. The
+        /// file name can be easily extracted from this.
+        /// </summary>
+        [Required]
+        public string RelativePath { get; set; }
+
+        /// <summary>
+        /// The absolute path for the file on the server. OS dependent to the
+        /// server's environment.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string? AbsolutePath { get; set; }
+
+        /// <summary>
+        /// Indicates the server access the file right now.
+        /// </summary>
+        [JsonRequired]
+        public bool IsAccessible { get; set; }
+
+        public Location(VideoLocal_Place location, bool includeAbsolutePaths)
+        {
+            ID = location.ID;
+            FileID = location.VideoID;
+            ManagedFolderID = location.ManagedFolderID;
+            RelativePath = location.RelativePath;
+            AbsolutePath = includeAbsolutePaths ? location.Path : null;
+            IsAccessible = location.IsAvailable;
+        }
+
+        /// <summary>
+        /// Represents the parameters for the automatic relocation process.
+        /// </summary>
+        public class AutoRelocateBody
+        {
+            /// <summary>
+            /// Optional. Id of the script to use instead of the default
+            /// script.
+            /// </summary>
+            public int? ScriptID { get; set; }
+
+            /// <summary>
+            /// Indicates whether the result should be a preview of the
+            /// relocation.
+            /// </summary>
+            public bool Preview { get; set; } = false;
+
+            /// <summary>
+            /// Move the file. Leave as `null` to use the default
+            /// setting for move on import.
+            /// </summary>
+            public bool? Move { get; set; } = null;
+
+            /// <summary>
+            /// Rename the file. Leave as `null` to use the default
+            /// setting for rename on import.
+            /// </summary>
+            public bool? Rename { get; set; } = null;
+
+            /// <summary>
+            /// Indicates whether empty directories should be deleted after
+            /// relocating the file.
+            /// </summary>
+            public bool DeleteEmptyDirectories { get; set; } = true;
+        }
+
+    }
+
+    public class HashDigest : IHashDigest
+    {
+        /// <inheritdoc />
+        [Required]
+        [MinLength(1)]
+        public string Type { get; set; } = string.Empty;
+
+        /// <inheritdoc />
+        [Required]
+        [MinLength(1)]
+        public string Value { get; set; } = string.Empty;
+
+        /// <inheritdoc />
+        [MinLength(1)]
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string? Metadata { get; set; }
+
+        public HashDigest() { }
+
+        public HashDigest(IHashDigest hash) => (Type, Value, Metadata) = (hash.Type, hash.Value, hash.Metadata);
+
+        /// <inheritdoc/>
+        public int CompareTo(IHashDigest? other)
+        {
+            if (other is null)
+                return 1;
+
+            var result = string.Compare(Type, other.Type, StringComparison.InvariantCulture);
+            if (result != 0)
+                return result;
+
+            result = string.Compare(Value, other.Value, StringComparison.InvariantCulture);
+            if (result != 0)
+                return result;
+
+            return string.Compare(Metadata, other.Metadata, StringComparison.InvariantCulture);
+        }
+
+        /// <inheritdoc/>
+        public bool Equals(IHashDigest? other)
+        {
+            if (other is null)
+                return false;
+
+            return string.Equals(Type, other.Type, StringComparison.InvariantCulture) &&
+                string.Equals(Value, other.Value, StringComparison.InvariantCulture) &&
+                string.Equals(Metadata, other.Metadata, StringComparison.InvariantCulture);
+        }
+    }
+
+    /// <summary>
+    /// User data for the file.
+    /// </summary>
+    public class FileUserData
+    {
+        /// <summary>
+        /// Where to resume the next playback.
+        /// </summary>
+        public TimeSpan? ProgressPosition { get; set; }
+
+        /// <summary>
+        /// Total number of times the file have been watched.
+        /// </summary>
+        [Required]
+        public int WatchedCount { get; set; }
+
+        /// <summary>
+        /// When the file was last watched. Will be null if the full is
+        /// currently marked as unwatched.
+        /// </summary>
+        [JsonConverter(typeof(IsoDateTimeConverter))]
+        public DateTime? LastWatchedAt { get; set; }
+
+        /// <summary>
+        /// When the entry was last updated.
+        /// </summary>
+        [JsonConverter(typeof(IsoDateTimeConverter))]
+        [Required]
+        public DateTime LastUpdatedAt { get; set; }
+
+        public FileUserData()
+        {
+            ProgressPosition = TimeSpan.Zero;
+            WatchedCount = 0;
+            LastWatchedAt = null;
+            LastUpdatedAt = DateTime.UtcNow;
+        }
+
+        public FileUserData(IVideoUserData? userData = null)
+        {
+            ProgressPosition = userData?.ProgressPosition ?? TimeSpan.Zero;
+            WatchedCount = userData?.PlaybackCount ?? 0;
+            LastWatchedAt = userData?.LastPlayedAt?.ToUniversalTime();
+            LastUpdatedAt = userData?.LastUpdatedAt.ToUniversalTime() ?? DateTime.UtcNow;
+        }
+
+        public FileUserData MergeWithExisting(JMMUser user, VideoLocal file)
+        {
+            var userDataService = Utils.ServiceContainer.GetRequiredService<IUserDataService>();
+            var userData = userDataService.SaveVideoUserData(file, user, new()
+            {
+                LastPlayedAt = LastWatchedAt,
+                LastUpdatedAt = LastUpdatedAt,
+                ProgressPosition = ProgressPosition,
+                PlaybackCount = WatchedCount,
+            }).GetAwaiter().GetResult();
+            return new(userData);
+        }
+    }
+
+    /// <summary>
+    /// Input models.
+    /// </summary>
+    public class Input
+    {
+        /// <summary>
+        /// Link a file to multiple episodes.
+        /// </summary>
+        public class LinkEpisodesBody
+        {
+            /// <summary>
+            /// An array of episode identifiers to link to the file.
+            /// </summary>
+            /// <value></value>
+            [Required]
+            public int[] EpisodeIDs { get; set; } = [];
+        }
+
+        /// <summary>
+        /// Link a file to multiple episodes.
+        /// </summary>
+        public class LinkMultipleFilesBody
+        {
+            /// <summary>
+            /// An array of file identifiers to link in batch.
+            /// </summary>
+            /// <value></value>
+            [Required]
+            public int[] FileIDs { get; set; } = [];
+
+            /// <summary>
+            /// The episode identifier.
+            /// </summary>
+            /// <value></value>
+            [Required]
+            public int EpisodeID { get; set; }
+        }
+
+        /// <summary>
+        /// Link a file to an episode range in a series.
+        /// </summary>
+        public class LinkSeriesBody
+        {
+            /// <summary>
+            /// The series identifier.
+            /// </summary>
+            /// <value></value>
+            [Required]
+            public int SeriesID { get; set; }
+
+            /// <summary>
+            /// The start of the range of episodes to link to the file. Append a type prefix to use another episode type.
+            /// </summary>
+            /// <value></value>
+            [Required]
+            public string RangeStart { get; set; } = string.Empty;
+
+            /// <summary>
+            /// The end of the range of episodes to link to the file. The prefix used should be the same as in <see cref="RangeStart"/>.
+            /// </summary>
+            /// <value></value>
+            [Required]
+            public string RangeEnd { get; set; } = string.Empty;
+        }
+
+        /// <summary>
+        /// Link multiple files to an episode range in a series.
+        /// </summary>
+        public class LinkSeriesMultipleBody
+        {
+            /// <summary>
+            /// An array of file identifiers to link in batch.
+            /// </summary>
+            /// <value></value>
+            [Required]
+            public int[] FileIDs { get; set; } = [];
+
+            /// <summary>
+            /// The series identifier.
+            /// </summary>
+            /// <value></value>
+            [Required]
+            public int SeriesID { get; set; }
+
+            /// <summary>
+            /// The start of the range of episodes to link to the file. Append a type prefix to use another episode type.
+            /// </summary>
+            /// <value></value>
+            [Required]
+            public string RangeStart { get; set; } = string.Empty;
+
+            /// <summary>
+            /// If true then files will be linked to a single episode instead of a range spanning the amount of files to add.
+            /// </summary>
+            /// <value></value>
+            [DefaultValue(false)]
+            public bool SingleEpisode { get; set; }
+        }
+
+        /// <summary>
+        /// Unlink multiple files in batch.
+        /// </summary>
+        public class UnlinkMultipleBody
+        {
+            /// <summary>
+            /// An array of file identifiers to unlink in batch.
+            /// </summary>
+            /// <value></value>
+            [Required]
+            public int[] fileIDs { get; set; } = [];
+        }
+
+        public class BatchDeleteFilesBody
+        {
+            /// <summary>
+            /// An array of file identifiers to unlink in batch.
+            /// </summary>
+            /// <value></value>
+            [Required]
+            public int[] fileIDs { get; set; } = [];
+
+            /// <summary>
+            /// Remove all physical file locations and not just the file record.
+            /// </summary>
+            [DefaultValue(true)]
+            public bool removeFiles { get; set; } = true;
+
+            /// <summary>
+            /// This causes the empty folder removal to skipped if set to false.
+            /// This significantly speeds up batch deleting if you are deleting
+            /// many files in the same folder. It may be specified in the query.
+            /// </summary>
+            [DefaultValue(true)]
+            public bool removeFolders { get; set; } = true;
+        }
+
+        public class BatchDeleteFileLocationsBody
+        {
+            /// <summary>
+            /// An array of file location identifiers to remove in batch.
+            /// </summary>
+            /// <value></value>
+            [Required]
+            public int[] locationIDs { get; set; } = [];
+
+            /// <summary>
+            /// Remove all physical file locations and not just the file record.
+            /// </summary>
+            [DefaultValue(true)]
+            public bool removeFiles { get; set; } = true;
+
+            /// <summary>
+            /// This causes the empty folder removal to skipped if set to false.
+            /// This significantly speeds up batch deleting if you are deleting
+            /// many files in the same folder. It may be specified in the query.
+            /// </summary>
+            [DefaultValue(true)]
+            public bool removeFolders { get; set; } = true;
+        }
+    }
+
+    [JsonConverter(typeof(StringEnumConverter))]
+    public enum FileSortCriteria
+    {
+        None = 0,
+        ManagedFolderName = 1,
+        ManagedFolderID = 2,
+        AbsolutePath = 3,
+        RelativePath = 4,
+        FileSize = 5,
+        DuplicateCount = 6,
+        CreatedAt = 7,
+        ImportedAt = 8,
+        ViewedAt = 9,
+        WatchedAt = 10,
+        ED2K = 11,
+        MD5 = 12,
+        SHA1 = 13,
+        CRC32 = 14,
+        FileName = 15,
+        FileID = 16,
+        ReleaseProviderName = 17,
+        ReleaseProviderID = 18,
+        ReleaseGroupName = 19,
+        ReleaseGroupShortName = 20,
+        ReleaseGroupID = 21,
+    }
+
+    private static Func<(VideoLocal Video, VideoLocal_Place? Location, IReadOnlyList<VideoLocal_Place>? Locations, StoredReleaseInfo? ReleaseInfo, VideoLocal_User? UserRecord), object?>? GetOrderFunction(FileSortCriteria criteria, bool isInverted) =>
+        criteria switch
+        {
+            FileSortCriteria.ManagedFolderName => (tuple) => tuple.Location?.ManagedFolder?.Name ?? string.Empty,
+            FileSortCriteria.ManagedFolderID => (tuple) => tuple.Location?.ManagedFolderID,
+            FileSortCriteria.AbsolutePath => (tuple) => tuple.Location?.Path,
+            FileSortCriteria.RelativePath => (tuple) => tuple.Location?.RelativePath,
+            FileSortCriteria.FileSize => (tuple) => tuple.Video.FileSize,
+            FileSortCriteria.FileName => (tuple) => tuple.Location?.FileName,
+            FileSortCriteria.FileID => (tuple) => tuple.Video.VideoLocalID,
+            FileSortCriteria.DuplicateCount => (tuple) => tuple.Locations?.Count ?? 0,
+            FileSortCriteria.CreatedAt => (tuple) => tuple.Video.DateTimeCreated,
+            FileSortCriteria.ImportedAt => isInverted ? (tuple) => tuple.Video.DateTimeImported ?? DateTime.MinValue : (tuple) => tuple.Video.DateTimeImported ?? DateTime.MaxValue,
+            FileSortCriteria.ViewedAt => isInverted ? (tuple) => tuple.UserRecord?.LastUpdated ?? DateTime.MinValue : (tuple) => tuple.UserRecord?.LastUpdated ?? DateTime.MaxValue,
+            FileSortCriteria.WatchedAt => isInverted ? (tuple) => tuple.UserRecord?.WatchedDate ?? DateTime.MinValue : (tuple) => tuple.UserRecord?.WatchedDate ?? DateTime.MaxValue,
+            FileSortCriteria.ED2K => (tuple) => tuple.Video.Hash,
+            FileSortCriteria.MD5 => (tuple) => tuple.Video.MD5,
+            FileSortCriteria.SHA1 => (tuple) => tuple.Video.SHA1,
+            FileSortCriteria.CRC32 => (tuple) => tuple.Video.CRC32,
+            FileSortCriteria.ReleaseProviderName => (tuple) => tuple.ReleaseInfo?.ProviderName,
+            FileSortCriteria.ReleaseProviderID => (tuple) => tuple.ReleaseInfo?.ID,
+            FileSortCriteria.ReleaseGroupName => (tuple) => tuple.ReleaseInfo?.GroupName,
+            FileSortCriteria.ReleaseGroupShortName => (tuple) => tuple.ReleaseInfo?.GroupShortName,
+            FileSortCriteria.ReleaseGroupID => (tuple) => tuple.ReleaseInfo?.GroupID,
+            _ => null,
+        };
+
+    public static IEnumerable<(VideoLocal, VideoLocal_Place?, IReadOnlyList<VideoLocal_Place>?, StoredReleaseInfo?, VideoLocal_User?)> OrderBy(IEnumerable<(VideoLocal, VideoLocal_Place?, IReadOnlyList<VideoLocal_Place>?, StoredReleaseInfo?, VideoLocal_User?)> enumerable, List<string> sortCriterias)
+    {
+        var first = true;
+        return sortCriterias.Aggregate(enumerable, (current, rawSortCriteria) =>
+        {
+            // Any unrecognised criterias are ignored.
+            var (sortCriteria, isInverted) = ParseSortCriteria(rawSortCriteria);
+            var orderFunc = GetOrderFunction(sortCriteria, isInverted);
+            if (orderFunc == null)
+                return current;
+
+            // First criteria in the list.
+            if (first)
+            {
+                first = false;
+                return isInverted ? enumerable.OrderByDescending(orderFunc) : enumerable.OrderBy(orderFunc);
+            }
+
+            // All other criteria in the list.
+            var ordered = (IOrderedEnumerable<(VideoLocal, VideoLocal_Place?, IReadOnlyList<VideoLocal_Place>?, StoredReleaseInfo?, VideoLocal_User?)>)current;
+            return isInverted ? ordered.ThenByDescending(orderFunc) : ordered.ThenBy(orderFunc);
+        });
+    }
+
+    private static (FileSortCriteria criteria, bool isInverted) ParseSortCriteria(string input)
+    {
+        var isInverted = false;
+        if (input[0] == '-')
+        {
+            isInverted = true;
+            input = input[1..];
+        }
+
+        if (!Enum.TryParse<FileSortCriteria>(input, ignoreCase: true, out var sortCriteria))
+            sortCriteria = FileSortCriteria.None;
+
+        return (sortCriteria, isInverted);
+    }
+
+
+    /// <summary>
+    /// AVDump info for the file.
+    /// </summary>
+    public class AVDumpInfo
+    {
+        /// <summary>
+        /// Indicates if an AVDump session is queued or running.
+        /// </summary>
+        public string? Status { get; set; }
+
+        /// <summary>
+        /// The current progress if an AVDump session is running.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public double? Progress { get; set; }
+
+        /// <summary>
+        /// The succeeded AniDB creq count, if an AVDump session is running.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public int? SucceededCreqCount { get; set; }
+
+        /// <summary>
+        /// The failed AniDB creq count, if an AVDump session is running.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public int? FailedCreqCount { get; set; }
+
+        /// <summary>
+        /// The pending AniDB creq count, if an AVDump session is running.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public int? PendingCreqCount { get; set; }
+
+        /// <summary>
+        /// Indicates when the AVDump session was started, if an AVDump session
+        /// is running.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public DateTime? StartedAt { get; set; }
+
+        /// <summary>
+        /// The last time we did a successful AVDump of the file.
+        /// </summary>
+        [JsonConverter(typeof(IsoDateTimeConverter))]
+        public DateTime? LastDumpedAt { get; set; }
+
+        /// <summary>
+        /// The version of the AVDump component from the last time we did a
+        /// successful AVDump.
+        /// </summary>
+        public string? LastVersion { get; set; }
+
+        public AVDumpInfo(VideoLocal video)
+        {
+            var session = AVDumpHelper.GetSessionForVideo(video);
+            Status = session == null ? null : session.IsRunning ? "Running" : "Queued";
+            if (session != null && session.IsRunning)
+            {
+                Progress = session.Progress;
+                SucceededCreqCount = session.SucceededCreqCount;
+                FailedCreqCount = session.FailedCreqCount;
+                PendingCreqCount = session.PendingCreqCount;
+                StartedAt = session.StartedAt.ToUniversalTime();
+            }
+            LastDumpedAt = video.LastAVDumped?.ToUniversalTime();
+            LastVersion = video.LastAVDumpVersion;
+        }
+    }
+}

@@ -57,5 +57,5 @@
     "vorbis",
     "webui"
   ],
-  "dotnet.defaultSolution": "Shoko.Server.sln"
+  "dotnet.defaultSolution": "DaCollector.sln"
 }

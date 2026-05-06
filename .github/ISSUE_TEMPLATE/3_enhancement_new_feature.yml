@@ -1,5 +1,5 @@
 name: Enhancement - New Feature
-description: For requesting a new feature added to Shoko.
+description: For requesting a new feature added to DaCollector.
 labels: [Enhancement - New Feature]
 body:
   - type: checkboxes
@@ -9,7 +9,7 @@ body:
       options:
         - label: You've searched this repository (top of the page) for the feature you are requesting.
           required: true
-        - label: This feature is not related to allowing Shoko to download anime episodes or rip them from streaming sites.
+        - label: This feature is not related to allowing DaCollector to download anime episodes or rip them from streaming sites.
           required: true
   - type: textarea
     id: feature-description

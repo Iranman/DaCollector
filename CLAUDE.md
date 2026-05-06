@@ -5,9 +5,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-dotnet build Shoko.Server.sln
-dotnet test Shoko.Tests/Shoko.Tests.csproj --filter "FullyQualifiedName~ClassName.Method"
-dotnet test Shoko.IntegrationTests/Shoko.IntegrationTests.csproj
+dotnet build DaCollector.sln
+dotnet test DaCollector.Tests/DaCollector.Tests.csproj --filter "FullyQualifiedName~ClassName.Method"
+dotnet test DaCollector.IntegrationTests/DaCollector.IntegrationTests.csproj
 ```
 
 Target framework: `.NET 10.0`. Configurations: `Debug`, `Release`, `ApiLogging`, `Benchmarks` (server + benchmarks only; tests use `Debug`/`Release`).
@@ -25,19 +25,19 @@ Target framework: `.NET 10.0`. Configurations: `Debug`, `Release`, `ApiLogging`,
 
 ### Project Layout
 
-- **`Shoko.Abstractions`** — NuGet package for plugin authors. Defines the interface contract between the core and plugins (`IPlugin`, `IShokoSeries`, `IShokoEpisode`, `IVideo`, `IUser`, and all service/metadata/video/user interfaces). Only update this when the plugin contract itself needs to change.
-- **`Shoko.Server`** — All implementation: API, database, repositories, services, scheduling, providers, models.
-- **`Shoko.CLI`** — Headless server entry point. Instantiates and manages `SystemService` directly.
-- **`Shoko.TrayService`** — Cross-platform tray app (Avalonia) embedding the server. Runs on Windows, Linux, and macOS.
+- **`DaCollector.Abstractions`** — NuGet package for plugin authors. Defines the interface contract between the core and plugins (`IPlugin`, `IDaCollectorSeries`, `IDaCollectorEpisode`, `IVideo`, `IUser`, and all service/metadata/video/user interfaces). Only update this when the plugin contract itself needs to change.
+- **`DaCollector.Server`** — All implementation: API, database, repositories, services, scheduling, providers, models.
+- **`DaCollector.CLI`** — Headless server entry point. Instantiates and manages `SystemService` directly.
+- **`DaCollector.TrayService`** — Cross-platform tray app (Avalonia) embedding the server. Runs on Windows, Linux, and macOS.
 - **`Plugins/`** — Built-in plugins (`ReleaseExporter`, `RelocationPlus`, `OfflineImporter`) built as separate projects and loaded at runtime.
-- **`Shoko.Tests`** — Unit tests.
-- **`Shoko.IntegrationTests`** — Integration tests.
-- **`Shoko.TestData`** — Shared test data.
-- **`Shoko.Benchmarks`** — BenchmarkDotNet benchmarks.
+- **`DaCollector.Tests`** — Unit tests.
+- **`DaCollector.IntegrationTests`** — Integration tests.
+- **`DaCollector.TestData`** — Shared test data.
+- **`DaCollector.Benchmarks`** — BenchmarkDotNet benchmarks.
 
 ### Startup Sequence
 
-Entry points: `Shoko.CLI/Program.cs` (headless) or `Shoko.TrayService/Program.cs` (tray app). Both instantiate `new SystemService()` directly, which internally builds and starts the `IHost`.
+Entry points: `DaCollector.CLI/Program.cs` (headless) or `DaCollector.TrayService/Program.cs` (tray app). Both instantiate `new SystemService()` directly, which internally builds and starts the `IHost`.
 
 `Program.cs` → `SystemService` constructor (NLog, `PluginManager`, `ConfigurationService`, `SettingsProvider`) → `SystemService.StartAsync()` (builds and starts `IHost` / ASP.NET Core on port 8111) → `SystemService.LateStart()` (DB migrations via `DatabaseFixes`, init Quartz scheduler, UDP connection handler, file watchers).
 
@@ -48,14 +48,14 @@ and should not be used for new code unless DI is not an option and only as a las
 
 ### API Pipeline
 
-**Middleware order** (configured in `Shoko.Server/API/APIExtensions.cs`, `UseAPI()`):
+**Middleware order** (configured in `DaCollector.Server/API/APIExtensions.cs`, `UseAPI()`):
 
 1. Sentry exception handling (if not opted out)
 2. `DeveloperExceptionPage` (DEBUG / `AlwaysUseDeveloperExceptions`)
 3. Swagger UI (if enabled) — configurable path via `WebSettings.SwaggerUIPrefix`
 4. Static files (if enabled) — WebUI served via `WebUiFileProvider` at configurable path (`WebSettings.WebUIPublicPath`, defaults to `/webui`)
 5. `UseRouting`
-6. `UseAuthentication` — custom "ShokoServer" scheme
+6. `UseAuthentication` — custom "DaCollector" scheme
 7. `UseAuthorization` — policies: `"admin"` (IsAdmin == 1), `"init"` (setup user only)
 8. `UseEndpoints` — SignalR hubs registered here: `/signalr/logging`, `/signalr/aggregate`
 9. Plugin middleware registration
@@ -69,13 +69,13 @@ and should not be used for new code unless DI is not an option and only as a las
 **Action constraints**:
 - `RedirectConstraint` — redirects root `/` to WebUI public path if configured
 
-**Authentication** (`Shoko.Server/API/Authentication/`):
+**Authentication** (`DaCollector.Server/API/Authentication/`):
 - `CustomAuthHandler` extracts API key from: `apikey` header, `apikey` query param, `Bearer` token (SignalR), or `access_token` query param (SignalR)
 - Validates against `AuthTokensRepository`; builds `ClaimsPrincipal` with user ID, role, device name
 - During first-run setup, `InitUser` (synthetic admin) is used — no real auth required
 - No cookie sessions; every request is authenticated by API key
 
-**API versioning**: `v0` (version-less: auth + legacy Plex webhooks + index redirect), `v1` (legacy REST, off by default), `v2` (legacy REST, can be kill-switched), `v3` (current, all new endpoints). Version can be resolved from query string, `api-version` header, or custom `ShokoApiReader`. `ApiVersionControllerFeatureProvider` excludes disabled versions at startup via individual flags (`EnableAPIv1`, `EnableAPIv2`, `EnableAPIv3`, `EnableLegacyPlexAPI`, `EnableAuthAPI`).
+**API versioning**: `v0` (version-less: auth + legacy Plex webhooks + index redirect), `v1` (legacy REST, off by default), `v2` (legacy REST, can be kill-switched), `v3` (current, all new endpoints). Version can be resolved from query string, `api-version` header, or custom `DaCollectorApiReader`. `ApiVersionControllerFeatureProvider` excludes disabled versions at startup via individual flags (`EnableAPIv1`, `EnableAPIv2`, `EnableAPIv3`, `EnableLegacyPlexAPI`, `EnableAuthAPI`).
 
 **Serialization**: MVC uses `AddNewtonsoftJson()` (not `System.Text.Json`) with: `MaxDepth = 10`, `DefaultContractResolver`, `NullValueHandling.Include`, `DefaultValueHandling.Populate`. SignalR also uses `AddNewtonsoftJsonProtocol()`.
 
@@ -94,33 +94,33 @@ Event emitters bridge internal domain events to SignalR: `AnidbEventEmitter`, `A
 
 Three distinct model layers; **do not mix them**.
 
-**1. Persistence models** (`Shoko.Server/Models/`)
+**1. Persistence models** (`DaCollector.Server/Models/`)
 NHibernate-mapped entities. Organized by source:
-- `Shoko.Server.Models.Shoko` — core domain: `AnimeSeries`, `AnimeGroup`, `AnimeEpisode`, `VideoLocal`, `JMMUser`, `FilterPreset`, etc.
-- `Shoko.Server.Models.AniDB` — AniDB metadata cache: `AniDB_Anime`, `AniDB_Episode`, `AniDB_Character`, `AniDB_Creator`, `AniDB_Tag`, etc.
-- `Shoko.Server.Models.TMDB` — TMDB metadata cache: `TMDB_Show`, `TMDB_Movie`, `TMDB_Episode`, `TMDB_Image`, etc.
-- `Shoko.Server.Models.CrossReference` — cross-reference tables linking providers (AniDB↔TMDB, AniDB↔MAL, AniDB↔Trakt)
-- `Shoko.Server.Models.Release` — release/video file associations
-- `Shoko.Server.Models.Trakt` — Trakt metadata cache
-- `Shoko.Server.Models.Image` — image metadata
-- `Shoko.Server.Models.Internal` — internal tracking entities
-- `Shoko.Server.Models.Legacy` — legacy entities scheduled for removal once APIv1 is finally removed or before if they can be mocked using other methods/models
+- `DaCollector.Server.Models.DaCollector` — core domain: `AnimeSeries`, `AnimeGroup`, `AnimeEpisode`, `VideoLocal`, `JMMUser`, `FilterPreset`, etc.
+- `DaCollector.Server.Models.AniDB` — AniDB metadata cache: `AniDB_Anime`, `AniDB_Episode`, `AniDB_Character`, `AniDB_Creator`, `AniDB_Tag`, etc.
+- `DaCollector.Server.Models.TMDB` — TMDB metadata cache: `TMDB_Show`, `TMDB_Movie`, `TMDB_Episode`, `TMDB_Image`, etc.
+- `DaCollector.Server.Models.CrossReference` — cross-reference tables linking providers (AniDB↔TMDB, AniDB↔MAL, AniDB↔Trakt)
+- `DaCollector.Server.Models.Release` — release/video file associations
+- `DaCollector.Server.Models.Trakt` — Trakt metadata cache
+- `DaCollector.Server.Models.Image` — image metadata
+- `DaCollector.Server.Models.Internal` — internal tracking entities
+- `DaCollector.Server.Models.Legacy` — legacy entities scheduled for removal once APIv1 is finally removed or before if they can be mocked using other methods/models
 
-NHibernate mappings live in `Shoko.Server/Mappings/` as `*Map.cs` files. Schemas should be maintained to match, as they will be migrated to Entity Framework Code-First in a future version.
+NHibernate mappings live in `DaCollector.Server/Mappings/` as `*Map.cs` files. Schemas should be maintained to match, as they will be migrated to Entity Framework Code-First in a future version.
 
-**2. API response DTOs** (`Shoko.Server/API/v*/Models/`)
+**2. API response DTOs** (`DaCollector.Server/API/v*/Models/`)
 Never persisted; built from persistence models in controllers/services.
 - `v1/Models/` — legacy `CL_*` contract classes (50+ files), kept for backward compatibility
-- `v3/Models/Shoko/` — modern response models (`Series`, `Episode`, `Group`, `File`, `User`, …) extending `BaseModel`
+- `v3/Models/DaCollector/` — modern response models (`Series`, `Episode`, `Group`, `File`, `User`, …) extending `BaseModel`
 - `v3/Models/AniDB/` and `v3/Models/TMDB/` — provider-specific response shapes
 - `v3/Models/Common/` — shared types (`Images`, `Rating`, `Tag`, `Title`, etc.)
 
-**3. Abstractions interfaces** (`Shoko.Abstractions/`)
-`IShokoSeries`, `IShokoEpisode`, `IVideo`, `IUser`, etc. — implemented by persistence models, consumed by plugins and services. Plugin code should depend only on these, never on concrete `Shoko.Server` types.
+**3. Abstractions interfaces** (`DaCollector.Abstractions/`)
+`IDaCollectorSeries`, `IDaCollectorEpisode`, `IVideo`, `IUser`, etc. — implemented by persistence models, consumed by plugins and services. Plugin code should depend only on these, never on concrete `DaCollector.Server` types.
 
 ### Repository Pattern
 
-Two variants in `Shoko.Server/Repositories/`:
+Two variants in `DaCollector.Server/Repositories/`:
 - **`Cached/`** — `BaseCachedRepository<T, S>` loads all rows at startup into a `PocoCache` (from `NutzCode.InMemoryIndex`). Reads are `ReaderWriterLockSlim`-protected. Each repository builds typed indexes via `PopulateIndexes()` (e.g., `_animeIDs = Cache.CreateIndex(a => a.AnimeID)`). All writes go to DB then invalidate/update the in-memory cache. Use for hot data.
 - **`Direct/`** — no cache; hits DB on every call. Use for infrequently accessed or large data.
 - `BaseDirectRepository` is the base class.
@@ -131,7 +131,7 @@ Always prefer a cached repository over a direct one when both exist for the same
 
 ### Scheduling
 
-Quartz.NET with a custom in-memory `ThreadPooledJobStore` (`Shoko.Server/Scheduling/`). Jobs in `Jobs/` are DI-resolved via `JobFactory`. `QueueStateEventHandler` fires domain events (job added/started/completed) consumed by `QueueEventEmitter` → SignalR clients. `DatabaseLocks/` provides named locks to prevent concurrent conflicting DB operations.
+Quartz.NET with a custom in-memory `ThreadPooledJobStore` (`DaCollector.Server/Scheduling/`). Jobs in `Jobs/` are DI-resolved via `JobFactory`. `QueueStateEventHandler` fires domain events (job added/started/completed) consumed by `QueueEventEmitter` → SignalR clients. `DatabaseLocks/` provides named locks to prevent concurrent conflicting DB operations.
 
 **Note:** Quartz is referenced as local DLLs from `Dependencies/Quartz/` (not a NuGet package), using a custom/forked build.
 
@@ -157,11 +157,11 @@ Plugin controllers are registered via `AddPluginControllers` during API setup.
 - **Mocking**: Moq 4.20.70
 - **Coverage**: coverlet 6.0.2
 - **Test SDK**: Microsoft.NET.Test.Sdk 17.9.0
-- Unit tests in `Shoko.Tests/`, integration tests in `Shoko.IntegrationTests/`
+- Unit tests in `DaCollector.Tests/`, integration tests in `DaCollector.IntegrationTests/`
 
 ### Database Migrations
 
-All schema migrations and data fixups are in `Shoko.Server/Databases/DatabaseFixes.cs`. Append new migrations; never modify existing ones. `Versions` class tracks the applied migration level. Supported backends: SQLite (default), MySQL/MariaDB, SQL Server — selected via `DatabaseFactory`.
+All schema migrations and data fixups are in `DaCollector.Server/Databases/DatabaseFixes.cs`. Append new migrations; never modify existing ones. `Versions` class tracks the applied migration level. Supported backends: SQLite (default), MySQL/MariaDB, SQL Server — selected via `DatabaseFactory`.
 
 ## Domain Model Relationships
 
@@ -175,10 +175,10 @@ All schema migrations and data fixups are in `Shoko.Server/Databases/DatabaseFix
 
 **`VideoLocal_Place`** stores where a `VideoLocal` physically lives: a `ManagedFolderID` + `RelativePath`. One `VideoLocal` can have multiple places (the same file duplicated across folders). The absolute path is computed at runtime as `folder.Path + place.RelativePath`.
 
-**`ShokoManagedFolder`** (formerly `ImportFolder`) is a root directory Shoko monitors. Each folder has `IsWatched`, `IsDropSource`, and `IsDropDestination` flags used by the file relocation system.
+**`DaCollectorManagedFolder`** (formerly `ImportFolder`) is a root directory DaCollector monitors. Each folder has `IsWatched`, `IsDropSource`, and `IsDropDestination` flags used by the file relocation system.
 
 ```
-ShokoManagedFolder (1) ──< VideoLocal_Place >── (1) VideoLocal
+DaCollectorManagedFolder (1) ──< VideoLocal_Place >── (1) VideoLocal
                                                       │
                                               VideoLocal_HashDigest (CRC32/MD5/SHA1)
 ```
@@ -207,13 +207,13 @@ VideoLocal (hash+size) ──< CrossRef_File_Episode >── AniDB_Episode
 
 ### Episode → Series → Group
 
-**`AniDB_Episode`** is the raw AniDB cache (episode number, type, air date, synopsis, rating). It has no Shoko-specific data.
+**`AniDB_Episode`** is the raw AniDB cache (episode number, type, air date, synopsis, rating). It has no DaCollector-specific data.
 
-**`AnimeEpisode`** wraps one `AniDB_Episode` and adds Shoko state: hidden flag, title override, and the FK to `AnimeSeries`. All user watch data is stored in `AnimeEpisode_User`.
+**`AnimeEpisode`** wraps one `AniDB_Episode` and adds DaCollector state: hidden flag, title override, and the FK to `AnimeSeries`. All user watch data is stored in `AnimeEpisode_User`.
 
 **`AniDB_Anime`** is the raw AniDB cache for a series (titles, synopsis, ratings, episode counts, external IDs for streaming services). One `AnimeSeries` maps to exactly one `AniDB_Anime` via `AniDB_ID`.
 
-**`AnimeSeries`** is Shoko's local wrapper around an AniDB anime. Adds name/description overrides, language preferences, TMDB auto-match flags, and missing episode counts. All user ratings live in `AnimeSeries_User`.
+**`AnimeSeries`** is DaCollector's local wrapper around an AniDB anime. Adds name/description overrides, language preferences, TMDB auto-match flags, and missing episode counts. All user ratings live in `AnimeSeries_User`.
 
 **`AnimeGroup`** is a container for series, supporting arbitrary nesting (groups within groups via `AnimeGroupParentID`). Groups can be auto-named from their main series or manually named. `AllSeries` and `AllChildren` are recursive traversals.
 
@@ -244,32 +244,32 @@ When a file appears, jobs execute in sequence — each job enqueues the next upo
 File appears on disk
         │
         ▼
-ScanFolderJob  (Shoko.Server/Scheduling/Jobs/Shoko/ScanFolderJob.cs)
+ScanFolderJob  (DaCollector.Server/Scheduling/Jobs/DaCollector/ScanFolderJob.cs)
   Walks managed folder, creates VideoLocal + VideoLocal_Place stubs for new files
         │
         ▼
-HashFileJob  (Shoko.Server/Scheduling/Jobs/Shoko/HashFileJob.cs)
+HashFileJob  (DaCollector.Server/Scheduling/Jobs/DaCollector/HashFileJob.cs)
   Computes ED2K (primary), MD5, SHA1, CRC32 via IVideoHashingService
   Stores hashes, populates VideoLocal.Hash
         │
         ▼
-ProcessFileJob  (Shoko.Server/Scheduling/Jobs/Shoko/ProcessFileJob.cs)
+ProcessFileJob  (DaCollector.Server/Scheduling/Jobs/DaCollector/ProcessFileJob.cs)
   Queries release providers for episode mapping (hash + size)
   Creates CrossRef_File_Episode + StoredReleaseInfo
   Adds file to AniDB MyList (unless skipped)
         │  [on new AnimeID]
         ▼
-GetAniDBAnimeJob  (Shoko.Server/Scheduling/Jobs/AniDB/GetAniDBAnimeJob.cs)
+GetAniDBAnimeJob  (DaCollector.Server/Scheduling/Jobs/AniDB/GetAniDBAnimeJob.cs)
   Fetches full AniDB_Anime + all AniDB_Episode records via AniDB HTTP API
   Creates AnimeSeries + AnimeGroup if they don't exist (CreateSeriesEntry=true)
         │  [unless SkipTmdbUpdate]
         ▼
-SearchTmdbJob  (Shoko.Server/Scheduling/Jobs/TMDB/SearchTmdbJob.cs)
+SearchTmdbJob  (DaCollector.Server/Scheduling/Jobs/TMDB/SearchTmdbJob.cs)
   Auto-searches TMDB for matching show/movie by title + episode count
   Creates CrossRef_AniDB_TMDB_Show / CrossRef_AniDB_TMDB_Movie
         │
         ▼
-UpdateTmdbShowJob / UpdateTmdbMovieJob  (Shoko.Server/Scheduling/Jobs/TMDB/)
+UpdateTmdbShowJob / UpdateTmdbMovieJob  (DaCollector.Server/Scheduling/Jobs/TMDB/)
   Fetches TMDB_Show/Movie/Episode/Season/Image records
   Fetches titles + overviews in all configured languages
         │
@@ -282,15 +282,15 @@ Image download jobs  (DownloadAniDBImageJob, DownloadTmdbImageJob)
 
 Jobs do not use a central orchestrator. Each job enqueues its successor directly via `IJobFactory` / `IScheduler`. `ProcessFileJob` is the pivot: it reads the `AnimeID` from the AniDB response and checks whether `AniDB_Anime` already exists before deciding to enqueue `GetAniDBAnimeJob`.
 
-**`ImportJob`** (`Shoko.Server/Scheduling/Jobs/Actions/ImportJob.cs`) is a periodic sweep that catches anything the live pipeline missed: it calls `ActionService.ScheduleMissingAnidbAnimeForFiles()` to queue `GetAniDBAnimeJob` for any file whose anime was never fetched, and `IVideoService.ScheduleScanForManagedFolders()` to rescan all watched folders.
+**`ImportJob`** (`DaCollector.Server/Scheduling/Jobs/Actions/ImportJob.cs`) is a periodic sweep that catches anything the live pipeline missed: it calls `ActionService.ScheduleMissingAnidbAnimeForFiles()` to queue `GetAniDBAnimeJob` for any file whose anime was never fetched, and `IVideoService.ScheduleScanForManagedFolders()` to rescan all watched folders.
 
 ### Intermediate Cache Models
 
 Several models exist solely to avoid redundant I/O or external API calls. Jobs check these before making outbound requests.
 
-**`FileNameHash`** (`Models/Shoko/FileNameHash.cs`) — maps `FileName + FileSize → ED2K hash`. Written by `VideoHashingService.SaveFileNameHash()` and `VideoRelocationService` after a file is successfully hashed. Read by `AnidbReleaseProvider` as a last-resort local lookup when checking for creditless/variant files before going to AniDB.
+**`FileNameHash`** (`Models/DaCollector/FileNameHash.cs`) — maps `FileName + FileSize → ED2K hash`. Written by `VideoHashingService.SaveFileNameHash()` and `VideoRelocationService` after a file is successfully hashed. Read by `AnidbReleaseProvider` as a last-resort local lookup when checking for creditless/variant files before going to AniDB.
 
-**`VideoLocal_HashDigest`** (`Models/Shoko/VideoLocal_HashDigest.cs`) — stores all computed hash types (ED2K, CRC32, MD5, SHA1) for a `VideoLocal` as `Type + Value` rows. Written by `VideoHashingService` during `HashFileJob`. Read when displaying or cross-referencing file hashes without recomputing.
+**`VideoLocal_HashDigest`** (`Models/DaCollector/VideoLocal_HashDigest.cs`) — stores all computed hash types (ED2K, CRC32, MD5, SHA1) for a `VideoLocal` as `Type + Value` rows. Written by `VideoHashingService` during `HashFileJob`. Read when displaying or cross-referencing file hashes without recomputing.
 
 **`StoredReleaseInfo`** (`Models/Release/StoredReleaseInfo.cs`) — caches the full release provider response: ED2K + FileSize, provider ID, release URI, source (BluRay/Web/etc.), codec flags (`IsCensored`, `IsCreditless`, `IsChaptered`), version, and cross-references to anime/episodes. Written by `IVideoReleaseService.FindReleaseForVideo()` inside `ProcessFileJob`. `ProcessFileJob` calls `GetCurrentReleaseForVideo()` first — if a `StoredReleaseInfo` already exists for the hash, the release provider lookup is skipped entirely. Queried by the API via `GetByEd2kAndFileSize()`, `GetByReleaseURI()`, `GetByAnidbEpisodeID()`.
 

@@ -13,7 +13,7 @@ COPY . /usr/src/app/source
 WORKDIR /usr/src/app/source
 
 # maxcpucount added because we were facing this issue -> https://github.com/dotnet/sdk/issues/2902
-RUN dotnet build -c=Release -f net10.0 -o=/usr/src/app/build/ -r=linux-arm64 Shoko.CLI/Shoko.CLI.csproj /p:Version="${version}" /p:InformationalVersion="\"channel=${channel},commit=${commit},tag=${tag},date=${date},\"" /maxcpucount:1
+RUN dotnet build -c=Release -f net10.0 -o=/usr/src/app/build/ -r=linux-arm64 DaCollector.CLI/DaCollector.CLI.csproj /p:Version="${version}" /p:InformationalVersion="\"channel=${channel},commit=${commit},tag=${tag},date=${date},\"" /maxcpucount:1
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0
 ENV PUID=1000 \
@@ -35,7 +35,7 @@ WORKDIR /usr/src/app/build
 COPY --from=build /usr/src/app/build .
 COPY ./dockerentry.sh /dockerentry.sh
 
-VOLUME /home/shoko/.shoko/
+VOLUME /home/dacollector/.dacollector/
 
 HEALTHCHECK --start-period=5m CMD curl -s -H "Content-Type: application/json" -H 'Accept: application/json' 'http://localhost:8111/api/v3/Init/Status' || exit 1
 

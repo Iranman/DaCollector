@@ -1,6 +1,6 @@
-# The Collector
+# DaCollector
 
-The Collector is a self-hosted movie and TV collection manager. It combines a server-first media library backend with provider-driven collection automation and Plex-facing relay workflows.
+DaCollector is a self-hosted movie and TV collection manager. It combines a server-first media library backend with provider-driven collection automation and Plex-facing relay workflows.
 
 The project direction is:
 
@@ -13,13 +13,15 @@ The project direction is:
 
 ## Source Lineage
 
-The Collector is being built from these upstream projects:
+The active project home is `Iranman/DaCollector`.
+
+DaCollector is being built from these upstream references:
 
 - `ShokoAnime/ShokoServer`: backend, API, managed folders, file hashing, TMDB cache, duplicate-file workflows, and server infrastructure.
 - `Kometa-Team/Kometa`: collection-builder vocabulary and provider automation behavior.
 - `natyusha/ShokoRelay.bundle`: Plex scanner, metadata-agent, poster sync, watched sync, and refresh workflow reference.
 
-Upstream copyright, license, and attribution notices must remain intact. Public branding and new project-facing behavior should use **The Collector**.
+Upstream copyright, license, and attribution notices must remain intact. Public branding and new project-facing behavior should use **DaCollector**.
 
 ## Development
 
@@ -34,7 +36,7 @@ Build from this directory with:
 ```powershell
 $env:DOTNET_CLI_HOME='F:\Collection manager\dotnet-home'
 $env:DOTNET_ROOT='F:\Collection manager\.dotnet'
-..\.dotnet\dotnet.exe build Shoko.Server.sln
+..\.dotnet\dotnet.exe build DaCollector.sln
 ```
 
 ## Current Implementation Notes

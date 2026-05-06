@@ -8,8 +8,8 @@ on:
         default: master
         required: true
       filename:
-        description: Name of the file to upload to shokoanime.com
-        default: ShokoServer.zip
+        description: Name of the file to upload to the DaCollector release host
+        default: DaCollector.zip
         required: true
       release:
         description: Release Channel
@@ -27,9 +27,9 @@ jobs:
         id: webui_release
         run: |
           if [ "${{ github.event.inputs.release }}" = "stable" ]; then
-            download_url=$(curl -s https://api.github.com/repos/ShokoAnime/Shoko-WebUI/releases/latest | jq -r '.assets[0].browser_download_url')
+            download_url=$(curl -s https://api.github.com/repos/Iranman/DaCollector-WebUI/releases/latest | jq -r '.assets[0].browser_download_url')
           else
-            download_url=$(curl -s https://api.github.com/repos/ShokoAnime/Shoko-WebUI/releases | jq -r '.[0].assets[0].browser_download_url')
+            download_url=$(curl -s https://api.github.com/repos/Iranman/DaCollector-WebUI/releases | jq -r '.[0].assets[0].browser_download_url')
           fi
           echo "download_url=${download_url}" >> "$GITHUB_OUTPUT"
 
@@ -58,7 +58,7 @@ jobs:
       matrix:
         dotnet: [ '10.x' ]
 
-    name: Shoko Tray Service build
+    name: DaCollector Tray Service build
 
     steps:
       - name: Checkout branch
@@ -72,7 +72,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: webui
-          path: Shoko.Server/webui
+          path: DaCollector.Server/webui
 
       - name: Replace Sentry DSN and other keys
         shell: pwsh
@@ -94,16 +94,16 @@ jobs:
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
-      - run: dotnet publish -c Release -r win-x64 --self-contained true Shoko.TrayService /p:Version="${{ steps.release_info.outputs.version }}" /p:InformationalVersion="channel=${{ github.event.inputs.release }}%2ccommit=${{ github.sha }}%2cdate=${{ steps.release_info.outputs.date }}%2c" # %2c is comma, blame windows/pwsh
+      - run: dotnet publish -c Release -r win-x64 --self-contained true DaCollector.TrayService /p:Version="${{ steps.release_info.outputs.version }}" /p:InformationalVersion="channel=${{ github.event.inputs.release }}%2ccommit=${{ github.sha }}%2cdate=${{ steps.release_info.outputs.date }}%2c" # %2c is comma, blame windows/pwsh
 
       - uses: actions/upload-artifact@v3
         with:
-          name: Shoko.TrayService
-          path: Shoko.Server/bin/Release/net10.0/win-x64/publish/
+          name: DaCollector.TrayService
+          path: DaCollector.Server/bin/Release/net10.0/win-x64/publish/
 
       - name: Archive Release
         shell: pwsh
-        run: Compress-Archive .\\Shoko.Server\\bin\\Release\\net10.0\\win-x64\\publish .\\ShokoServer.zip
+        run: Compress-Archive .\\DaCollector.Server\\bin\\Release\\net10.0\\win-x64\\publish .\\DaCollector.zip
 
       - name: Install SSH key
         uses: shimataro/ssh-key-action@d4fffb50872869abe2d9a9098a6d9c5aa7d16be4
@@ -112,7 +112,7 @@ jobs:
           name: files_id_rsa
           known_hosts: ${{ secrets.FILES_KNOWN_HOSTS }}
 
-      - name: Upload Daily to shokoanime.com
+      - name: Upload Daily to DaCollector release host
         shell: pwsh
         env:
           SSH_USERNAME: ${{ secrets.FILES_USERNAME }}

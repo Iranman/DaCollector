@@ -1,12 +1,12 @@
 Param(
-    [string] $filename = "ShokoServer.zip"
+    [string] $filename = "DaCollector.zip"
 )
 
 # Variables.
 $ssh_user = $env:SSH_USERNAME
 $ssh_server = $env:SSH_SERVER
-$localPath = (Get-Location).Path + "/ShokoServer.zip"
-$remotePath = "/var/www/files.shokoanime.com/files/shoko-server/daily/$filename"
+$localPath = (Get-Location).Path + "/DaCollector.zip"
+$remotePath = "/var/www/files.dacollector.app/files/dacollector/daily/$filename"
 $batchFile = "$env:TEMP\sftp_batch.txt"
 
 # Check inputs
@@ -22,7 +22,7 @@ if ([string]::IsNullOrWhiteSpace($ssh_user) -or [string]::IsNullOrWhiteSpace($ss
 
 # Log inputs.
 Write-Output "Starting file upload...";
-Write-Output "Remote path: /files/shoko-server/daily/$filename";
+Write-Output "Remote path: /files/dacollector/daily/$filename";
 Write-Output "Local path: $localPath";
 
 # Create SFTP batch file

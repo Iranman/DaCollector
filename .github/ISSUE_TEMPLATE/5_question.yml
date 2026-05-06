@@ -1,5 +1,5 @@
 name: General Questions
-description: For general questions related to Shoko.
+description: For general questions related to DaCollector.
 labels: [Question]
 body:
   - type: checkboxes

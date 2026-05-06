@@ -1,0 +1,14 @@
+using System;
+using DaCollector.Abstractions.Filtering;
+
+namespace DaCollector.Server.Filters.SortingSelectors;
+
+public class SortNameSortingSelector : SortingExpression
+{
+    public override string HelpDescription => "This sorts by a filterable's name, excluding common words like A, The, etc.";
+
+    public override object Evaluate(IFilterableInfo filterable, IFilterableUserInfo userInfo, DateTime? time)
+    {
+        return filterable.SortName;
+    }
+}

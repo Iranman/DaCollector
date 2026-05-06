@@ -12,7 +12,7 @@ RUN mkdir -p /usr/src/app/source /usr/src/app/build
 COPY . /usr/src/app/source
 WORKDIR /usr/src/app/source
 
-RUN dotnet build -c=Release -r linux-x64 -f net10.0 -o=/usr/src/app/build/ Shoko.CLI/Shoko.CLI.csproj /p:Version="${version}" /p:InformationalVersion="\"channel=${channel},commit=${commit},tag=${tag},date=${date},\""
+RUN dotnet build -c=Release -r linux-x64 -f net10.0 -o=/usr/src/app/build/ DaCollector.CLI/DaCollector.CLI.csproj /p:Version="${version}" /p:InformationalVersion="\"channel=${channel},commit=${commit},tag=${tag},date=${date},\""
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0
 ENV PUID=1000 \
@@ -34,7 +34,7 @@ WORKDIR /usr/src/app/build
 COPY --from=build /usr/src/app/build .
 COPY ./dockerentry.sh /dockerentry.sh
 
-VOLUME /home/shoko/.shoko/
+VOLUME /home/dacollector/.dacollector/
 
 HEALTHCHECK --start-period=5m CMD curl -s -H "Content-Type: application/json" -H 'Accept: application/json' 'http://localhost:8111/api/v3/Init/Status' || exit 1
 

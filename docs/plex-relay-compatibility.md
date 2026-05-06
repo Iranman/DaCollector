@@ -1,6 +1,6 @@
 # Plex Relay Compatibility Inventory
 
-This file tracks what the upstream Plex relay bundle expects from the inherited server API and how those flows should map to The Collector.
+This file tracks what the upstream Plex relay bundle expects from the inherited server API and how those flows should map to DaCollector.
 
 Relay snapshot: `c06ec96`.
 
@@ -8,11 +8,11 @@ Relay snapshot: `c06ec96`.
 
 The upstream Plex relay bundle is the reference for Plex-facing behavior:
 
-- Scanner: turn local file paths into Plex episode/movie entries by asking The Collector what each file represents.
-- Agent: turn The Collector metadata into Plex metadata fields.
+- Scanner: turn local file paths into Plex episode/movie entries by asking DaCollector what each file represents.
+- Agent: turn DaCollector metadata into Plex metadata fields.
 - Scripts: automate collection posters, metadata refresh, watched/rating sync, and recent rescans.
 
-The current upstream relay code is a legacy Plex bundle. The Collector should preserve the behavior and data flow, but implement new code against the modern Plex integration path where possible.
+The current upstream relay code is a legacy Plex bundle. DaCollector should preserve the behavior and data flow, but implement new code against the modern Plex integration path where possible.
 
 ## Existing Relay Endpoint Usage
 
