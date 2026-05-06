@@ -1,0 +1,537 @@
+﻿using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using Shoko.Abstractions.Extensions;
+using Shoko.Server.Databases;
+using Shoko.Server.Extensions;
+using Shoko.Server.Models.AniDB;
+using Shoko.Server.Models.Shoko;
+using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Repositories.Cached.AniDB;
+using Shoko.Server.Repositories.NHibernate;
+using Shoko.Server.Scheduling;
+using Shoko.Server.Services;
+using Shoko.Server.Settings;
+
+namespace Shoko.Server.Tasks;
+
+public class AnimeGroupCreator
+{
+    private readonly ILogger<AnimeGroupCreator> _logger;
+    private const int DefaultBatchSize = 50;
+    public const string TempGroupName = "AAA Migrating Groups AAA";
+    private static readonly Regex _truncateYearRegex = new(@"\s*\(\d{4}\)$");
+    private readonly SystemService _systemService;
+    private readonly QueueHandler _queueHandler;
+    private readonly AnimeGroupService _groupService;
+    private readonly AniDB_AnimeRepository _aniDbAnimeRepo;
+    private readonly AnimeSeriesRepository _animeSeriesRepo;
+    private readonly AnimeGroupRepository _animeGroupRepo;
+    private readonly AnimeGroup_UserRepository _animeGroupUserRepo;
+    private readonly bool _autoGroupSeries;
+    private readonly DatabaseFactory _databaseFactory;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AnimeGroupCreator"/> class.
+    /// </summary>
+    /// <remarks>
+    /// Uses the current server configuration to determine if auto grouping series is enabled.
+    /// </remarks>
+    public AnimeGroupCreator(
+        SystemService systemService,
+        ISettingsProvider settingsProvider,
+        QueueHandler queueHandler,
+        ILogger<AnimeGroupCreator> logger,
+        DatabaseFactory databaseFactory,
+        AniDB_AnimeRepository aniDbAnimeRepo,
+        AnimeSeriesRepository animeSeriesRepo,
+        AnimeGroupRepository animeGroupRepo,
+        AnimeGroup_UserRepository animeGroupUserRepo,
+        AnimeGroupService groupService
+    )
+    {
+        _systemService = systemService;
+        _queueHandler = queueHandler;
+        _logger = logger;
+        _databaseFactory = databaseFactory;
+        _aniDbAnimeRepo = aniDbAnimeRepo;
+        _animeSeriesRepo = animeSeriesRepo;
+        _animeGroupRepo = animeGroupRepo;
+        _animeGroupUserRepo = animeGroupUserRepo;
+        _groupService = groupService;
+        _autoGroupSeries = settingsProvider.GetSettings().AutoGroupSeries;
+    }
+
+    /// <summary>
+    /// Creates a new group that series will be put in during group re-calculation.
+    /// </summary>
+    /// <param name="session">The NHibernate session.</param>
+    /// <returns>The temporary <see cref="AnimeGroup"/>.</returns>
+    private async Task<AnimeGroup> CreateTempAnimeGroup(ISessionWrapper session)
+    {
+        var now = DateTime.Now;
+
+        var tempGroup = new AnimeGroup
+        {
+            GroupName = TempGroupName,
+            Description = TempGroupName,
+            DateTimeUpdated = now,
+            DateTimeCreated = now
+        };
+
+        // We won't use AnimeGroupRepository.Save because we don't need to perform all the extra stuff since this is for temporary use only
+        await session.InsertAsync(tempGroup);
+        lock (_animeGroupRepo.Cache)
+        {
+            _animeGroupRepo.Cache.Update(tempGroup);
+        }
+
+        return tempGroup;
+    }
+
+    /// <summary>
+    /// Deletes the anime groups and user mappings as well as resetting group filters and moves all anime series into the specified group.
+    /// </summary>
+    /// <param name="session">The NHibernate session.</param>
+    /// <param name="tempGroupId">The ID of the temporary anime group to use for migration.</param>
+    private async Task ClearGroupsAndDependencies(ISessionWrapper session, int tempGroupId)
+    {
+        _logger.LogInformation("Removing existing AnimeGroups and resetting GroupFilters");
+
+        await _animeGroupUserRepo.DeleteAll(session);
+        await _animeGroupRepo.DeleteAll(session, tempGroupId);
+        await BaseRepository.Lock(async () =>
+        {
+            await session.CreateSQLQuery(@"
+                UPDATE AnimeSeries SET AnimeGroupID = :tempGroupId;")
+                .SetInt32("tempGroupId", tempGroupId)
+                .ExecuteUpdateAsync();
+        });
+
+        // We've deleted/modified all AnimeSeries/GroupFilter records, so update caches to reflect that
+        _animeSeriesRepo.ClearCache();
+        _logger.LogInformation("AnimeGroups have been removed and GroupFilters have been reset");
+    }
+
+    private async Task UpdateAnimeSeriesContractsAndSave(ISessionWrapper session,
+        IReadOnlyCollection<AnimeSeries> series)
+    {
+        await _animeSeriesRepo.UpdateBatch(session, series);
+        _logger.LogInformation("AnimeSeries contracts have been updated");
+    }
+
+    private Task UpdateAnimeGroupsAndTheirContracts(IReadOnlyCollection<AnimeGroup> groups)
+    {
+        _logger.LogInformation("Updating statistics for AnimeGroups");
+        var allGroupUsers = new ConcurrentBag<List<AnimeGroup_User>>();
+        Parallel.ForEach(groups.Batch(DefaultBatchSize), new ParallelOptions { MaxDegreeOfParallelism = 4 },
+            (groupBatch, _, localSession) =>
+            {
+                var createdGroupUsers = new List<AnimeGroup_User>(groupBatch.Length);
+                var updatedGroupUsers = new List<AnimeGroup_User>(groupBatch.Length);
+                _groupService.BatchUpdateStats(groupBatch, true, true,
+                    createdGroupUsers, updatedGroupUsers);
+                allGroupUsers.Add(createdGroupUsers);
+                allGroupUsers.Add(updatedGroupUsers);
+            });
+        var animeGroupUsers = allGroupUsers.SelectMany(groupUsers => groupUsers)
+            .ToList();
+        _animeGroupUserRepo.Save(animeGroupUsers);
+        _logger.LogInformation("AnimeGroup statistics have been saved");
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Creates a single <see cref="AnimeGroup"/> for each <see cref="AnimeSeries"/> in <paramref name="seriesList"/>.
+    /// </summary>
+    /// <param name="session"></param>
+    /// <param name="seriesList">The list of <see cref="AnimeSeries"/> to create groups for.</param>
+    /// <returns>A sequence of the created <see cref="AnimeGroup"/>s.</returns>
+    private async Task<IEnumerable<AnimeGroup>> CreateGroupPerSeries(ISessionWrapper session, IReadOnlyList<AnimeSeries> seriesList)
+    {
+        _logger.LogInformation("Generating AnimeGroups for {Count} AnimeSeries", seriesList.Count);
+
+        var now = DateTime.Now;
+        var newGroupsToSeries = new Tuple<AnimeGroup, AnimeSeries>[seriesList.Count];
+
+        // Create one group per series
+        for (var grp = 0; grp < seriesList.Count; grp++)
+        {
+            var group = new AnimeGroup();
+            var series = seriesList[grp];
+
+            group.Populate(series, now);
+            newGroupsToSeries[grp] = new Tuple<AnimeGroup, AnimeSeries>(group, series);
+        }
+
+        await BaseRepository.Lock(async () => await _animeGroupRepo.InsertBatch(session, newGroupsToSeries.Select(gts => gts.Item1).AsReadOnlyCollection()));
+
+        // Anime groups should have IDs now they've been inserted. Now assign the group ID's to their respective series
+        // (The caller of this method will be responsible for saving the AnimeSeries)
+        foreach (var groupAndSeries in newGroupsToSeries)
+        {
+            groupAndSeries.Item2.AnimeGroupID = groupAndSeries.Item1.AnimeGroupID;
+        }
+
+        _logger.LogInformation("Generated {Count} AnimeGroups", newGroupsToSeries.Length);
+
+        return newGroupsToSeries.Select(gts => gts.Item1);
+    }
+
+    /// <summary>
+    /// Creates <see cref="AnimeGroup"/> that contain <see cref="AnimeSeries"/> that appear to be related.
+    /// </summary>
+    /// <remarks>
+    /// This method assumes that there are no active transactions on the specified <paramref name="session"/>.
+    /// </remarks>
+    /// <param name="session"></param>
+    /// <param name="seriesList">The list of <see cref="AnimeSeries"/> to create groups for.</param>
+    /// <returns>A sequence of the created <see cref="AnimeGroup"/>s.</returns>
+    private async Task<IEnumerable<AnimeGroup>> AutoCreateGroupsWithRelatedSeries(ISessionWrapper session, IReadOnlyCollection<AnimeSeries> seriesList)
+    {
+        _logger.LogInformation("Auto-generating AnimeGroups for {Count} AnimeSeries based on aniDB relationships", seriesList.Count);
+
+        var now = DateTime.Now;
+        var grpCalculator = AutoAnimeGroupCalculator.CreateFromServerSettings();
+
+        _logger.LogInformation("The following exclusions will be applied when generating the groups: {Exclusions}", grpCalculator.Exclusions);
+
+        // Group all of the specified series into their respective groups (keyed by the groups main anime ID)
+        var seriesByGroup = seriesList.ToLookup(s => grpCalculator.GetGroupAnimeId(s.AniDB_ID));
+        var newGroupsToSeries =
+            new List<Tuple<AnimeGroup, IReadOnlyCollection<AnimeSeries>>>(seriesList.Count);
+
+        foreach (var groupAndSeries in seriesByGroup)
+        {
+            var mainAnimeId = groupAndSeries.Key;
+            var mainSeries = groupAndSeries.FirstOrDefault(series => series.AniDB_ID == mainAnimeId);
+            var animeGroup = CreateAnimeGroup(mainSeries, mainAnimeId, now);
+
+            newGroupsToSeries.Add(
+                new Tuple<AnimeGroup, IReadOnlyCollection<AnimeSeries>>(animeGroup,
+                    groupAndSeries.AsReadOnlyCollection()));
+        }
+
+        await BaseRepository.Lock(async () => await _animeGroupRepo.InsertBatch(session, newGroupsToSeries.Select(gts => gts.Item1).AsReadOnlyCollection()));
+
+        // Anime groups should have IDs now they've been inserted. Now assign the group ID's to their respective series
+        // (The caller of this method will be responsible for saving the AnimeSeries)
+        foreach (var groupAndSeries in newGroupsToSeries)
+        {
+            foreach (var series in groupAndSeries.Item2)
+            {
+                series.AnimeGroupID = groupAndSeries.Item1.AnimeGroupID;
+            }
+        }
+
+        _logger.LogInformation("Generated {Count} AnimeGroups", newGroupsToSeries.Count);
+
+        return newGroupsToSeries.Select(gts => gts.Item1);
+    }
+
+    /// <summary>
+    /// Creates an <see cref="AnimeGroup"/> instance.
+    /// </summary>
+    /// <remarks>
+    /// This method only creates an <see cref="AnimeGroup"/> instance. It does NOT save it to the database.
+    /// </remarks>
+    /// <param name="mainSeries">The <see cref="AnimeSeries"/> whose name will represent the group (Optional. Pass <c>null</c> if not available).</param>
+    /// <param name="mainAnimeId">The ID of the anime whose name will represent the group if <paramref name="mainSeries"/> is <c>null</c>.</param>
+    /// <param name="now">The current date/time.</param>
+    /// <returns>The created <see cref="AnimeGroup"/>.</returns>
+    private AnimeGroup CreateAnimeGroup(AnimeSeries mainSeries, int mainAnimeId,
+        DateTime now)
+    {
+        var animeGroup = new AnimeGroup();
+        string groupName;
+
+        if (mainSeries != null)
+        {
+            animeGroup.Populate(mainSeries, now);
+            groupName = animeGroup.GroupName;
+        }
+        else // The anime chosen as the group's main anime doesn't actually have a series
+        {
+            var mainAnime = _aniDbAnimeRepo.GetByAnimeID(mainAnimeId);
+
+            animeGroup.Populate(mainAnime, now);
+            groupName = animeGroup.GroupName;
+        }
+
+        // If the title appears to end with a year suffix, then remove it
+        groupName = _truncateYearRegex.Replace(groupName, string.Empty);
+        animeGroup.GroupName = groupName;
+
+        return animeGroup;
+    }
+
+    /// <summary>
+    /// Gets or creates an <see cref="AnimeGroup"/> for the specified series.
+    /// </summary>
+    /// <param name="series">The series for which the group is to be created/retrieved (Must be initialised first).</param>
+    /// <returns>The <see cref="AnimeGroup"/> to use for the specified series.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="series"/> is <c>null</c>.</exception>
+    public AnimeGroup GetOrCreateSingleGroupForSeries(AnimeSeries series)
+    {
+        if (series == null)
+        {
+            throw new ArgumentNullException(nameof(series));
+        }
+
+        AnimeGroup animeGroup;
+
+        if (_autoGroupSeries)
+        {
+            var grpCalculator = AutoAnimeGroupCalculator.CreateFromServerSettings();
+            var grpAnimeIds = grpCalculator.GetIdsOfAnimeInSameGroup(series.AniDB_ID);
+            // Try to find an existing AnimeGroup to add the series to
+            // We basically pick the first group that any of the related series belongs to already
+            animeGroup = grpAnimeIds.Where(id => id != series.AniDB_ID)
+                .Select(id => _animeSeriesRepo.GetByAnimeID(id))
+                .WhereNotNull()
+                .Select(s => _animeGroupRepo.GetByID(s.AnimeGroupID))
+                .FirstOrDefault(s => s != null);
+
+            var mainAnimeId = grpCalculator.GetGroupAnimeId(series.AniDB_ID);
+            // No existing group was found, so create a new one.
+            if (animeGroup == null)
+            {
+                // Find the main series for the group.
+                var mainSeries = series.AniDB_ID == mainAnimeId ?
+                    series :
+                    _animeSeriesRepo.GetByAnimeID(mainAnimeId);
+                animeGroup = CreateAnimeGroup(mainSeries, mainAnimeId, DateTime.Now);
+                _animeGroupRepo.Save(animeGroup, true);
+            }
+            // Update the group details if we have the main series for the group.
+            else if (mainAnimeId == series.AniDB_ID)
+            {
+                // Always update the automatic main id.
+                animeGroup.MainAniDBAnimeID = mainAnimeId;
+                // Update the auto-refreshed details if the main series changed
+                // and no default series is set.
+                if (!animeGroup.DefaultAnimeSeriesID.HasValue)
+                {
+                    // Override the group name if the group is not manually named.
+                    if (animeGroup.IsManuallyNamed == 0)
+                    {
+                        animeGroup.GroupName = series.Title;
+                    }
+                    // Override the group desc. if the group doesn't have an override.
+                    if (animeGroup.OverrideDescription == 0)
+                        animeGroup.Description = series.PreferredOverview?.Value ?? string.Empty;
+                }
+                animeGroup.DateTimeUpdated = DateTime.Now;
+                _animeGroupRepo.Save(animeGroup, true);
+            }
+        }
+        else // We're not auto grouping (e.g. we're doing group per series)
+        {
+            animeGroup = new AnimeGroup();
+            animeGroup.Populate(series, DateTime.Now);
+            _animeGroupRepo.Save(animeGroup, true);
+        }
+
+        return animeGroup;
+    }
+
+    /// <summary>
+    /// Gets or creates an <see cref="AnimeGroup"/> for the specified series.
+    /// </summary>
+    /// <param name="anime">The series for which the group is to be created/retrieved (Must be initialised first).</param>
+    /// <returns>The <see cref="AnimeGroup"/> to use for the specified series.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="anime"/> is <c>null</c>.</exception>
+    public AnimeGroup GetOrCreateSingleGroupForAnime(AniDB_Anime anime)
+    {
+        if (anime == null)
+        {
+            throw new ArgumentNullException(nameof(anime));
+        }
+
+        AnimeGroup animeGroup;
+
+        if (_autoGroupSeries)
+        {
+            var grpCalculator = AutoAnimeGroupCalculator.CreateFromServerSettings();
+            var grpAnimeIds = grpCalculator.GetIdsOfAnimeInSameGroup(anime.AnimeID);
+            // Try to find an existing AnimeGroup to add the series to
+            // We basically pick the first group that any of the related series belongs to already
+            animeGroup = grpAnimeIds.Where(id => id != anime.AnimeID)
+                .Select(id => _animeSeriesRepo.GetByAnimeID(id))
+                .WhereNotNull()
+                .Select(s => _animeGroupRepo.GetByID(s.AnimeGroupID))
+                .FirstOrDefault(s => s != null);
+
+            var mainAnimeId = grpCalculator.GetGroupAnimeId(anime.AnimeID);
+            // No existing group was found, so create a new one.
+            if (animeGroup == null)
+            {
+                // Find the main series for the group.
+                animeGroup = CreateAnimeGroup(null, mainAnimeId, DateTime.Now);
+                _animeGroupRepo.Save(animeGroup, true);
+            }
+            // Update the group details if we have the main series for the group.
+            else if (mainAnimeId == anime.AnimeID)
+            {
+                // Always update the automatic main id.
+                animeGroup.MainAniDBAnimeID = mainAnimeId;
+                // Update the auto-refreshed details if the main series changed
+                // and no default series is set.
+                if (!animeGroup.DefaultAnimeSeriesID.HasValue)
+                {
+                    // Override the group name if the group is not manually named.
+                    if (animeGroup.IsManuallyNamed == 0)
+                    {
+                        animeGroup.GroupName = anime.Title;
+                    }
+                    // Override the group desc. if the group doesn't have an override.
+                    if (animeGroup.OverrideDescription == 0)
+                        animeGroup.Description = anime.Description;
+                }
+                animeGroup.DateTimeUpdated = DateTime.Now;
+                _animeGroupRepo.Save(animeGroup, true);
+            }
+        }
+        else // We're not auto grouping (e.g. we're doing group per series)
+        {
+            animeGroup = new AnimeGroup();
+            animeGroup.Populate(anime, DateTime.Now);
+            _animeGroupRepo.Save(animeGroup, true);
+        }
+
+        return animeGroup;
+    }
+
+    /// <summary>
+    /// Re-creates all AnimeGroups based on the existing AnimeSeries.
+    /// </summary>
+    /// <param name="session">The NHibernate session.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="session"/> is <c>null</c>.</exception>
+    private async Task RecreateAllGroups(ISessionWrapper session)
+    {
+        if (session == null)
+        {
+            throw new ArgumentNullException(nameof(session));
+        }
+
+        var paused = _queueHandler.Paused;
+        var taskSource = new TaskCompletionSource();
+        _systemService.AddDatabaseBlockingTask(taskSource.Task);
+
+        try
+        {
+            // Pause queues
+            if (!paused) await _queueHandler.Pause();
+            _logger.LogInformation("Beginning re-creation of all groups");
+
+            var animeSeries = _animeSeriesRepo.GetAll();
+            AnimeGroup tempGroup = null;
+
+            await BaseRepository.Lock(async () =>
+            {
+                using var trans = session.BeginTransaction();
+                tempGroup = await CreateTempAnimeGroup(session);
+                await ClearGroupsAndDependencies(session, tempGroup.AnimeGroupID);
+                await trans.CommitAsync();
+            });
+
+            var createdGroups = _autoGroupSeries
+                ? (await AutoCreateGroupsWithRelatedSeries(session, animeSeries)).AsReadOnlyCollection()
+                : (await CreateGroupPerSeries(session, animeSeries)).AsReadOnlyCollection();
+
+            await UpdateAnimeSeriesContractsAndSave(session, animeSeries);
+
+            await BaseRepository.Lock(async () =>
+            {
+                using var trans = session.BeginTransaction();
+                await session.DeleteAsync(tempGroup); // We should no longer need the temporary group we created earlier
+                await trans.CommitAsync();
+            });
+
+            // We need groups and series cached for updating of AnimeGroup contracts to work
+            _animeGroupRepo.Populate(session, false);
+            _animeSeriesRepo.Populate(session, false);
+
+            await UpdateAnimeGroupsAndTheirContracts(createdGroups);
+
+            // We need to update the AnimeGroups cache again now that the contracts have been saved
+            // (Otherwise updating Group Filters won't get the correct results)
+            _animeGroupRepo.Populate(session, false);
+            _animeGroupUserRepo.Populate(session, false);
+
+            _logger.LogInformation("Successfully completed re-creating all groups");
+            taskSource.SetResult();
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "An error occurred while re-creating all groups");
+
+            try
+            {
+                // If an error occurs then chances are the caches are in an inconsistent state. So re-populate them
+                _animeSeriesRepo.Populate();
+                _animeGroupRepo.Populate();
+                _animeGroupUserRepo.Populate();
+            }
+            catch (Exception ie)
+            {
+                _logger.LogWarning(ie, "Failed to re-populate caches");
+            }
+
+            taskSource.SetException(e);
+            throw;
+        }
+        finally
+        {
+            // Un-pause queues (if they were previously running)
+            if (!paused) await _queueHandler.Resume();
+        }
+    }
+
+    public async Task RecreateAllGroups()
+    {
+        using var session = _databaseFactory.SessionFactory.OpenStatelessSession();
+        await RecreateAllGroups(session.Wrap());
+    }
+
+    public async Task RecalculateStatsContractsForGroup(AnimeGroup group)
+    {
+        using var sessionNotWrapped = _databaseFactory.SessionFactory.OpenSession();
+        var groups = new List<AnimeGroup> { group };
+        var session = sessionNotWrapped.Wrap();
+        var series = group.AllSeries;
+        // recalculate series
+        _logger.LogInformation("Recalculating Series Stats and Contracts for Group: {Name} ({ID})", group.GroupName, group.AnimeGroupID);
+        await BaseRepository.Lock(async () =>
+        {
+            using var trans = session.BeginTransaction();
+            await UpdateAnimeSeriesContractsAndSave(session, series);
+            await trans.CommitAsync();
+        });
+
+        // Update Cache so that group can recalculate
+        series.ForEach(_animeSeriesRepo.Cache.Update);
+
+        // Recalculate group
+        _logger.LogInformation("Recalculating Group Stats and Contracts for Group: {Name} ({ID})", group.GroupName, group.AnimeGroupID);
+        await BaseRepository.Lock(async () =>
+        {
+            using var trans = session.BeginTransaction();
+            await UpdateAnimeGroupsAndTheirContracts(groups);
+            await trans.CommitAsync();
+        });
+
+        // update cache
+        _animeGroupRepo.Cache.Update(group);
+        var groupsUsers = _animeGroupUserRepo.GetByGroupID(group.AnimeGroupID);
+        groupsUsers.ForEach(_animeGroupUserRepo.Cache.Update);
+
+        _logger.LogInformation("Done Recalculating Stats and Contracts for Group: {Name} ({ID})", group.GroupName, group.AnimeGroupID);
+    }
+}

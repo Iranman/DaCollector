@@ -1,0 +1,6 @@
+.vscode
+.vs
+.git
+.idea
+Shoko.*/bin/**/*
+Shoko.*/obj/**/*

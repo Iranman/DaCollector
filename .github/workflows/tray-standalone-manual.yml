@@ -1,0 +1,120 @@
+name: Build Tray Service - Standalone (Manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Git reference for what to push
+        default: master
+        required: true
+      filename:
+        description: Name of the file to upload to shokoanime.com
+        default: ShokoServer.zip
+        required: true
+      release:
+        description: Release Channel
+        default: dev
+        required: true
+
+jobs:
+  webui:
+    runs-on: ubuntu-latest
+
+    name: Download Web UI
+
+    steps:
+      - name: Get Web UI Release URL
+        id: webui_release
+        run: |
+          if [ "${{ github.event.inputs.release }}" = "stable" ]; then
+            download_url=$(curl -s https://api.github.com/repos/ShokoAnime/Shoko-WebUI/releases/latest | jq -r '.assets[0].browser_download_url')
+          else
+            download_url=$(curl -s https://api.github.com/repos/ShokoAnime/Shoko-WebUI/releases | jq -r '.[0].assets[0].browser_download_url')
+          fi
+          echo "download_url=${download_url}" >> "$GITHUB_OUTPUT"
+
+      - name: Download and Extract Web UI
+        run: |
+          mkdir -p webui
+          curl -L "${{ steps.webui_release.outputs.download_url }}" -o webui/latest.zip
+          cd webui
+          unzip -o latest.zip
+          rm latest.zip
+
+      - name: Upload Web UI Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: webui
+          path: webui/
+          retention-days: 1
+
+  tray-service-standalone-manual:
+    runs-on: windows-latest
+
+    needs:
+      - webui
+
+    strategy:
+      matrix:
+        dotnet: [ '10.x' ]
+
+    name: Shoko Tray Service build
+
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@master
+        with:
+          ref: "${{ github.event.inputs.ref }}"
+          submodules: recursive
+          fetch-depth: 0 # This is set to download the full git history for the repo
+
+      - name: Download Web UI
+        uses: actions/download-artifact@v4
+        with:
+          name: webui
+          path: Shoko.Server/webui
+
+      - name: Replace Sentry DSN and other keys
+        shell: pwsh
+        run: |
+          .\\.github\\workflows\\ReplaceSentryDSN.ps1 -dsn ${{ secrets.SENTRY_DSN }}
+          .\\.github\\workflows\\ReplaceTmdbApiKey.ps1 -apiKey ${{ secrets.TMDB_API }}
+          .\\.github\\workflows\\ReplaceAVD3URL.ps1 -url ${{ secrets.AVD3_URL }}
+
+      - name: Get release info
+        id: release_info
+        uses: revam/gh-action-get-tag-and-version@v1
+        with:
+          tag: "${{ github.event.inputs.ref }}"
+          prefix: v
+          prefixRegex: "[vV]?"
+
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: ${{ matrix.dotnet }}
+
+      - run: dotnet publish -c Release -r win-x64 --self-contained true Shoko.TrayService /p:Version="${{ steps.release_info.outputs.version }}" /p:InformationalVersion="channel=${{ github.event.inputs.release }}%2ccommit=${{ github.sha }}%2cdate=${{ steps.release_info.outputs.date }}%2c" # %2c is comma, blame windows/pwsh
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: Shoko.TrayService
+          path: Shoko.Server/bin/Release/net10.0/win-x64/publish/
+
+      - name: Archive Release
+        shell: pwsh
+        run: Compress-Archive .\\Shoko.Server\\bin\\Release\\net10.0\\win-x64\\publish .\\ShokoServer.zip
+
+      - name: Install SSH key
+        uses: shimataro/ssh-key-action@d4fffb50872869abe2d9a9098a6d9c5aa7d16be4
+        with:
+          key: ${{ secrets.FILES_SSH_KEY }}
+          name: files_id_rsa
+          known_hosts: ${{ secrets.FILES_KNOWN_HOSTS }}
+
+      - name: Upload Daily to shokoanime.com
+        shell: pwsh
+        env:
+          SSH_USERNAME: ${{ secrets.FILES_USERNAME }}
+          SSH_SERVER: ${{ secrets.FILES_SERVER }}
+        run : .\\.github\\workflows\\UploadArchive.ps1 -filename "${{ github.event.inputs.filename }}"
