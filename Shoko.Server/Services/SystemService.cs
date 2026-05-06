@@ -37,6 +37,7 @@ using Shoko.Abstractions.Video.Services;
 using Shoko.Server.API;
 using Shoko.Server.Collections;
 using Shoko.Server.Databases;
+using Shoko.Server.Duplicates;
 using Shoko.Server.Extensions;
 using Shoko.Server.Filters;
 using Shoko.Server.Filters.Legacy;
@@ -387,6 +388,7 @@ public class SystemService : ISystemService
             services.AddSingleton<CollectionBuilderPreviewService>();
             services.AddSingleton<ManagedCollectionService>();
             services.AddSingleton<ManagedCollectionSyncService>();
+            services.AddSingleton<ExactDuplicateService>();
             services.AddSingleton<PlexTargetService>();
             services.AddSingleton<IFilterEvaluator, FilterEvaluator>();
             services.AddSingleton<LegacyFilterConverter>();
