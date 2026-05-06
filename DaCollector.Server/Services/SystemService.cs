@@ -42,6 +42,7 @@ using DaCollector.Server.Extensions;
 using DaCollector.Server.Filters;
 using DaCollector.Server.Filters.Legacy;
 using DaCollector.Server.Hashing;
+using DaCollector.Server.Media;
 using DaCollector.Server.MediaInfo;
 using DaCollector.Server.Plex;
 using DaCollector.Server.Plugin;
@@ -389,6 +390,7 @@ public class SystemService : ISystemService
             services.AddSingleton<ManagedCollectionService>();
             services.AddSingleton<ManagedCollectionSyncService>();
             services.AddSingleton<ExactDuplicateService>();
+            services.AddSingleton<MediaCatalogService>();
             services.AddSingleton<PlexTargetService>();
             services.AddSingleton<IFilterEvaluator, FilterEvaluator>();
             services.AddSingleton<LegacyFilterConverter>();
