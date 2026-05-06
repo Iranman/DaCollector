@@ -1,14 +1,14 @@
 # DaCollector Blueprint
 
-DaCollector uses `ShokoAnime/ShokoServer` as the server base, `natyusha/ShokoRelay.bundle` as the Plex-facing scanner/agent/automation reference, and `Kometa-Team/Kometa` as the collection/provider behavior reference. The active fork and project home is `Iranman/DaCollector`.
+DaCollector uses an upstream server base, a Plex-facing scanner/agent/automation reference, and a collection/provider behavior reference. The active fork and project home is `Iranman/DaCollector`.
 
 Source snapshots:
 
-- ShokoServer: `56707a9` on `master`
-- ShokoRelay.bundle: `c06ec96` on `master`
-- Kometa: `15b1e1f` on `master`
+- Server base reference: `56707a9` on `master`
+- Plex relay reference: `c06ec96` on `master`
+- Collection automation reference: `15b1e1f` on `master`
 
-Upstream ShokoServer and upstream Kometa are MIT licensed. Upstream ShokoRelay.bundle does not include a license file in this checkout, so treat it as an integration reference until licensing or permission is confirmed. Do not directly copy Relay code into the server without resolving that.
+Licensing and attribution notes are maintained in `NOTICE.md`. Treat the Plex relay checkout as an integration reference until licensing or permission is confirmed. Do not directly copy relay code into the server without resolving that.
 
 ## Product Target
 

@@ -2,5 +2,5 @@
 .vs
 .git
 .idea
-Shoko.*/bin/**/*
-Shoko.*/obj/**/*
+DaCollector.*/bin/**/*
+DaCollector.*/obj/**/*

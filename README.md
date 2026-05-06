@@ -15,13 +15,7 @@ The project direction is:
 
 The active project home is `Iranman/DaCollector`.
 
-DaCollector is being built from these upstream references:
-
-- `ShokoAnime/ShokoServer`: backend, API, managed folders, file hashing, TMDB cache, duplicate-file workflows, and server infrastructure.
-- `Kometa-Team/Kometa`: collection-builder vocabulary and provider automation behavior.
-- `natyusha/ShokoRelay.bundle`: Plex scanner, metadata-agent, poster sync, watched sync, and refresh workflow reference.
-
-Upstream copyright, license, and attribution notices must remain intact. Public branding and new project-facing behavior should use **DaCollector**.
+DaCollector is being built from upstream server, collection automation, and Plex relay references. Upstream copyright, license, and attribution notices are maintained in `NOTICE.md`. Public branding and new project-facing behavior should use **DaCollector**.
 
 ## Development
 

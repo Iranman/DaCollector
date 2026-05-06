@@ -6,7 +6,7 @@ using DaCollector.Abstractions.Metadata.Enums;
 namespace DaCollector.Server.Collections;
 
 /// <summary>
-/// Initial catalog of Kometa-style collection builders being ported into DaCollector.
+/// Initial catalog of provider-driven collection builders being ported into DaCollector.
 /// </summary>
 public static class CollectionBuilderCatalog
 {

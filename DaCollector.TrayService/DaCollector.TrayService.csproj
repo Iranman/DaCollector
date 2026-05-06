@@ -33,10 +33,10 @@
         <ProjectReference Include="..\DaCollector.Server\DaCollector.Server.csproj" />
     </ItemGroup>
     <ItemGroup>
-        <PackageReference Include="Avalonia" Version="11.3.12" />
-        <PackageReference Include="Avalonia.Desktop" Version="11.3.12" />
+        <PackageReference Include="Avalonia" Version="11.3.14" />
+        <PackageReference Include="Avalonia.Desktop" Version="11.3.14" />
         <!-- Needed for the windows' native tray system menu to function properly. -->
-        <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.12" />
+        <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.14" />
     </ItemGroup>
     <ItemGroup>
         <AvaloniaResource Include="..\DaCollector.Server\db.ico">
