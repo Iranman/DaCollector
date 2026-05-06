@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Abstractions.Collections;
@@ -122,17 +124,17 @@ public class ManagedCollectionController(
     /// </summary>
     [Authorize("admin")]
     [HttpPost("Sync")]
-    public ActionResult<CollectionSyncRunResult> SyncCollections([FromQuery] bool apply = false) =>
-        syncService.Run(apply);
+    public async Task<ActionResult<CollectionSyncRunResult>> SyncCollections([FromQuery] bool apply = false, CancellationToken cancellationToken = default) =>
+        await syncService.Run(apply, cancellationToken);
 
     /// <summary>
     /// Evaluate one managed collection definition.
     /// </summary>
     [Authorize("admin")]
     [HttpPost("{collectionID:guid}/Sync")]
-    public ActionResult<CollectionSyncResult> SyncCollection([FromRoute] Guid collectionID, [FromQuery] bool apply = false)
+    public async Task<ActionResult<CollectionSyncResult>> SyncCollection([FromRoute] Guid collectionID, [FromQuery] bool apply = false, CancellationToken cancellationToken = default)
     {
-        var result = syncService.Run(collectionID, apply);
+        var result = await syncService.Run(collectionID, apply, cancellationToken);
         return result is null ? NotFound("No managed collection exists for the given collectionID.") : result;
     }
 }

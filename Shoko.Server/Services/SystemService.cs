@@ -42,6 +42,7 @@ using Shoko.Server.Filters;
 using Shoko.Server.Filters.Legacy;
 using Shoko.Server.Hashing;
 using Shoko.Server.MediaInfo;
+using Shoko.Server.Plex;
 using Shoko.Server.Plugin;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
@@ -386,6 +387,7 @@ public class SystemService : ISystemService
             services.AddSingleton<CollectionBuilderPreviewService>();
             services.AddSingleton<ManagedCollectionService>();
             services.AddSingleton<ManagedCollectionSyncService>();
+            services.AddSingleton<PlexTargetService>();
             services.AddSingleton<IFilterEvaluator, FilterEvaluator>();
             services.AddSingleton<LegacyFilterConverter>();
             services.AddSingleton<ActionService>();
@@ -433,6 +435,22 @@ public class SystemService : ISystemService
                     client.DefaultRequestHeaders.AcceptEncoding.ParseAdd("gzip");
                     client.DefaultRequestHeaders.AcceptEncoding.ParseAdd("deflate");
                     client.DefaultRequestHeaders.AcceptEncoding.ParseAdd("br");
+                })
+                .SetHandlerLifetime(Timeout.InfiniteTimeSpan)
+                .UseSocketsHttpHandler((handler, _) =>
+                {
+                    handler.AllowAutoRedirect = true;
+                    handler.AutomaticDecompression = DecompressionMethods.All;
+                    handler.PooledConnectionLifetime = TimeSpan.FromMinutes(2);
+                });
+            services.AddHttpClient("PlexTarget", client =>
+                {
+                    client.DefaultRequestHeaders.Add("Accept", "application/xml");
+                    client.DefaultRequestHeaders.Add("X-Plex-Client-Identifier", "the-collector");
+                    client.DefaultRequestHeaders.Add("X-Plex-Product", "The Collector");
+                    client.DefaultRequestHeaders.Add("X-Plex-Device-Name", "The Collector");
+                    client.DefaultRequestHeaders.Add("User-Agent", $"TheCollector/{systemService.Version.Version.ToSemanticVersioningString()}");
+                    client.Timeout = TimeSpan.FromSeconds(10);
                 })
                 .SetHandlerLifetime(Timeout.InfiniteTimeSpan)
                 .UseSocketsHttpHandler((handler, _) =>

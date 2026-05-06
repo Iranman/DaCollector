@@ -15,9 +15,9 @@ public class SyncManagedCollectionsJob(ManagedCollectionSyncService syncService)
 
     public override string Title => "Syncing Managed Collections";
 
-    public override Task Process()
+    public override async Task Process()
     {
-        var result = syncService.Run(apply: true);
+        var result = await syncService.Run(apply: true).ConfigureAwait(false);
         _logger.LogInformation(
             "Managed collection sync {RunID} evaluated {CollectionCount} enabled collections and {ItemCount} distinct items.",
             result.RunID,
@@ -33,8 +33,6 @@ public class SyncManagedCollectionsJob(ManagedCollectionSyncService syncService)
             foreach (var warning in collection.Warnings)
                 _logger.LogWarning("Managed collection {CollectionName}: {Warning}", collection.Collection.Name, warning);
         }
-
-        return Task.CompletedTask;
     }
 
     protected SyncManagedCollectionsJob() : this(null!) { }

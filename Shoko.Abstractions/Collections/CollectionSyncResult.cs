@@ -38,6 +38,26 @@ public sealed record CollectionSyncResult
     public IReadOnlyList<CollectionBuilderPreviewItem> Items { get; init; } = [];
 
     /// <summary>
+    /// Number of resolved items matched in the target library.
+    /// </summary>
+    public int MatchedItemCount { get; init; }
+
+    /// <summary>
+    /// Number of resolved items missing from the target library.
+    /// </summary>
+    public int MissingItemCount { get; init; }
+
+    /// <summary>
+    /// Number of target items added during the apply run.
+    /// </summary>
+    public int AddedItemCount { get; init; }
+
+    /// <summary>
+    /// Number of target items removed during the apply run.
+    /// </summary>
+    public int RemovedItemCount { get; init; }
+
+    /// <summary>
     /// Non-fatal issues encountered while evaluating the collection.
     /// </summary>
     public IReadOnlyList<string> Warnings { get; init; } = [];
