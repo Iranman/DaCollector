@@ -66,7 +66,7 @@ public class Filter : Filters
             .ToList();
         var groupsList = evaluatedResults
             .Select(r => RepoFactory.MediaGroup.GetByID(r.Key))
-            .Where(a => a is { AnimeGroupParentID: null })
+            .Where(a => a is { MediaGroupParentID: null })
             .ToList();
         if (pic == 1)
         {

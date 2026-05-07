@@ -21,7 +21,7 @@ public class MediaGroup : IDaCollectorGroup
 
     public int MediaGroupID { get; set; }
 
-    public int? AnimeGroupParentID { get; set; }
+    public int? MediaGroupParentID { get; set; }
 
     public string GroupName { get; set; } = string.Empty;
 
@@ -43,7 +43,7 @@ public class MediaGroup : IDaCollectorGroup
 
     public int OverrideDescription { get; set; }
 
-    public int? DefaultAnimeSeriesID { get; set; }
+    public int? DefaultMediaSeriesID { get; set; }
 
     public int? MainAniDBAnimeID { get; set; }
 
@@ -65,21 +65,21 @@ public class MediaGroup : IDaCollectorGroup
         }
     }
 
-    public MediaGroup? Parent => AnimeGroupParentID.HasValue ? RepoFactory.MediaGroup.GetByID(AnimeGroupParentID.Value) : null;
+    public MediaGroup? Parent => MediaGroupParentID.HasValue ? RepoFactory.MediaGroup.GetByID(MediaGroupParentID.Value) : null;
 
     public List<MediaGroup> AllGroupsAbove
     {
         get
         {
             var allGroupsAbove = new List<MediaGroup>();
-            var groupID = AnimeGroupParentID;
+            var groupID = MediaGroupParentID;
             while (groupID.HasValue && groupID.Value != 0)
             {
                 var grp = RepoFactory.MediaGroup.GetByID(groupID.Value);
                 if (grp != null)
                 {
                     allGroupsAbove.Add(grp);
-                    groupID = grp.AnimeGroupParentID;
+                    groupID = grp.MediaGroupParentID;
                 }
                 else
                 {
@@ -149,9 +149,9 @@ public class MediaGroup : IDaCollectorGroup
     {
         get
         {
-            if (DefaultAnimeSeriesID.HasValue)
+            if (DefaultMediaSeriesID.HasValue)
             {
-                var series = RepoFactory.MediaSeries.GetByID(DefaultAnimeSeriesID.Value);
+                var series = RepoFactory.MediaSeries.GetByID(DefaultMediaSeriesID.Value);
                 if (series != null)
                     return series;
             }
@@ -179,7 +179,7 @@ public class MediaGroup : IDaCollectorGroup
 
             // Make sure the default/main series is the first, if it's directly
             // within the group.
-            if (!DefaultAnimeSeriesID.HasValue && !MainAniDBAnimeID.HasValue) return seriesList;
+            if (!DefaultMediaSeriesID.HasValue && !MainAniDBAnimeID.HasValue) return seriesList;
 
             var mainSeries = MainSeries;
             if (mainSeries != null && seriesList.Remove(mainSeries)) seriesList.Insert(0, mainSeries);
@@ -216,11 +216,11 @@ public class MediaGroup : IDaCollectorGroup
 
             // Make sure the default/main series is the first if it's somewhere
             // within the group.
-            if (DefaultAnimeSeriesID.HasValue || MainAniDBAnimeID.HasValue)
+            if (DefaultMediaSeriesID.HasValue || MainAniDBAnimeID.HasValue)
             {
                 MediaSeries? mainSeries = null;
-                if (DefaultAnimeSeriesID.HasValue)
-                    mainSeries = seriesList.FirstOrDefault(ser => ser.MediaSeriesID == DefaultAnimeSeriesID.Value);
+                if (DefaultMediaSeriesID.HasValue)
+                    mainSeries = seriesList.FirstOrDefault(ser => ser.MediaSeriesID == DefaultMediaSeriesID.Value);
 
                 if (mainSeries == null && MainAniDBAnimeID.HasValue)
                     mainSeries = seriesList.FirstOrDefault(ser => ser.AniDB_ID == MainAniDBAnimeID.Value);
@@ -267,7 +267,7 @@ public class MediaGroup : IDaCollectorGroup
     public override string ToString()
         => $"Group: {GroupName} ({MediaGroupID})";
 
-    public MediaGroup TopLevelAnimeGroup
+    public MediaGroup TopLevelMediaGroup
     {
         get
         {
@@ -455,13 +455,13 @@ public class MediaGroup : IDaCollectorGroup
 
     int IDaCollectorGroup.ID => MediaGroupID;
 
-    int? IDaCollectorGroup.ParentGroupID => AnimeGroupParentID;
+    int? IDaCollectorGroup.ParentGroupID => MediaGroupParentID;
 
-    int IDaCollectorGroup.TopLevelGroupID => TopLevelAnimeGroup.MediaGroupID;
+    int IDaCollectorGroup.TopLevelGroupID => TopLevelMediaGroup.MediaGroupID;
 
     int IDaCollectorGroup.MainSeriesID => (this as IDaCollectorGroup).MainSeries.ID;
 
-    bool IDaCollectorGroup.HasConfiguredMainSeries => DefaultAnimeSeriesID.HasValue;
+    bool IDaCollectorGroup.HasConfiguredMainSeries => DefaultMediaSeriesID.HasValue;
 
     bool IDaCollectorGroup.HasCustomTitle => IsManuallyNamed == 1;
 
@@ -469,7 +469,7 @@ public class MediaGroup : IDaCollectorGroup
 
     IDaCollectorGroup? IDaCollectorGroup.ParentGroup => Parent;
 
-    IDaCollectorGroup IDaCollectorGroup.TopLevelGroup => TopLevelAnimeGroup;
+    IDaCollectorGroup IDaCollectorGroup.TopLevelGroup => TopLevelMediaGroup;
 
     IReadOnlyList<IDaCollectorGroup> IDaCollectorGroup.Groups => Children;
 

@@ -365,7 +365,7 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(  1,  53, "CREATE TABLE `AnimeEpisode_User` ( `AnimeEpisode_UserID` INT NOT NULL AUTO_INCREMENT, `JMMUserID` int NOT NULL, `AnimeEpisodeID` int NOT NULL, `MediaSeriesID` int NOT NULL, `WatchedDate` datetime NULL, `PlayedCount` int NOT NULL, `WatchedCount` int NOT NULL, `StoppedCount` int NOT NULL, PRIMARY KEY (`AnimeEpisode_UserID`) ) ; "),
         new(  1,  54, "ALTER TABLE `AnimeEpisode_User` ADD UNIQUE INDEX `UIX_AnimeEpisode_User_User_EpisodeID` (`JMMUserID` ASC, `AnimeEpisodeID` ASC) ;"),
         new(  1,  55, "ALTER TABLE `AnimeEpisode_User` ADD INDEX `IX_AnimeEpisode_User_User_AnimeSeriesID` (`JMMUserID` ASC, `MediaSeriesID` ASC) ;"),
-        new(  1,  56, "CREATE TABLE `MediaGroup` ( `MediaGroupID` INT NOT NULL AUTO_INCREMENT, `AnimeGroupParentID` int NULL, `GroupName` varchar(200) character set utf8 NOT NULL, `Description` text character set utf8 NULL, `IsManuallyNamed` int NOT NULL, `DateTimeUpdated` datetime NOT NULL, `DateTimeCreated` datetime NOT NULL, `SortName` varchar(200) character set utf8 NOT NULL, `MissingEpisodeCount` int NOT NULL, `MissingEpisodeCountGroups` int NOT NULL, `OverrideDescription` int NOT NULL, `EpisodeAddedDate` datetime NULL, PRIMARY KEY (`MediaGroupID`) ) ; "),
+        new(  1,  56, "CREATE TABLE `MediaGroup` ( `MediaGroupID` INT NOT NULL AUTO_INCREMENT, `MediaGroupParentID` int NULL, `GroupName` varchar(200) character set utf8 NOT NULL, `Description` text character set utf8 NULL, `IsManuallyNamed` int NOT NULL, `DateTimeUpdated` datetime NOT NULL, `DateTimeCreated` datetime NOT NULL, `SortName` varchar(200) character set utf8 NOT NULL, `MissingEpisodeCount` int NOT NULL, `MissingEpisodeCountGroups` int NOT NULL, `OverrideDescription` int NOT NULL, `EpisodeAddedDate` datetime NULL, PRIMARY KEY (`MediaGroupID`) ) ; "),
         new(  1,  57, "CREATE TABLE `MediaSeries` ( `MediaSeriesID` INT NOT NULL AUTO_INCREMENT, `MediaGroupID` int NOT NULL, `AniDB_ID` int NOT NULL, `DateTimeUpdated` datetime NOT NULL, `DateTimeCreated` datetime NOT NULL, `DefaultAudioLanguage` varchar(50) NULL, `DefaultSubtitleLanguage` varchar(50) NULL, `MissingEpisodeCount` int NOT NULL, `MissingEpisodeCountGroups` int NOT NULL, `LatestLocalEpisodeNumber` int NOT NULL, `EpisodeAddedDate` datetime NULL, PRIMARY KEY (`MediaSeriesID`) ) ; "),
         new(  1,  58, "ALTER TABLE `MediaSeries` ADD UNIQUE INDEX `UIX_AnimeSeries_AniDB_ID` (`AniDB_ID` ASC) ;"),
         new(  1,  59, "CREATE TABLE `AnimeSeries_User` ( `AnimeSeries_UserID` INT NOT NULL AUTO_INCREMENT, `JMMUserID` int NOT NULL, `MediaSeriesID` int NOT NULL, `UnwatchedEpisodeCount` int NOT NULL, `WatchedEpisodeCount` int NOT NULL, `WatchedDate` datetime NULL, `PlayedCount` int NOT NULL, `WatchedCount` int NOT NULL, `StoppedCount` int NOT NULL, PRIMARY KEY (`AnimeSeries_UserID`) ) ; "),
@@ -432,7 +432,7 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(  2,  2, "ALTER TABLE `IgnoreAnime` ADD UNIQUE INDEX `UIX_IgnoreAnime_User_AnimeID` (`JMMUserID` ASC, `AnimeID` ASC, `IgnoreType` ASC) ;"),
         new(  3,  1, "CREATE TABLE `Trakt_Friend` ( `Trakt_FriendID` INT NOT NULL AUTO_INCREMENT , `Username` varchar(100) character set utf8 NOT NULL, `FullName` varchar(100) character set utf8 NULL, `Gender` varchar(100) character set utf8 NULL, `Age` varchar(100) character set utf8 NULL, `Location` varchar(100) character set utf8 NULL, `About` text character set utf8 NULL, `Joined` int NOT NULL, `Avatar` text character set utf8 NULL, `Url` text character set utf8 NULL, `LastAvatarUpdate` datetime NOT NULL, PRIMARY KEY (`Trakt_FriendID`) ) ; "),
         new(  3,  2, "ALTER TABLE `Trakt_Friend` ADD UNIQUE INDEX `UIX_Trakt_Friend_Username` (`Username` ASC) ;"),
-        new(  4,  1, "ALTER TABLE MediaGroup ADD DefaultAnimeSeriesID int NULL"),
+        new(  4,  1, "ALTER TABLE MediaGroup ADD DefaultMediaSeriesID int NULL"),
         new(  5,  1, "ALTER TABLE JMMUser ADD CanEditServerSettings int NULL"),
         new(  6,  1, "ALTER TABLE VideoInfo ADD VideoBitDepth varchar(100) NULL"),
         new(  7,  1),
@@ -1056,6 +1056,8 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(163,  6, "ALTER TABLE `MediaEpisode_User` RENAME COLUMN `AnimeEpisodeID` TO `MediaEpisodeID`;"),
         new(163,  7, "ALTER TABLE `MediaGroup_User` RENAME COLUMN `AnimeGroup_UserID` TO `MediaGroup_UserID`;"),
         new(163,  8, "ALTER TABLE `MediaSeries_User` RENAME COLUMN `AnimeSeries_UserID` TO `MediaSeries_UserID`;"),
+        new(163,  9, "ALTER TABLE `MediaGroup` RENAME COLUMN `AnimeGroupParentID` TO `MediaGroupParentID`;"),
+        new(163, 10, "ALTER TABLE `MediaGroup` RENAME COLUMN `DefaultAnimeSeriesID` TO `DefaultMediaSeriesID`;"),
     ];
 
     #endregion

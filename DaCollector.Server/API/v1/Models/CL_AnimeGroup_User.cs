@@ -16,8 +16,8 @@ public class CL_AnimeGroup_User
     public int WatchedCount { get; set; }
     public int StoppedCount { get; set; }
 
-    public int? AnimeGroupParentID { get; set; }
-    public int? DefaultAnimeSeriesID { get; set; }
+    public int? MediaGroupParentID { get; set; }
+    public int? DefaultMediaSeriesID { get; set; }
 
     public string GroupName { get; set; }
     public string Description { get; set; }

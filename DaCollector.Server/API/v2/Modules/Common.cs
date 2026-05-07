@@ -2247,7 +2247,7 @@ public class Common : BaseController
             }
 
             _seriesService.UpdateStats(ser, true, true);
-            _groupService.UpdateStatsFromTopLevel(ser.MediaGroup?.TopLevelAnimeGroup, true, true);
+            _groupService.UpdateStatsFromTopLevel(ser.MediaGroup?.TopLevelMediaGroup, true, true);
 
             return Ok();
         }
@@ -2721,7 +2721,7 @@ public class Common : BaseController
                 _seriesService.UpdateStats(series, true, false);
             }
 
-            _groupService.UpdateStatsFromTopLevel(group.TopLevelAnimeGroup, true, false);
+            _groupService.UpdateStatsFromTopLevel(group.TopLevelMediaGroup, true, false);
 
             return Ok();
         }

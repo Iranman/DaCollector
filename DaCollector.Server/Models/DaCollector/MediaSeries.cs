@@ -718,7 +718,7 @@ public class MediaSeries : IDaCollectorSeries
     /// <summary>
     /// Gets the very top level MediaGroup which this series belongs to
     /// </summary>
-    public MediaGroup TopLevelAnimeGroup
+    public MediaGroup TopLevelMediaGroup
     {
         get
         {
@@ -726,10 +726,10 @@ public class MediaSeries : IDaCollectorSeries
                 throw new NullReferenceException($"Unable to find parent MediaGroup {MediaGroupID} for MediaSeries {MediaSeriesID}");
 
             int parentID;
-            while ((parentID = parentGroup.AnimeGroupParentID ?? 0) != 0)
+            while ((parentID = parentGroup.MediaGroupParentID ?? 0) != 0)
             {
                 parentGroup = RepoFactory.MediaGroup.GetByID(parentID) ??
-                    throw new NullReferenceException($"Unable to find parent MediaGroup {parentGroup.AnimeGroupParentID} for MediaGroup {parentGroup.MediaGroupID}");
+                    throw new NullReferenceException($"Unable to find parent MediaGroup {parentGroup.MediaGroupParentID} for MediaGroup {parentGroup.MediaGroupID}");
             }
 
             return parentGroup;
@@ -748,7 +748,7 @@ public class MediaSeries : IDaCollectorSeries
                 if (grp != null)
                 {
                     grps.Add(grp);
-                    groupID = grp.AnimeGroupParentID ?? 0;
+                    groupID = grp.MediaGroupParentID ?? 0;
                 }
                 else
                 {
@@ -927,7 +927,7 @@ public class MediaSeries : IDaCollectorSeries
 
     int IDaCollectorSeries.ParentGroupID => MediaGroupID;
 
-    int IDaCollectorSeries.TopLevelGroupID => TopLevelAnimeGroup.MediaGroupID;
+    int IDaCollectorSeries.TopLevelGroupID => TopLevelMediaGroup.MediaGroupID;
 
     IReadOnlyList<IDaCollectorTagForSeries> IDaCollectorSeries.Tags => RepoFactory.CustomTag.GetByAnimeID(AniDB_ID)
         .Select(x => new AnimeTag(x, this))
@@ -944,7 +944,7 @@ public class MediaSeries : IDaCollectorSeries
 
     IDaCollectorGroup IDaCollectorSeries.ParentGroup => MediaGroup;
 
-    IDaCollectorGroup IDaCollectorSeries.TopLevelGroup => TopLevelAnimeGroup;
+    IDaCollectorGroup IDaCollectorSeries.TopLevelGroup => TopLevelMediaGroup;
 
     IReadOnlyList<IDaCollectorGroup> IDaCollectorSeries.AllParentGroups => AllGroupsAbove;
 

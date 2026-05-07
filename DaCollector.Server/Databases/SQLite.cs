@@ -269,7 +269,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         new(  1,  49, "CREATE TABLE [MediaEpisode]( AnimeEpisodeID INTEGER PRIMARY KEY AUTOINCREMENT, MediaSeriesID INTEGER NOT NULL, AniDB_EpisodeID INTEGER NOT NULL, DateTimeUpdated DATETIME NOT NULL, DateTimeCreated DATETIME NOT NULL );"),
         new(  1,  50, "CREATE UNIQUE INDEX UIX_AnimeEpisode_AniDB_EpisodeID ON MediaEpisode(AniDB_EpisodeID);"),
         new(  1,  51, "CREATE INDEX IX_AnimeEpisode_AnimeSeriesID on MediaEpisode(MediaSeriesID);"),
-        new(  1,  52, "CREATE TABLE MediaGroup ( MediaGroupID INTEGER PRIMARY KEY AUTOINCREMENT, AnimeGroupParentID INTEGER NULL, GroupName TEXT NOT NULL, Description TEXT NULL, IsManuallyNamed INTEGER NOT NULL, DateTimeUpdated DATETIME NOT NULL, DateTimeCreated DATETIME NOT NULL, SortName TEXT NOT NULL, MissingEpisodeCount INTEGER NOT NULL, MissingEpisodeCountGroups INTEGER NOT NULL, OverrideDescription INTEGER NOT NULL, EpisodeAddedDate DATETIME NULL ); "),
+        new(  1,  52, "CREATE TABLE MediaGroup ( MediaGroupID INTEGER PRIMARY KEY AUTOINCREMENT, MediaGroupParentID INTEGER NULL, GroupName TEXT NOT NULL, Description TEXT NULL, IsManuallyNamed INTEGER NOT NULL, DateTimeUpdated DATETIME NOT NULL, DateTimeCreated DATETIME NOT NULL, SortName TEXT NOT NULL, MissingEpisodeCount INTEGER NOT NULL, MissingEpisodeCountGroups INTEGER NOT NULL, OverrideDescription INTEGER NOT NULL, EpisodeAddedDate DATETIME NULL ); "),
         new(  1,  53, "CREATE TABLE MediaSeries ( MediaSeriesID INTEGER PRIMARY KEY AUTOINCREMENT, MediaGroupID INTEGER NOT NULL, AniDB_ID INTEGER NOT NULL, DateTimeUpdated DATETIME NOT NULL, DateTimeCreated DATETIME NOT NULL, DefaultAudioLanguage TEXT NULL, DefaultSubtitleLanguage TEXT NULL, MissingEpisodeCount INTEGER NOT NULL, MissingEpisodeCountGroups INTEGER NOT NULL, LatestLocalEpisodeNumber INTEGER NOT NULL, EpisodeAddedDate DATETIME NULL ); "),
         new(  1,  54, "CREATE UNIQUE INDEX UIX_AnimeSeries_AniDB_ID ON MediaSeries(AniDB_ID);"),
         new(  1,  55, "CREATE TABLE CommandRequest ( CommandRequestID INTEGER PRIMARY KEY AUTOINCREMENT, Priority INTEGER NOT NULL, CommandType INTEGER NOT NULL, CommandID TEXT NOT NULL, CommandDetails TEXT NOT NULL, DateTimeUpdated DATETIME NOT NULL ); "),
@@ -340,7 +340,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         new(  2,  2, "CREATE UNIQUE INDEX UIX_IgnoreAnime_User_AnimeID ON IgnoreAnime(JMMUserID, AnimeID, IgnoreType);"),
         new(  3,  1, "CREATE TABLE Trakt_Friend( Trakt_FriendID INTEGER PRIMARY KEY AUTOINCREMENT, Username TEXT NOT NULL, FullName TEXT NULL, Gender TEXT NULL, Age TEXT NULL, Location TEXT NULL, About TEXT NULL, Joined INTEGER NOT NULL, Avatar TEXT NULL, Url TEXT NULL, LastAvatarUpdate DATETIME NOT NULL)"),
         new(  3,  2, "CREATE UNIQUE INDEX UIX_Trakt_Friend_Username ON Trakt_Friend(Username);"),
-        new(  4,  1, "ALTER TABLE MediaGroup ADD DefaultAnimeSeriesID INTEGER NULL"),
+        new(  4,  1, "ALTER TABLE MediaGroup ADD DefaultMediaSeriesID INTEGER NULL"),
         new(  5,  1, "ALTER TABLE JMMUser ADD CanEditServerSettings INTEGER NULL"),
         new(  6,  1),
         new(  6,  2),
@@ -874,6 +874,8 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         new(145,  6, "ALTER TABLE MediaEpisode_User RENAME COLUMN AnimeEpisodeID TO MediaEpisodeID;"),
         new(145,  7, "ALTER TABLE MediaGroup_User RENAME COLUMN AnimeGroup_UserID TO MediaGroup_UserID;"),
         new(145,  8, "ALTER TABLE MediaSeries_User RENAME COLUMN AnimeSeries_UserID TO MediaSeries_UserID;"),
+        new(145,  9, "ALTER TABLE MediaGroup RENAME COLUMN AnimeGroupParentID TO MediaGroupParentID;"),
+        new(145, 10, "ALTER TABLE MediaGroup RENAME COLUMN DefaultAnimeSeriesID TO DefaultMediaSeriesID;"),
     ];
 
     #endregion

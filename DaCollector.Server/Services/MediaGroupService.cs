@@ -54,7 +54,7 @@ public class MediaGroupService
         // finally update stats
         if (updateParent)
         {
-            UpdateStatsFromTopLevel(group.Parent?.TopLevelAnimeGroup, true, true);
+            UpdateStatsFromTopLevel(group.Parent?.TopLevelMediaGroup, true, true);
         }
     }
 
@@ -62,7 +62,7 @@ public class MediaGroupService
     {
         // Set the id before potentially resetting the fields, so the getter uses
         // the new id instead of the old.
-        group.DefaultAnimeSeriesID = series?.MediaSeriesID;
+        group.DefaultMediaSeriesID = series?.MediaSeriesID;
 
         ValidateMainSeries(group);
 
@@ -82,11 +82,11 @@ public class MediaGroupService
 
     public void ValidateMainSeries(MediaGroup group)
     {
-        if (group.MainAniDBAnimeID == null && group.DefaultAnimeSeriesID == null) return;
+        if (group.MainAniDBAnimeID == null && group.DefaultMediaSeriesID == null) return;
         var allSeries = group.AllSeries;
 
         // User overridden main series.
-        if (group.DefaultAnimeSeriesID.HasValue && !allSeries.Any(series => series.MediaSeriesID == group.DefaultAnimeSeriesID.Value))
+        if (group.DefaultMediaSeriesID.HasValue && !allSeries.Any(series => series.MediaSeriesID == group.DefaultMediaSeriesID.Value))
         {
             throw new InvalidOperationException("Cannot set default series to a series that does not exist in the group");
         }
@@ -134,7 +134,7 @@ public class MediaGroupService
     /// </summary>
     public void UpdateStatsFromTopLevel(MediaGroup? group, bool watchedStats, bool missingEpsStats)
     {
-        if (group is not { AnimeGroupParentID: null })
+        if (group is not { MediaGroupParentID: null })
         {
             return;
         }

@@ -153,7 +153,7 @@ public class MediaSeriesService
         series.DateTimeUpdated = DateTime.Now;
         UpdateStats(series, true, true);
         if (updateGroupStats)
-            _groupService.UpdateStatsFromTopLevel(newGroup.TopLevelAnimeGroup, true, true);
+            _groupService.UpdateStatsFromTopLevel(newGroup.TopLevelMediaGroup, true, true);
 
         var oldGroup = RepoFactory.MediaGroup.GetByID(oldGroupID);
         if (oldGroup is not null)
@@ -166,9 +166,9 @@ public class MediaSeriesService
             else
             {
                 var updatedOldGroup = false;
-                if (oldGroup.DefaultAnimeSeriesID.HasValue && oldGroup.DefaultAnimeSeriesID.Value == series.MediaSeriesID)
+                if (oldGroup.DefaultMediaSeriesID.HasValue && oldGroup.DefaultMediaSeriesID.Value == series.MediaSeriesID)
                 {
-                    oldGroup.DefaultAnimeSeriesID = null;
+                    oldGroup.DefaultMediaSeriesID = null;
                     updatedOldGroup = true;
                 }
 
@@ -183,7 +183,7 @@ public class MediaSeriesService
             }
 
             // Update the top group
-            var topGroup = oldGroup.TopLevelAnimeGroup;
+            var topGroup = oldGroup.TopLevelMediaGroup;
             if (topGroup.MediaGroupID != oldGroup.MediaGroupID)
             {
                 _groupService.UpdateStatsFromTopLevel(topGroup, true, true);

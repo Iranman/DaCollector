@@ -61,7 +61,7 @@ public class GroupController : BaseController
         return RepoFactory.MediaGroup.GetAll()
             .Where(group =>
             {
-                if (topLevelOnly && group.AnimeGroupParentID.HasValue)
+                if (topLevelOnly && group.MediaGroupParentID.HasValue)
                 {
                     return false;
                 }
@@ -99,7 +99,7 @@ public class GroupController : BaseController
         return RepoFactory.MediaGroup.GetAll()
             .Where(group =>
             {
-                if (topLevelOnly && group.AnimeGroupParentID.HasValue)
+                if (topLevelOnly && group.MediaGroupParentID.HasValue)
                     return false;
 
                 if (!user.AllowedGroup(group))

@@ -435,8 +435,8 @@ public static class ModelClients
         => new()
         {
             MediaGroupID = c.MediaGroupID,
-            AnimeGroupParentID = c.AnimeGroupParentID,
-            DefaultAnimeSeriesID = c.DefaultAnimeSeriesID,
+            MediaGroupParentID = c.MediaGroupParentID,
+            DefaultMediaSeriesID = c.DefaultMediaSeriesID,
             GroupName = c.GroupName,
             Description = c.Description,
             IsFave = c.IsFave,

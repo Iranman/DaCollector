@@ -96,16 +96,16 @@ public class Group : BaseModel
         var mainSeries = allSeries.FirstOrDefault();
         var episodes = allSeries.SelectMany(a => a.AllAnimeEpisodes).ToList();
         IDs = new GroupIDs { ID = group.MediaGroupID };
-        if (group.DefaultAnimeSeriesID != null)
-            IDs.PreferredSeries = group.DefaultAnimeSeriesID.Value;
+        if (group.DefaultMediaSeriesID != null)
+            IDs.PreferredSeries = group.DefaultMediaSeriesID.Value;
         if (mainSeries != null)
         {
             IDs.MainSeries = mainSeries.MediaSeriesID;
             IDs.MainAnime = mainSeries.AniDB_ID;
         }
-        if (group.AnimeGroupParentID.HasValue)
-            IDs.ParentGroup = group.AnimeGroupParentID.Value;
-        IDs.TopLevelGroup = group.TopLevelAnimeGroup.MediaGroupID;
+        if (group.MediaGroupParentID.HasValue)
+            IDs.ParentGroup = group.MediaGroupParentID.Value;
+        IDs.TopLevelGroup = group.TopLevelMediaGroup.MediaGroupID;
         Name = group.GroupName;
         SortName = group.SortName;
         Description = group.Description;
@@ -242,8 +242,8 @@ public class Group : BaseModel
             public CreateOrUpdateGroupBody(MediaGroup group)
             {
                 Name = group.GroupName;
-                ParentGroupID = group.AnimeGroupParentID;
-                PreferredSeriesID = group.DefaultAnimeSeriesID;
+                ParentGroupID = group.MediaGroupParentID;
+                PreferredSeriesID = group.DefaultMediaSeriesID;
                 SeriesIDs = group.Series.Select(series => series.MediaSeriesID).ToList();
                 GroupIDs = group.Children.Select(group => group.MediaGroupID).ToList();
             }
@@ -327,16 +327,16 @@ public class Group : BaseModel
 
                 // Move the group under the new parent.
                 if (ParentGroupID.HasValue)
-                    group.AnimeGroupParentID = ParentGroupID.Value == 0 ? null : ParentGroupID.Value;
+                    group.MediaGroupParentID = ParentGroupID.Value == 0 ? null : ParentGroupID.Value;
 
                 // Move the child groups under the new group.
                 foreach (var childGroup in childGroups)
                 {
                     // Skip adding child groups already part of the group.
-                    if (childGroup.AnimeGroupParentID.HasValue && childGroup.AnimeGroupParentID.Value == group.MediaGroupID)
+                    if (childGroup.MediaGroupParentID.HasValue && childGroup.MediaGroupParentID.Value == group.MediaGroupID)
                         continue;
 
-                    childGroup.AnimeGroupParentID = group.MediaGroupID;
+                    childGroup.MediaGroupParentID = group.MediaGroupID;
                     childGroup.DateTimeUpdated = DateTime.Now;
                     RepoFactory.MediaGroup.Save(childGroup, false);
                 }
@@ -395,7 +395,7 @@ public class Group : BaseModel
                 }
 
                 // Update stats for all groups in the chain
-                groupService.UpdateStatsFromTopLevel(group.TopLevelAnimeGroup, true, true);
+                groupService.UpdateStatsFromTopLevel(group.TopLevelMediaGroup, true, true);
 
                 // Emit the updated events now, after the groups and series states have been properly updated.
                 foreach (var series in seriesList)

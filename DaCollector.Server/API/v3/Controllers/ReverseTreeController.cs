@@ -90,12 +90,12 @@ public class ReverseTreeController : BaseController
             return Forbid(GroupController.GroupForbiddenForUser);
         }
 
-        if (!group.AnimeGroupParentID.HasValue || group.AnimeGroupParentID.Value == 0)
+        if (!group.MediaGroupParentID.HasValue || group.MediaGroupParentID.Value == 0)
         {
             return ValidationProblem("Unable to get parent Group for a top-level Group", "groupID");
         }
 
-        var parentGroup = topLevel ? group.TopLevelAnimeGroup : group.Parent;
+        var parentGroup = topLevel ? group.TopLevelMediaGroup : group.Parent;
         if (parentGroup == null)
         {
             return InternalError("No parent Group entry for the given groupID");
@@ -129,7 +129,7 @@ public class ReverseTreeController : BaseController
             return Forbid(SeriesController.SeriesForbiddenForUser);
         }
 
-        var group = topLevel ? series.TopLevelAnimeGroup : series.MediaGroup;
+        var group = topLevel ? series.TopLevelMediaGroup : series.MediaGroup;
         if (group == null)
         {
             return InternalError("No Group entry for the Series");

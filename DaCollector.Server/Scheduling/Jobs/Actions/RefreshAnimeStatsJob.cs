@@ -59,7 +59,7 @@ public class RefreshAnimeStatsJob : BaseJob
 
         // Updating stats saves everything and updates groups
         _seriesService.UpdateStats(series, true, true);
-        _groupService.UpdateStatsFromTopLevel(series?.MediaGroup?.TopLevelAnimeGroup, true, true);
+        _groupService.UpdateStatsFromTopLevel(series?.MediaGroup?.TopLevelMediaGroup, true, true);
         return Task.CompletedTask;
     }
 

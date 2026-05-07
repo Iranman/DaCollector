@@ -28,10 +28,10 @@ public class MediaGroupRepository : BaseCachedRepository<MediaGroup, int>
         };
         EndDeleteCallback = cr =>
         {
-            if (cr.AnimeGroupParentID.HasValue && cr.AnimeGroupParentID.Value > 0)
+            if (cr.MediaGroupParentID.HasValue && cr.MediaGroupParentID.Value > 0)
             {
-                _logger.LogTrace("Updating group stats by group from MediaGroupRepository.Delete: {Count}", cr.AnimeGroupParentID.Value);
-                var parentGroup = GetByID(cr.AnimeGroupParentID.Value);
+                _logger.LogTrace("Updating group stats by group from MediaGroupRepository.Delete: {Count}", cr.MediaGroupParentID.Value);
+                var parentGroup = GetByID(cr.MediaGroupParentID.Value);
                 if (parentGroup != null)
                 {
                     Save(parentGroup, true);
@@ -46,7 +46,7 @@ public class MediaGroupRepository : BaseCachedRepository<MediaGroup, int>
     public override void PopulateIndexes()
     {
         _changes.AddOrUpdateRange(Cache.Keys);
-        _parentIDs = Cache.CreateIndex(a => a.AnimeGroupParentID ?? 0);
+        _parentIDs = Cache.CreateIndex(a => a.MediaGroupParentID ?? 0);
     }
 
     public override void Save(MediaGroup obj)
@@ -76,12 +76,12 @@ public class MediaGroupRepository : BaseCachedRepository<MediaGroup, int>
 
         _changes.AddOrUpdate(group.MediaGroupID);
 
-        if (group.AnimeGroupParentID.HasValue && recursive)
+        if (group.MediaGroupParentID.HasValue && recursive)
         {
-            var parentGroup = GetByID(group.AnimeGroupParentID.Value);
+            var parentGroup = GetByID(group.MediaGroupParentID.Value);
             // This will avoid the recursive error that would be possible, it won't update it, but that would be
             // the least of the issues
-            if (parentGroup != null && parentGroup.AnimeGroupParentID == group.MediaGroupID)
+            if (parentGroup != null && parentGroup.MediaGroupParentID == group.MediaGroupID)
             {
                 Save(parentGroup, true);
             }

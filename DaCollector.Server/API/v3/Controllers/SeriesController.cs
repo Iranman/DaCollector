@@ -1367,7 +1367,7 @@ public class SeriesController : BaseController
         series.ResetAnimeTitles();
         series.ResetPreferredTitle();
         series.ResetPreferredOverview();
-        _groupService.UpdateStatsFromTopLevel(series?.MediaGroup?.TopLevelAnimeGroup, false, false);
+        _groupService.UpdateStatsFromTopLevel(series?.MediaGroup?.TopLevelMediaGroup, false, false);
 
         return NoContent();
     }
@@ -1401,7 +1401,7 @@ public class SeriesController : BaseController
         series.ResetAnimeTitles();
         series.ResetPreferredTitle();
         series.ResetPreferredOverview();
-        _groupService.UpdateStatsFromTopLevel(series?.MediaGroup?.TopLevelAnimeGroup, false, false);
+        _groupService.UpdateStatsFromTopLevel(series?.MediaGroup?.TopLevelMediaGroup, false, false);
 
 
         return NoContent();

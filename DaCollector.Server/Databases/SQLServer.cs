@@ -290,7 +290,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(  1,  48, "CREATE TABLE MediaEpisode( AnimeEpisodeID int IDENTITY(1,1) NOT NULL, MediaSeriesID int NOT NULL, AniDB_EpisodeID int NOT NULL, DateTimeUpdated datetime NOT NULL, DateTimeCreated datetime NOT NULL, CONSTRAINT [PK_AnimeEpisode] PRIMARY KEY CLUSTERED  ( AnimeEpisodeID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY]"),
         new(  1,  49, "CREATE UNIQUE INDEX UIX_AnimeEpisode_AniDB_EpisodeID ON MediaEpisode(AniDB_EpisodeID)"),
         new(  1,  50, "CREATE INDEX IX_AnimeEpisode_AnimeSeriesID on MediaEpisode(MediaSeriesID)"),
-        new(  1,  51, "CREATE TABLE MediaGroup( MediaGroupID int IDENTITY(1,1) NOT NULL, AnimeGroupParentID int NULL, GroupName nvarchar(max) NOT NULL, Description nvarchar(max) NULL, IsManuallyNamed int NOT NULL, DateTimeUpdated datetime NOT NULL, DateTimeCreated datetime NOT NULL, SortName varchar(max) NOT NULL, MissingEpisodeCount int NOT NULL, MissingEpisodeCountGroups int NOT NULL, OverrideDescription int NOT NULL, EpisodeAddedDate datetime NULL, CONSTRAINT [PK_AnimeGroup] PRIMARY KEY CLUSTERED  ( [MediaGroupID] ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+        new(  1,  51, "CREATE TABLE MediaGroup( MediaGroupID int IDENTITY(1,1) NOT NULL, MediaGroupParentID int NULL, GroupName nvarchar(max) NOT NULL, Description nvarchar(max) NULL, IsManuallyNamed int NOT NULL, DateTimeUpdated datetime NOT NULL, DateTimeCreated datetime NOT NULL, SortName varchar(max) NOT NULL, MissingEpisodeCount int NOT NULL, MissingEpisodeCountGroups int NOT NULL, OverrideDescription int NOT NULL, EpisodeAddedDate datetime NULL, CONSTRAINT [PK_AnimeGroup] PRIMARY KEY CLUSTERED  ( [MediaGroupID] ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
         new(  1,  52, "CREATE TABLE MediaSeries ( MediaSeriesID int IDENTITY(1,1) NOT NULL, MediaGroupID int NOT NULL, AniDB_ID int NOT NULL, DateTimeUpdated datetime NOT NULL, DateTimeCreated datetime NOT NULL, DefaultAudioLanguage varchar(max) NULL, DefaultSubtitleLanguage varchar(max) NULL, MissingEpisodeCount int NOT NULL, MissingEpisodeCountGroups int NOT NULL, LatestLocalEpisodeNumber int NOT NULL, EpisodeAddedDate datetime NULL, CONSTRAINT [PK_AnimeSeries] PRIMARY KEY CLUSTERED  ( MediaSeriesID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
         new(  1,  53, "CREATE UNIQUE INDEX UIX_AnimeSeries_AniDB_ID ON MediaSeries(AniDB_ID)"),
         new(  1,  54, "CREATE TABLE CommandRequest( CommandRequestID int IDENTITY(1,1) NOT NULL, Priority int NOT NULL, CommandType int NOT NULL, CommandID nvarchar(max) NOT NULL, CommandDetails nvarchar(max) NOT NULL, DateTimeUpdated datetime NOT NULL, CONSTRAINT [PK_CommandRequest] PRIMARY KEY CLUSTERED  ( CommandRequestID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
@@ -362,7 +362,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(  2,  2, "CREATE UNIQUE INDEX UIX_IgnoreAnime_User_AnimeID ON IgnoreAnime(JMMUserID, AnimeID, IgnoreType)"),
         new(  3,  1, "CREATE TABLE Trakt_Friend( Trakt_FriendID int IDENTITY(1,1) NOT NULL, Username nvarchar(100) NOT NULL, FullName nvarchar(100) NULL, Gender nvarchar(100) NULL, Age nvarchar(100) NULL, Location nvarchar(100) NULL, About nvarchar(MAX) NULL, Joined int NOT NULL, Avatar nvarchar(MAX) NULL, Url nvarchar(MAX) NULL, LastAvatarUpdate datetime NOT NULL, CONSTRAINT [PK_Trakt_Friend] PRIMARY KEY CLUSTERED  ( Trakt_FriendID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY]"),
         new(  3,  2, "CREATE UNIQUE INDEX UIX_Trakt_Friend_Username ON Trakt_Friend(Username)"),
-        new(  4,  1, "ALTER TABLE MediaGroup ADD DefaultAnimeSeriesID int NULL"),
+        new(  4,  1, "ALTER TABLE MediaGroup ADD DefaultMediaSeriesID int NULL"),
         new(  5,  1, "ALTER TABLE JMMUser ADD CanEditServerSettings int NULL"),
         new(  6,  1, "ALTER TABLE VideoInfo ADD VideoBitDepth varchar(max) NULL"),
         new(  7,  1),
@@ -957,6 +957,8 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(158,  6, "EXEC sp_rename 'MediaEpisode_User.AnimeEpisodeID', 'MediaEpisodeID', 'COLUMN';"),
         new(158,  7, "EXEC sp_rename 'MediaGroup_User.AnimeGroup_UserID', 'MediaGroup_UserID', 'COLUMN';"),
         new(158,  8, "EXEC sp_rename 'MediaSeries_User.AnimeSeries_UserID', 'MediaSeries_UserID', 'COLUMN';"),
+        new(158,  9, "EXEC sp_rename 'MediaGroup.AnimeGroupParentID', 'MediaGroupParentID', 'COLUMN';"),
+        new(158, 10, "EXEC sp_rename 'MediaGroup.DefaultAnimeSeriesID', 'DefaultMediaSeriesID', 'COLUMN';"),
     ];
 
     #endregion

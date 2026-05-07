@@ -997,7 +997,7 @@ public partial class DaCollectorServiceImplementation
             var seriesService = Utils.ServiceContainer.GetRequiredService<MediaSeriesService>();
             seriesService.UpdateStats(series, true, false);
             var groupService = Utils.ServiceContainer.GetRequiredService<MediaGroupService>();
-            groupService.UpdateStatsFromTopLevel(series?.MediaGroup?.TopLevelAnimeGroup, true, true);
+            groupService.UpdateStatsFromTopLevel(series?.MediaGroup?.TopLevelMediaGroup, true, true);
 
             // refresh from db
 
@@ -1273,7 +1273,7 @@ public partial class DaCollectorServiceImplementation
             {
                 seriesService.UpdateStats(ser, true, true);
                 var groupService = Utils.ServiceContainer.GetRequiredService<MediaGroupService>();
-                groupService.UpdateStatsFromTopLevel(ser.MediaGroup?.TopLevelAnimeGroup, true, true);
+                groupService.UpdateStatsFromTopLevel(ser.MediaGroup?.TopLevelMediaGroup, true, true);
             }
 
             return string.Empty;
@@ -1354,7 +1354,7 @@ public partial class DaCollectorServiceImplementation
                 if (grp != null)
                 {
                     grps.Add(_legacyV1Service.GetV1Contract(grp, userID));
-                    grpid = grp.AnimeGroupParentID;
+                    grpid = grp.MediaGroupParentID;
                 }
             }
 
@@ -1495,10 +1495,10 @@ public partial class DaCollectorServiceImplementation
                 var ng = cag.DeepCopy();
                 if (cag.Stat_SeriesCount == 1)
                 {
-                    if (cag.DefaultAnimeSeriesID.HasValue)
+                    if (cag.DefaultMediaSeriesID.HasValue)
                     {
                         ng.SeriesForNameOverride = _legacyV1Service.GetV1UserContract(RepoFactory.MediaSeries.GetByGroupID(ng.MediaGroupID)
-                            .FirstOrDefault(a => a.MediaSeriesID == cag.DefaultAnimeSeriesID.Value), userID);
+                            .FirstOrDefault(a => a.MediaSeriesID == cag.DefaultMediaSeriesID.Value), userID);
                     }
 
                     ng.SeriesForNameOverride ??= _legacyV1Service.GetV1UserContract(RepoFactory.MediaSeries.GetByGroupID(ng.MediaGroupID).FirstOrDefault(), userID);
@@ -1563,26 +1563,26 @@ public partial class DaCollectorServiceImplementation
                 return contractout;
             }
 
-            if (contract.AnimeGroupParentID.HasValue && contract.AnimeGroupParentID.Value > 0)
+            if (contract.MediaGroupParentID.HasValue && contract.MediaGroupParentID.Value > 0)
             {
                 // make sure the parent group exists
-                var parent = RepoFactory.MediaGroup.GetByID(contract.AnimeGroupParentID.Value);
+                var parent = RepoFactory.MediaGroup.GetByID(contract.MediaGroupParentID.Value);
                 if (parent is null)
                 {
-                    contractout.ErrorMessage = "Could not find existing parent group with ID: " + contract.AnimeGroupParentID.Value;
+                    contractout.ErrorMessage = "Could not find existing parent group with ID: " + contract.MediaGroupParentID.Value;
                     return contractout;
                 }
-                if (group.AnimeGroupParentID != group.MediaGroupID)
+                if (group.MediaGroupParentID != group.MediaGroupID)
                 {
-                    group.AnimeGroupParentID = parent.MediaGroupID;
+                    group.MediaGroupParentID = parent.MediaGroupID;
                     updated = true;
                 }
             }
-            else if (!contract.AnimeGroupParentID.HasValue)
+            else if (!contract.MediaGroupParentID.HasValue)
             {
-                if (group.AnimeGroupParentID.HasValue)
+                if (group.MediaGroupParentID.HasValue)
                 {
-                    group.AnimeGroupParentID = null;
+                    group.MediaGroupParentID = null;
                     updated = true;
                 }
             }
@@ -1985,7 +1985,7 @@ public partial class DaCollectorServiceImplementation
     {
         try
         {
-            return _legacyV1Service.GetV1Contract(RepoFactory.MediaSeries.GetByID(MediaSeriesID)?.TopLevelAnimeGroup, userID);
+            return _legacyV1Service.GetV1Contract(RepoFactory.MediaSeries.GetByID(MediaSeriesID)?.TopLevelMediaGroup, userID);
         }
         catch (Exception ex)
         {
@@ -2164,7 +2164,7 @@ public partial class DaCollectorServiceImplementation
                 else
                 {
                     var groupService = Utils.ServiceContainer.GetRequiredService<MediaGroupService>();
-                    groupService.UpdateStatsFromTopLevel(grp.TopLevelAnimeGroup, true, true);
+                    groupService.UpdateStatsFromTopLevel(grp.TopLevelMediaGroup, true, true);
                 }
             }
 

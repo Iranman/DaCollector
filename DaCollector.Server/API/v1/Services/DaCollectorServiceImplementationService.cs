@@ -456,8 +456,8 @@ public class DaCollectorServiceImplementationService(
         var contract = new CL_AnimeGroup_User
         {
             MediaGroupID = MediaGroup.MediaGroupID,
-            AnimeGroupParentID = MediaGroup.AnimeGroupParentID,
-            DefaultAnimeSeriesID = MediaGroup.DefaultAnimeSeriesID,
+            MediaGroupParentID = MediaGroup.MediaGroupParentID,
+            DefaultMediaSeriesID = MediaGroup.DefaultMediaSeriesID,
             GroupName = MediaGroup.GroupName,
             Description = MediaGroup.Description,
             LatestEpisodeAirDate = MediaGroup.LatestEpisodeAirDate,

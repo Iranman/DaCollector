@@ -45,7 +45,7 @@ public static class FilterExtensions
             GroupIDDelegate = () =>
                 series.MediaGroupID,
             TopLevelGroupIDDelegate = () =>
-                series.TopLevelAnimeGroup.MediaGroupID,
+                series.TopLevelMediaGroup.MediaGroupID,
             GroupIDsDelegate = () =>
                 series.AllGroupsAbove.Select(a => a.MediaGroupID.ToString()).ToHashSet(),
             AnidbAnimeIDsDelegate = () =>
@@ -246,7 +246,7 @@ public static class FilterExtensions
             GroupIDsDelegate = () =>
                 group.AllGroupsAbove.Prepend(group).Select(a => a.MediaGroupID.ToString()).ToHashSet(),
             TopLevelGroupIDDelegate = () =>
-                group.TopLevelAnimeGroup.MediaGroupID,
+                group.TopLevelMediaGroup.MediaGroupID,
             AnidbAnimeIDsDelegate = () =>
                 series.Select(a => a.AniDB_ID.ToString()).ToHashSet(),
             SeriesCountDelegate = () =>

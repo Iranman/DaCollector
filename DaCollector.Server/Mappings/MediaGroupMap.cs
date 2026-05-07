@@ -10,8 +10,8 @@ public class MediaGroupMap : ClassMap<MediaGroup>
         Table("MediaGroup");
         Not.LazyLoad();
         Id(x => x.MediaGroupID);
-        Map(x => x.AnimeGroupParentID);
-        Map(x => x.DefaultAnimeSeriesID);
+        Map(x => x.MediaGroupParentID);
+        Map(x => x.DefaultMediaSeriesID);
         Map(x => x.MainAniDBAnimeID);
         Map(x => x.DateTimeCreated).Not.Nullable();
         Map(x => x.DateTimeUpdated).Not.Nullable();

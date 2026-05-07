@@ -138,7 +138,7 @@ public class Series : BaseModel
         {
             ID = ser.MediaSeriesID,
             ParentGroup = ser.MediaGroupID,
-            TopLevelGroup = ser.TopLevelAnimeGroup?.MediaGroupID ?? 0,
+            TopLevelGroup = ser.TopLevelMediaGroup?.MediaGroupID ?? 0,
             AniDB = ser.AniDB_ID,
             TvDB = tmdbShowXRefs.Select(xref => xref.TmdbShow?.TvdbShowID).WhereNotNull().Distinct().ToList(),
             IMDB = tmdbMovieXRefs

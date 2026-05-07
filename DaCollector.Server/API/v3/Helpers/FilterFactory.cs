@@ -65,7 +65,7 @@ public class FilterFactory
             : _evaluator.EvaluateFilter(groupFilter, user).Count(a =>
             {
                 var group = RepoFactory.MediaGroup.GetByID(a.Key);
-                return group is { AnimeGroupParentID: null } && (includeEmpty || group.AllSeries
+                return group is { MediaGroupParentID: null } && (includeEmpty || group.AllSeries
                     .Any(s => s.AnimeEpisodes.Any(e => e.VideoLocals.Count > 0)));
             });
         return filter;

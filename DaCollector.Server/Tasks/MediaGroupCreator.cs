@@ -316,7 +316,7 @@ public class MediaGroupCreator
                 MediaGroup.MainAniDBAnimeID = mainAnimeId;
                 // Update the auto-refreshed details if the main series changed
                 // and no default series is set.
-                if (!MediaGroup.DefaultAnimeSeriesID.HasValue)
+                if (!MediaGroup.DefaultMediaSeriesID.HasValue)
                 {
                     // Override the group name if the group is not manually named.
                     if (MediaGroup.IsManuallyNamed == 0)
@@ -383,7 +383,7 @@ public class MediaGroupCreator
                 MediaGroup.MainAniDBAnimeID = mainAnimeId;
                 // Update the auto-refreshed details if the main series changed
                 // and no default series is set.
-                if (!MediaGroup.DefaultAnimeSeriesID.HasValue)
+                if (!MediaGroup.DefaultMediaSeriesID.HasValue)
                 {
                     // Override the group name if the group is not manually named.
                     if (MediaGroup.IsManuallyNamed == 0)

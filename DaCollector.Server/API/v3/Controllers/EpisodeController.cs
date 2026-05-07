@@ -384,7 +384,7 @@ public class EpisodeController : BaseController
             if (updateStats)
             {
                 _seriesService.UpdateStats(series, true, true);
-                _groupService.UpdateStatsFromTopLevel(series.TopLevelAnimeGroup, true, true);
+                _groupService.UpdateStatsFromTopLevel(series.TopLevelMediaGroup, true, true);
             }
 
             DaCollectorEventHandler.Instance.OnEpisodeUpdated(series, episode, UpdateReason.Updated);

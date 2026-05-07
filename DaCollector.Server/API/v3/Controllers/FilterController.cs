@@ -339,7 +339,7 @@ public class FilterController(ISettingsProvider settingsProvider, FilterFactory 
         if (!results.Any()) return new ListResult<Group>();
 
         var groups = results
-            .Select(group => RepoFactory.MediaGroup.GetByID(group.Key)?.TopLevelAnimeGroup)
+            .Select(group => RepoFactory.MediaGroup.GetByID(group.Key)?.TopLevelMediaGroup)
             .WhereNotNull()
             .DistinctBy(group => group.MediaGroupID)
             .Where(group => includeEmpty || group.AllSeries.Any(s => s.AnimeEpisodes.Any(e => e.VideoLocals.Count > 0)));
@@ -374,7 +374,7 @@ public class FilterController(ISettingsProvider settingsProvider, FilterFactory 
             return new Dictionary<char, int>();
 
         return results
-            .Select(group => RepoFactory.MediaGroup.GetByID(group.Key)?.TopLevelAnimeGroup)
+            .Select(group => RepoFactory.MediaGroup.GetByID(group.Key)?.TopLevelMediaGroup)
             .WhereNotNull()
             .DistinctBy(group => group.MediaGroupID)
             .Where(group => includeEmpty || group.AllSeries.Any(s => s.AnimeEpisodes.Any(e => e.VideoLocals.Count > 0)))
@@ -472,7 +472,7 @@ public class FilterController(ISettingsProvider settingsProvider, FilterFactory 
 
         // Subgroups are weird. We'll take the group, build a set of all subgroup IDs, and use that to determine if a group should be included
         // This should maintain the order of results, but have every group in the tree for those results
-        var orderedGroups = results.SelectMany(a => RepoFactory.MediaGroup.GetByID(a.Key).TopLevelAnimeGroup.AllChildren.Select(b => b.MediaGroupID)).ToArray();
+        var orderedGroups = results.SelectMany(a => RepoFactory.MediaGroup.GetByID(a.Key).TopLevelMediaGroup.AllChildren.Select(b => b.MediaGroupID)).ToArray();
         var groups = orderedGroups.ToHashSet();
 
         return group.Children
