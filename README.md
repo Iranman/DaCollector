@@ -45,6 +45,8 @@ The first implementation slice adds generic media/provider identity and collecti
 
 Start with [DaCollector Docs](docs/index.md).
 
+Hosted docs target: <https://iranman.github.io/DaCollector/>
+
 - [Windows installation](docs/getting-started/installation/windows.md)
 - [Docker installation](docs/getting-started/installation/docker.md)
 - [First run](docs/getting-started/first-run.md)

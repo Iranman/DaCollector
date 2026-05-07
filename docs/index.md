@@ -8,6 +8,7 @@ DaCollector is a self-hosted movie and TV collection manager. It keeps a local s
 | --- | --- |
 | Install DaCollector on Windows | [Windows Installation](getting-started/installation/windows.md) |
 | Run DaCollector with Docker | [Docker Installation](getting-started/installation/docker.md) |
+| View or publish the documentation site | [Publishing Docs](development/publishing-docs.md) |
 | Start the server and open the Web UI | [First Run](getting-started/first-run.md) |
 | Configure paths, providers, and Plex | [Configuration](getting-started/configuration.md) |
 | Build collection rules | [Collection Management](features/collection-management.md) |

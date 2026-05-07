@@ -1,6 +1,8 @@
 site_name: DaCollector Docs
 site_description: Documentation for DaCollector, a self-hosted movie and TV collection manager.
+site_url: https://iranman.github.io/DaCollector/
 repo_url: https://github.com/Iranman/DaCollector
+edit_uri: edit/main/docs/
 docs_dir: docs
 
 nav:
@@ -23,6 +25,7 @@ nav:
       - Plex Relay Compatibility: plex-relay-compatibility.md
   - Development:
       - Building DaCollector: development/building.md
+      - Publishing Docs: development/publishing-docs.md
 
 theme:
   name: material

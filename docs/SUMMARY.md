@@ -18,3 +18,4 @@
   - [Plex Relay Compatibility](plex-relay-compatibility.md)
 - Development
   - [Building DaCollector](development/building.md)
+  - [Publishing Docs](development/publishing-docs.md)
