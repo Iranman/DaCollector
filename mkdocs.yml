@@ -1,0 +1,39 @@
+site_name: DaCollector Docs
+site_description: Documentation for DaCollector, a self-hosted movie and TV collection manager.
+repo_url: https://github.com/Iranman/DaCollector
+docs_dir: docs
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Installation:
+          - Windows: getting-started/installation/windows.md
+      - First Run: getting-started/first-run.md
+      - Configuration: getting-started/configuration.md
+      - Updating: getting-started/updating.md
+  - Features:
+      - Collection Management: features/collection-management.md
+      - Duplicate Management: features/duplicate-management.md
+      - Plex Target: features/plex-target.md
+  - Reference:
+      - Paths and Ports: reference/paths-and-ports.md
+      - API: reference/api.md
+      - Project Blueprint: dacollector-blueprint.md
+      - Plex Relay Compatibility: plex-relay-compatibility.md
+  - Development:
+      - Building DaCollector: development/building.md
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.indexes
+    - navigation.top
+    - search.suggest
+    - search.highlight
+
+markdown_extensions:
+  - admonition
+  - toc:
+      permalink: true
+  - tables

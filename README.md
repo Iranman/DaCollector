@@ -40,3 +40,14 @@ $env:DOTNET_ROOT='F:\Collection manager\.dotnet'
 ## Current Implementation Notes
 
 The first implementation slice adds generic media/provider identity and collection definitions while leaving existing backend behavior intact. This lets the project migrate from anime-specific models toward movie and TV models without breaking the inherited server.
+
+## Documentation
+
+Start with [DaCollector Docs](docs/index.md).
+
+- [Windows installation](docs/getting-started/installation/windows.md)
+- [First run](docs/getting-started/first-run.md)
+- [Configuration](docs/getting-started/configuration.md)
+- [Collection management](docs/features/collection-management.md)
+- [Duplicate management](docs/features/duplicate-management.md)
+- [Plex target](docs/features/plex-target.md)

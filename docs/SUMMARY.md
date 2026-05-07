@@ -1,0 +1,19 @@
+# DaCollector Documentation
+
+- [Home](index.md)
+- Getting Started
+  - [Windows Installation](getting-started/installation/windows.md)
+  - [First Run](getting-started/first-run.md)
+  - [Configuration](getting-started/configuration.md)
+  - [Updating](getting-started/updating.md)
+- Features
+  - [Collection Management](features/collection-management.md)
+  - [Duplicate Management](features/duplicate-management.md)
+  - [Plex Target](features/plex-target.md)
+- Reference
+  - [Paths and Ports](reference/paths-and-ports.md)
+  - [API](reference/api.md)
+  - [Project Blueprint](dacollector-blueprint.md)
+  - [Plex Relay Compatibility](plex-relay-compatibility.md)
+- Development
+  - [Building DaCollector](development/building.md)
