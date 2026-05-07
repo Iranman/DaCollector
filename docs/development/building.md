@@ -89,7 +89,7 @@ The `Publish Docker Image to GHCR` workflow builds `linux/amd64` and `linux/arm6
 ghcr.io/iranman/dacollector
 ```
 
-On pushes to `main`, it publishes:
+On pushes to `main` or `daccollector-main`, it publishes:
 
 - `ghcr.io/iranman/dacollector:latest`
 - `ghcr.io/iranman/dacollector:sha-<commit>`

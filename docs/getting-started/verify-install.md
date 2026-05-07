@@ -11,6 +11,24 @@ Use this checklist after installing DaCollector on Windows or with Docker. It ve
 | Web UI | `http://127.0.0.1:38111/webui` returns HTTP `200` and loads in a browser. |
 | SQLite startup | A clean data directory creates SQLite databases without migration errors in the logs. |
 
+## Quick Check with the Verification Script
+
+For a one-command check, run the included PowerShell script from the repository root:
+
+```powershell
+.\scripts\verify-install.ps1
+```
+
+Pass `-Port` to use a non-default port, or `-Docker` to also check the container health and print recent logs:
+
+```powershell
+.\scripts\verify-install.ps1 -Port 38112 -Docker
+```
+
+The script exits `0` when all checks pass and `1` when any check fails.
+
+---
+
 ## Windows Verification
 
 Start DaCollector from the installer, ZIP, or local publish. Then run:

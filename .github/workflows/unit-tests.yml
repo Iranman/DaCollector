@@ -1,0 +1,28 @@
+name: Unit Tests
+
+on:
+  push:
+    branches:
+      - main
+      - daccollector-main
+  pull_request:
+    branches:
+      - main
+      - daccollector-main
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    name: Unit Tests
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '10.x'
+
+      - name: Run unit tests
+        run: dotnet test DaCollector.Tests/DaCollector.Tests.csproj -c Release --logger "console;verbosity=normal"

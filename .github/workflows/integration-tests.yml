@@ -4,9 +4,11 @@ on:
   push:
     branches:
       - master
+      - daccollector-main
   pull_request:
     branches:
       - master
+      - daccollector-main
 
 jobs:
   test-sqlite:

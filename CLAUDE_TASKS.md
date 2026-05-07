@@ -2,7 +2,7 @@
 
 Context:
 - Branch: `daccollector-main`
-- Latest commits: `60b429d Mark P2 product improvements complete`
+- Latest commits: `f9bc8af Update CLAUDE_TASKS.md: bump latest commit ref to 60b429d`
 - Follow `CLAUDE.md`: append database migrations; **never rewrite historical migration strings**.
 - Keep legacy API contract class names like `CL_AnimeSeries_User` unless intentionally versioning the public API.
 - `.NET SDK 10.0.203` may not be in PATH in the sandbox — use `& "C:\Program Files\dotnet\dotnet.exe"` if needed.
@@ -76,6 +76,203 @@ Note: `MetadataEventEmitter` already existed as a separate emitter for metadata 
   - Plex media duplicate review added under `/api/v3/Duplicates/Media/Plex/Library/{sectionKey}`
   - Scoring reasons include path hash, provider ID, title/year, and Plex rating keys
   - Safe-delete candidates are surfaced as review data without auto-deleting
+
+---
+
+## P3 — Recommended Next Improvements
+
+Goal: turn the current prototype surfaces into a reliable first install that a Windows or Docker user can run, connect to Plex, and use for movie/TV collection and duplicate review without hand-editing internals.
+
+### ✅ P3.1 — Restore Local Verification — DONE
+
+Files:
+- `global.json`
+- `DaCollector.Tests/DaCollector.Tests.csproj`
+- `.github/workflows/*` if workflows exist or are added
+- `docs/development/building.md`
+- `docs/getting-started/verify-install.md`
+
+Tasks:
+- Confirm whether `.NET SDK 10.0.203` is actually required, or update `global.json` to the nearest installed/supported SDK.
+- Add a short `docs/development/building.md` note for installing the required SDK on Windows.
+- Add or update CI so `dotnet restore`, `dotnet build`, and `dotnet test` run on every push.
+- Keep the existing verification commands in this file current.
+
+Acceptance criteria:
+- `& "C:\Program Files\dotnet\dotnet.exe" --list-sdks` shows a compatible SDK on the dev machine.
+- `dotnet build DaCollector.sln --no-restore` succeeds.
+- `dotnet test DaCollector.Tests/DaCollector.Tests.csproj --no-restore` succeeds.
+- If integration tests are not ready, document why and split them into a separate CI job.
+
+### ✅ P3.2 — Add Install Smoke Test Script — DONE
+
+Files:
+- `scripts/verify-install.ps1` (new)
+- `docs/getting-started/verify-install.md`
+- `docs/getting-started/installation/windows.md`
+- `docs/getting-started/installation/docker.md`
+
+Tasks:
+- Add a PowerShell smoke test script that checks:
+  - `http://127.0.0.1:38111/api/v3/Init/Status`
+  - `http://127.0.0.1:38111/webui`
+  - optional Docker container health/log scan when `-Docker` is passed.
+- Make the port configurable, defaulting to `38111`.
+- Return a non-zero exit code on failed checks.
+- Reference the script from the Windows and Docker install docs.
+
+Acceptance criteria:
+- Running `.\scripts\verify-install.ps1` prints each check and exits `0` when DaCollector is reachable.
+- Running with the wrong port exits non-zero and explains the failed endpoint.
+- The docs still include manual commands for users who do not want to run scripts.
+
+### P3.3 — Surface Plex Media Duplicate Review in the Web UI
+
+Files:
+- `DaCollector.Server/webui/dacollector-duplicates.html`
+- `DaCollector.Server/API/v3/Controllers/DuplicatesController.cs`
+- `docs/features/duplicate-management.md`
+
+Tasks:
+- Add a clear mode switch for:
+  - Exact file duplicates
+  - Plex media duplicates
+- For Plex media duplicates, let the user enter or select a Plex library section key.
+- Render score, match type, scoring reasons, Plex rating keys, provider IDs, title/year, and file paths.
+- Do not add delete buttons for media duplicates; show review-only language.
+- Keep exact file duplicate delete behavior unchanged.
+
+Acceptance criteria:
+- Exact duplicate mode still calls `/api/v3/Duplicates/Exact/*`.
+- Media duplicate mode calls `/api/v3/Duplicates/Media/Plex/Library/{sectionKey}`.
+- Safe-delete candidates are visually distinct but still review-only.
+- The page works with API keys stored in the same browser storage flow used today.
+
+### P3.4 — Improve Plex Collection Sync Feedback
+
+Files:
+- `DaCollector.Server/Collections/ManagedCollectionSyncService.cs`
+- `DaCollector.Server/Plex/PlexTargetService.cs`
+- `DaCollector.Abstractions/Collections/CollectionSyncResult.cs`
+- `DaCollector.Abstractions/MediaServers/Plex/PlexCollectionApplyResult.cs`
+- `DaCollector.Tests/PlexTargetServiceTests.cs`
+
+Tasks:
+- Include an explicit planned diff in preview/apply responses:
+  - matched items
+  - missing items
+  - add candidates
+  - remove candidates
+  - unchanged items
+- Make `apply=false` return the same diff shape without writing to Plex.
+- Add warnings when Plex library item GUIDs are missing provider IDs.
+- Add tests for sync remove mode and missing-provider-ID handling.
+
+Acceptance criteria:
+- Users can see exactly what will be added or removed before applying.
+- Append mode never removes existing Plex collection members.
+- Sync mode removes only members that are absent from the evaluated target set.
+- Tests cover preview, append, sync, missing IDs, and failed Plex responses.
+
+### P3.5 — Build a Provider Match Queue for Movie/TV Imports
+
+Files:
+- `DaCollector.Server/Models/DaCollector/MediaSeries.cs`
+- `DaCollector.Server/Providers/TMDB/*`
+- `DaCollector.Server/Providers/TVDB/*`
+- `DaCollector.Server/Collections/*`
+- New service under `DaCollector.Server/Metadata` or `DaCollector.Server/Providers`
+- New API controller or endpoints under `/api/v3/Metadata`
+
+Tasks:
+- Create a review queue for unmatched or low-confidence movie/TV titles.
+- Store candidate matches from TMDB, TVDB, and IMDb with confidence reasons:
+  - title similarity
+  - year
+  - provider IDs
+  - Plex GUIDs
+  - folder path hints
+- Add approve/reject endpoints.
+- Keep automatic linking conservative until a user approves uncertain matches.
+
+Acceptance criteria:
+- A scanned title can have multiple provider candidates without immediately overwriting links.
+- Approved candidates update `MediaSeries` external IDs.
+- Rejected candidates do not reappear unless provider data changes or the user refreshes manually.
+- Candidate reasons are visible through API responses.
+
+### P3.6 — Harden TVDB and IMDb Provider Behavior
+
+Files:
+- `DaCollector.Server/Collections/TvdbCollectionBuilderClient.cs`
+- `DaCollector.Server/Providers/TVDB/TvdbMetadataService.cs`
+- `DaCollector.Server/Collections/ImdbDatasetCollectionBuilderClient.cs`
+- `DaCollector.Tests/CollectionBuilderPreviewServiceTests.cs`
+- New provider-specific test files as needed
+
+Tasks:
+- Add tests for TVDB token caching, unauthorized retry, missing credentials, and empty API responses.
+- Add tests for IMDb dataset missing files, malformed rows, cache expiry, and title type filtering.
+- Make provider warnings user-actionable and avoid leaking API keys or tokens.
+
+Acceptance criteria:
+- TVDB retries once after a 401 with a refreshed token.
+- Missing TVDB credentials produce a clear warning rather than a crash.
+- IMDb dataset errors name the missing file or malformed row.
+- No provider warning contains configured secrets.
+
+### ✅ P3.7 — Release and Container Polish — DONE
+
+Files:
+- `docker-compose.yml`
+- `docker-compose.example.yml`
+- `compose.yaml`
+- `compose.ghcr.yaml`
+- Dockerfiles
+- Installer files under `Installer/`
+- `.github/workflows/*`
+- `docs/getting-started/installation/docker.md`
+- `docs/getting-started/installation/windows.md`
+
+Tasks:
+- Confirm every Docker/Compose file exposes host port `38111` by default.
+- Add container healthcheck against `/api/v3/Init/Status`.
+- Publish GHCR image from CI.
+- Publish Windows installer and ZIP artifacts from CI.
+- Document release artifact names exactly as produced by CI.
+
+Acceptance criteria:
+- `docker compose up -d` starts a container reachable on `http://127.0.0.1:38111/webui`.
+- `docker compose ps` shows a healthy container when startup is complete.
+- Release docs match actual artifact names.
+- The installer, standalone ZIP, and Docker image all use the same default port.
+
+### P3.8 — Documentation Quality Pass
+
+Files:
+- `docs/index.md`
+- `docs/getting-started/*`
+- `docs/features/*`
+- `docs/reference/*`
+- `mkdocs.yml`
+
+Tasks:
+- Add screenshots only after the Web UI is stable.
+- Add a first-run walkthrough for:
+  - create first admin user
+  - configure Plex
+  - configure TMDB/TVDB/IMDb
+  - add managed folders
+  - preview a collection
+  - review duplicates
+- Add a troubleshooting page for ports, Docker networking, Plex token, provider credentials, and clean SQLite startup.
+- Keep `.env` out of the recommended Docker path unless the user explicitly asks for it.
+
+Acceptance criteria:
+- `mkdocs build --strict` succeeds when MkDocs dependencies are installed.
+- Every install page links to verification.
+- Every feature page links to the related API page or endpoint table.
+- Docker docs keep direct environment values in `docker-compose.yml`, not a recommended `.env` file.
 
 ---
 
