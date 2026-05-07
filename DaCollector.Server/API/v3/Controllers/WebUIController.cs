@@ -386,14 +386,10 @@ public partial class WebUIController(
         {
             await updateService.UpdateWebComponent(channel, allowIncompatible);
         }
-        catch (WebException ex)
+        catch (Exception ex) when (ex is WebException { Status: not WebExceptionStatus.Success } or HttpRequestException)
         {
-            if (ex.Status != WebExceptionStatus.Success)
-            {
-                logger.LogError(ex, "An error occurred while trying to install the Web UI.");
-                return Problem("Unable to use the GitHub API to check for an update. Check your connection and try again.", null, (int)HttpStatusCode.BadGateway, "Unable to connect to GitHub.");
-            }
-            throw;
+            logger.LogError(ex, "An error occurred while trying to install the Web UI.");
+            return Problem("Unable to use the GitHub API to check for an update. Check your connection and try again.", null, (int)HttpStatusCode.BadGateway, "Unable to connect to GitHub.");
         }
 
         return Redirect("/webui/index.html");
