@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using DaCollector.Abstractions.Collections;
 using DaCollector.Abstractions.MediaServers.Plex;
 using DaCollector.Server.Plex;
@@ -17,7 +18,8 @@ namespace DaCollector.Server.Collections;
 public class ManagedCollectionSyncService(
     ManagedCollectionService collectionService,
     ISettingsProvider settingsProvider,
-    PlexTargetService plexTargetService
+    PlexTargetService plexTargetService,
+    ILogger<ManagedCollectionSyncService> logger
 )
 {
     public async Task<CollectionSyncRunResult> Run(bool apply = false, CancellationToken cancellationToken = default)
@@ -30,14 +32,23 @@ public class ManagedCollectionSyncService(
         var results = new List<CollectionSyncResult>();
         var warnings = new List<string>();
 
+        logger.LogInformation("Sync run {RunID} started: {Enabled} enabled collection(s), {Disabled} disabled, apply={Apply}",
+            runID, enabled.Count, disabledCount, apply);
+
         foreach (var definition in enabled)
         {
+            logger.LogDebug("Evaluating collection '{Name}' ({ID})", definition.Name, definition.CollectionID);
             try
             {
-                results.Add(await Evaluate(definition, apply, cancellationToken).ConfigureAwait(false));
+                var result = await Evaluate(definition, apply, cancellationToken).ConfigureAwait(false);
+                results.Add(result);
+                if (result.Warnings.Count > 0)
+                    foreach (var warning in result.Warnings)
+                        logger.LogWarning("Collection '{Name}': {Warning}", definition.Name, warning);
             }
             catch (Exception e) when (e is ArgumentException or InvalidOperationException)
             {
+                logger.LogError(e, "Collection '{Name}' evaluation failed: {Error}", definition.Name, e.Message);
                 results.Add(new()
                 {
                     Collection = definition,
@@ -50,6 +61,10 @@ public class ManagedCollectionSyncService(
         }
 
         var finishedAt = DateTimeOffset.UtcNow;
+        var totalItems = results.SelectMany(r => r.Items).Select(i => i.ExternalID).Distinct().Count();
+        logger.LogInformation("Sync run {RunID} finished in {Elapsed:N0}ms: {TotalItems} distinct item(s) across {Collections} collection(s)",
+            runID, (finishedAt - startedAt).TotalMilliseconds, totalItems, enabled.Count);
+
         return new()
         {
             RunID = runID,
@@ -57,11 +72,7 @@ public class ManagedCollectionSyncService(
             FinishedAt = finishedAt,
             EnabledCollectionCount = enabled.Count,
             DisabledCollectionCount = disabledCount,
-            TotalItemCount = results
-                .SelectMany(result => result.Items)
-                .Select(item => item.ExternalID)
-                .Distinct()
-                .Count(),
+            TotalItemCount = totalItems,
             Collections = results,
             Warnings = warnings,
         };
@@ -71,14 +82,21 @@ public class ManagedCollectionSyncService(
     {
         var definition = collectionService.Get(collectionID);
         if (definition is null)
+        {
+            logger.LogWarning("Sync requested for unknown collection {CollectionID}", collectionID);
             return null;
+        }
 
+        logger.LogInformation("Single collection sync: '{Name}' ({ID}), apply={Apply}", definition.Name, collectionID, apply);
         return await Evaluate(definition, apply, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<CollectionSyncResult> Evaluate(CollectionDefinition definition, bool apply, CancellationToken cancellationToken)
     {
         var preview = await collectionService.Preview(definition, cancellationToken).ConfigureAwait(false);
+        logger.LogDebug("Collection '{Name}': preview returned {Count} item(s), {Warnings} warning(s)",
+            definition.Name, preview.Items.Count, preview.Warnings.Count);
+
         var warnings = preview.Warnings.ToList();
         var effectiveMode = CollectionSyncMode.Preview;
         var target = "preview";
@@ -94,6 +112,7 @@ public class ManagedCollectionSyncService(
             var sectionKey = settingsProvider.GetSettings().Plex.TargetSectionKey;
             if (string.IsNullOrWhiteSpace(sectionKey))
             {
+                logger.LogWarning("Collection '{Name}': Plex section key not configured; skipping Plex sync", definition.Name);
                 if (apply)
                     warnings.Add("Plex target library section key is not configured. This collection was evaluated without applying membership changes.");
             }

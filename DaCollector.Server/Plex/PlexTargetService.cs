@@ -5,6 +5,7 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml.Linq;
+using Microsoft.Extensions.Logging;
 using DaCollector.Abstractions.Collections;
 using DaCollector.Abstractions.MediaServers.Plex;
 using DaCollector.Abstractions.Metadata;
@@ -17,11 +18,12 @@ namespace DaCollector.Server.Plex;
 /// <summary>
 /// Direct Plex server adapter used by DaCollector collection manager.
 /// </summary>
-public class PlexTargetService(ISettingsProvider settingsProvider, IHttpClientFactory httpClientFactory)
+public class PlexTargetService(ISettingsProvider settingsProvider, IHttpClientFactory httpClientFactory, ILogger<PlexTargetService> logger)
 {
     public async Task<PlexServerIdentity> GetIdentity(string? baseUrl = null, CancellationToken cancellationToken = default)
     {
         var targetUrl = GetBaseUrl(baseUrl);
+        logger.LogDebug("Plex identity check: {Url}", targetUrl + "identity");
         try
         {
             using var response = await Send(targetUrl, "/identity", null, cancellationToken).ConfigureAwait(false);
@@ -29,7 +31,7 @@ public class PlexTargetService(ISettingsProvider settingsProvider, IHttpClientFa
             var document = XDocument.Parse(content);
             var container = document.Root;
 
-            return new()
+            var identity = new PlexServerIdentity
             {
                 BaseUrl = targetUrl,
                 Reachable = response.IsSuccessStatusCode,
@@ -40,9 +42,18 @@ public class PlexTargetService(ISettingsProvider settingsProvider, IHttpClientFa
                 ApiVersion = GetAttribute(container, "apiVersion"),
                 Claimed = ParseBoolean(GetAttribute(container, "claimed")),
             };
+
+            if (identity.Reachable)
+                logger.LogInformation("Plex reachable at {Url} (version {Version}, machine {MachineID})",
+                    targetUrl, identity.Version, identity.MachineIdentifier);
+            else
+                logger.LogWarning("Plex at {Url} returned HTTP {StatusCode}", targetUrl, identity.StatusCode);
+
+            return identity;
         }
         catch (Exception e) when (e is HttpRequestException or TaskCanceledException or UriFormatException or System.Xml.XmlException)
         {
+            logger.LogWarning("Plex identity check failed for {Url}: {Error}", targetUrl, e.Message);
             return new()
             {
                 BaseUrl = targetUrl,
@@ -59,13 +70,17 @@ public class PlexTargetService(ISettingsProvider settingsProvider, IHttpClientFa
         if (string.IsNullOrWhiteSpace(targetToken))
             throw new InvalidOperationException("A Plex token is required to read library sections.");
 
+        logger.LogDebug("Reading Plex library sections from {Url}", targetUrl);
         using var response = await Send(targetUrl, "/library/sections", targetToken, cancellationToken).ConfigureAwait(false);
         if (!response.IsSuccessStatusCode)
+        {
+            logger.LogError("Plex returned HTTP {StatusCode} reading library sections from {Url}", (int)response.StatusCode, targetUrl);
             throw new InvalidOperationException($"Plex returned {(int)response.StatusCode} {response.StatusCode} when reading library sections.");
+        }
 
         var content = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
         var document = XDocument.Parse(content);
-        return document
+        var sections = document
             .Descendants("Directory")
             .Select(directory => new PlexLibrarySection
             {
@@ -79,6 +94,10 @@ public class PlexTargetService(ISettingsProvider settingsProvider, IHttpClientFa
             .Where(section => section.Key.Length > 0)
             .OrderBy(section => section.Title, StringComparer.OrdinalIgnoreCase)
             .ToList();
+
+        logger.LogInformation("Found {Count} Plex library section(s): {Sections}",
+            sections.Count, string.Join(", ", sections.Select(s => $"{s.Key}:{s.Title}({s.Type})")));
+        return sections;
     }
 
     public async Task<IReadOnlyList<PlexMediaItem>> GetLibraryItems(string sectionKey, string? baseUrl = null, string? token = null, CancellationToken cancellationToken = default)
@@ -96,12 +115,16 @@ public class PlexTargetService(ISettingsProvider settingsProvider, IHttpClientFa
         var start = 0;
         var total = 1;
 
+        logger.LogDebug("Loading Plex library items for section {SectionKey}", sectionKey);
         while (start < total)
         {
             var path = $"/library/sections/{Uri.EscapeDataString(sectionKey)}/all?includeGuids=1";
             using var response = await Send(targetUrl, path, targetToken, cancellationToken, containerStart: start, containerSize: PageSize).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
+            {
+                logger.LogError("Plex returned HTTP {StatusCode} reading library items for section {SectionKey}", (int)response.StatusCode, sectionKey);
                 throw new InvalidOperationException($"Plex returned {(int)response.StatusCode} {response.StatusCode} when reading library items.");
+            }
 
             var content = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
             var document = XDocument.Parse(content);
@@ -121,6 +144,7 @@ public class PlexTargetService(ISettingsProvider settingsProvider, IHttpClientFa
             start += PageSize;
         }
 
+        logger.LogInformation("Loaded {Count} item(s) from Plex library section {SectionKey}", items.Count, sectionKey);
         return items;
     }
 
@@ -223,10 +247,17 @@ public class PlexTargetService(ISettingsProvider settingsProvider, IHttpClientFa
             ? existingItems.Where(item => !matchedKeys.Contains(item.RatingKey)).ToList()
             : [];
 
+        logger.LogInformation(
+            "Collection '{Name}' ({Mode}): {Matched} matched, {Missing} missing, {ToAdd} to add, {ToRemove} to remove, {Unchanged} unchanged{DryRunNote}",
+            normalizedName, syncMode, match.Matched.Count, match.Missing.Count, itemsToAdd.Count, itemsToRemove.Count,
+            matchedItems.Count - itemsToAdd.Count, dryRun ? " [dry run — not writing to Plex]" : string.Empty);
+
         if (!dryRun)
         {
             await UpdateCollectionMembership(sectionKey, normalizedName, itemsToAdd, add: true, targetUrl, targetToken, cancellationToken).ConfigureAwait(false);
             await UpdateCollectionMembership(sectionKey, normalizedName, itemsToRemove, add: false, targetUrl, targetToken, cancellationToken).ConfigureAwait(false);
+            if (itemsToAdd.Count > 0 || itemsToRemove.Count > 0)
+                logger.LogInformation("Applied collection '{Name}': added {Added}, removed {Removed}", normalizedName, itemsToAdd.Count, itemsToRemove.Count);
         }
 
         return new()
@@ -344,6 +375,8 @@ public class PlexTargetService(ISettingsProvider settingsProvider, IHttpClientFa
             for (var offset = 0; offset < ratingKeys.Count; offset += BatchSize)
             {
                 var batch = ratingKeys.Skip(offset).Take(BatchSize).ToList();
+                logger.LogDebug("{Action} {Count} item(s) of type {Type} in collection '{Collection}'",
+                    add ? "Adding" : "Removing", batch.Count, group.Key, collectionName);
                 var query = add
                     ? new List<KeyValuePair<string, string>>
                     {
@@ -363,6 +396,7 @@ public class PlexTargetService(ISettingsProvider settingsProvider, IHttpClientFa
                 if (!response.IsSuccessStatusCode)
                 {
                     var action = add ? "adding items to" : "removing items from";
+                    logger.LogError("Plex returned HTTP {StatusCode} when {Action} collection '{Collection}'", (int)response.StatusCode, action, collectionName);
                     throw new InvalidOperationException($"Plex returned {(int)response.StatusCode} {response.StatusCode} when {action} collection '{collectionName}'.");
                 }
             }
