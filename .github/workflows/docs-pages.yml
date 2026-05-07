@@ -9,12 +9,14 @@ on:
       - .github/workflows/docs-pages.yml
       - docs/**
       - mkdocs.yml
+      - docs/requirements.txt
       - README.md
   pull_request:
     paths:
       - .github/workflows/docs-pages.yml
       - docs/**
       - mkdocs.yml
+      - docs/requirements.txt
       - README.md
   workflow_dispatch:
 
@@ -41,9 +43,10 @@ jobs:
         with:
           python-version: "3.x"
           cache: pip
+          cache-dependency-path: docs/requirements.txt
 
       - name: Install documentation dependencies
-        run: python -m pip install mkdocs-material
+        run: python -m pip install -r docs/requirements.txt
 
       - name: Build documentation
         run: mkdocs build --strict
