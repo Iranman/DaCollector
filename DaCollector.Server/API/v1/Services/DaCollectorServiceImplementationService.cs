@@ -41,7 +41,7 @@ public class DaCollectorServiceImplementationService(
         if (anime == null) return null;
         var cl = new CL_AniDB_AnimeDetailed
         {
-            AniDBAnime = GetV1Contract(anime),
+            MetadataAnime = GetV1Contract(anime),
             AnimeTitles = [],
             Tags = [],
             CustomTags = []
@@ -115,7 +115,7 @@ public class DaCollectorServiceImplementationService(
                 StringComparer.InvariantCultureIgnoreCase);
         cl.Stat_AllVideoQuality_Episodes = new HashSet<string>(
             _videoLocals.GetByAniDBAnimeID(anime.AnimeID).Select(a => (a, a.EpisodeCrossReferences, a.ReleaseInfo))
-                .Where(a => a.ReleaseInfo is { } && a.EpisodeCrossReferences.Select(b => b.AniDBEpisode).WhereNotNull().Any(b => b.AnimeID == anime.AnimeID && b.EpisodeType is EpisodeType.Episode))
+                .Where(a => a.ReleaseInfo is { } && a.EpisodeCrossReferences.Select(b => b.MetadataEpisode).WhereNotNull().Any(b => b.AnimeID == anime.AnimeID && b.EpisodeType is EpisodeType.Episode))
                 .Select(a => a.ReleaseInfo!.LegacySource)
                 .WhereNotNullOrDefault()
                 .GroupBy(b => b)
@@ -179,7 +179,7 @@ public class DaCollectorServiceImplementationService(
             MissingEpisodeCountGroups = series.MissingEpisodeCountGroups,
             SeriesNameOverride = series.SeriesNameOverride,
             DefaultFolder = null,
-            AniDBAnime = GetV1DetailedContract(series.AniDB_Anime, userid)!,
+            MetadataAnime = GetV1DetailedContract(series.AniDB_Anime, userid)!,
             CrossRefAniDBTvDBV2 = [],
             TvDB_Series = [],
         };
@@ -213,13 +213,13 @@ public class DaCollectorServiceImplementationService(
                 contract.PlayedCount = rr.PlayedCount;
                 contract.WatchedCount = rr.WatchedCount;
                 contract.StoppedCount = rr.StoppedCount;
-                contract.AniDBAnime.AniDBAnime.FormattedTitle = series.Title;
+                contract.MetadataAnime.MetadataAnime.FormattedTitle = series.Title;
                 return contract;
             }
 
-            if (contract.AniDBAnime?.AniDBAnime is not null)
+            if (contract.MetadataAnime?.MetadataAnime is not null)
             {
-                contract.AniDBAnime.AniDBAnime.FormattedTitle = series.Title;
+                contract.MetadataAnime.MetadataAnime.FormattedTitle = series.Title;
             }
         }
         catch
@@ -240,7 +240,7 @@ public class DaCollectorServiceImplementationService(
     public CL_AnimeEpisode_User? GetV1Contract(MediaEpisode? ep, int userID)
     {
         if (ep == null) return null;
-        var anidbEpisode = ep.AniDB_Episode ?? throw new NullReferenceException($"Unable to find AniDB Episode with id {ep.AniDB_EpisodeID} locally while generating user contract for dacollector episode.");
+        var MetadataEpisode = ep.AniDB_Episode ?? throw new NullReferenceException($"Unable to find AniDB Episode with id {ep.AniDB_EpisodeID} locally while generating user contract for dacollector episode.");
         var seriesUserRecord = seriesUsers.GetByUserAndSeriesID(userID, ep.MediaSeriesID);
         var episodeUserRecord = epUsers.GetByUserAndEpisodeID(userID, ep.MediaEpisodeID);
         var contract = new CL_AnimeEpisode_User
@@ -258,13 +258,13 @@ public class DaCollectorServiceImplementationService(
                 .FirstOrDefault()?.Title,
             AniDB_RomajiName = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(ep.AniDB_EpisodeID, TitleLanguage.Romaji)
                 .FirstOrDefault()?.Title,
-            AniDB_AirDate = anidbEpisode.GetAirDateAsDate(),
-            AniDB_LengthSeconds = anidbEpisode.LengthSeconds,
-            AniDB_Rating = anidbEpisode.Rating,
-            AniDB_Votes = anidbEpisode.Votes,
-            EpisodeNumber = anidbEpisode.EpisodeNumber,
-            Description = anidbEpisode.Description,
-            EpisodeType = (int)anidbEpisode.EpisodeType,
+            AniDB_AirDate = MetadataEpisode.GetAirDateAsDate(),
+            AniDB_LengthSeconds = MetadataEpisode.LengthSeconds,
+            AniDB_Rating = MetadataEpisode.Rating,
+            AniDB_Votes = MetadataEpisode.Votes,
+            EpisodeNumber = MetadataEpisode.EpisodeNumber,
+            Description = MetadataEpisode.Description,
+            EpisodeType = (int)MetadataEpisode.EpisodeType,
             UnwatchedEpCountSeries = seriesUserRecord?.UnwatchedEpisodeCount ?? 0,
             LocalFileCount = ep.VideoLocals.Count,
         };

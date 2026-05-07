@@ -12,7 +12,7 @@ public class AnidbAnimeRecommendedForYou
     /// The recommended AniDB entry.
     /// </summary>
     [Required]
-    public AnidbAnime Anime { get; init; }
+    public MetadataAnime Anime { get; init; }
 
     /// <summary>
     /// Number of similar anime that resulted in this recommendation.
@@ -20,7 +20,7 @@ public class AnidbAnimeRecommendedForYou
     [Required]
     public int SimilarTo { get; init; }
 
-    public AnidbAnimeRecommendedForYou(AnidbAnime anime, int similarCount)
+    public AnidbAnimeRecommendedForYou(MetadataAnime anime, int similarCount)
     {
         Anime = anime;
         SimilarTo = similarCount;

@@ -28,7 +28,7 @@ public interface ITmdbAutoSearchResult
     /// <summary>
     /// Indicates that the result is for a movie auto-magic match.
     /// </summary>
-    [MemberNotNullWhen(true, nameof(AnidbEpisode))]
+    [MemberNotNullWhen(true, nameof(MetadataEpisode))]
     [MemberNotNullWhen(true, nameof(TmdbMovie))]
     [MemberNotNullWhen(false, nameof(TmdbShow))]
     bool IsMovie { get; }
@@ -36,12 +36,12 @@ public interface ITmdbAutoSearchResult
     /// <summary>
     /// The AniDB anime associated with the search result.
     /// </summary>
-    IAnidbAnime AnidbAnime { get; }
+    IAnidbAnime MetadataAnime { get; }
 
     /// <summary>
     /// The AniDB episode associated with the search result, if it's a movie match.
     /// </summary>
-    IAnidbEpisode? AnidbEpisode { get; }
+    IAnidbEpisode? MetadataEpisode { get; }
 
     /// <summary>
     /// The TMDB show search result, if it's a show match.

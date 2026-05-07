@@ -1224,7 +1224,7 @@ public class VideoRelocationService(
 
     public (IManagedFolder ManagedFolder, string RelativePath)? GetExistingSeriesLocationWithSpace(RelocationContext args)
     {
-        var series = args.Series.Select(s => s.AnidbAnime).FirstOrDefault();
+        var series = args.Series.Select(s => s.MetadataAnime).FirstOrDefault();
         if (series is null)
             return null;
 

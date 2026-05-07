@@ -33,7 +33,7 @@ public interface IDaCollectorEpisode : IEpisode, IWithCreationDate, IWithUpdateD
     /// <summary>
     /// A direct link to the anidb episode metadata.
     /// </summary>
-    IAnidbEpisode AnidbEpisode { get; }
+    IAnidbEpisode MetadataEpisode { get; }
 
     /// <summary>
     /// A direct link to all anilist episodes linked to the dacollector episode.

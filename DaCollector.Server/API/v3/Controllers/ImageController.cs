@@ -135,7 +135,7 @@ public class ImageController(IImageManager imageManager, ISettingsProvider setti
                 continue;
 
             var series = imageManager.GetFirstSeriesForImage(metadata);
-            if (series == null || series.AnidbAnime.Restricted)
+            if (series == null || series.MetadataAnime.Restricted)
                 continue;
 
             if (metadata.GetStream() is not { } stream)
@@ -187,7 +187,7 @@ public class ImageController(IImageManager imageManager, ISettingsProvider setti
 
             var image = new Image(metadata);
             var series = imageManager.GetFirstSeriesForImage(metadata);
-            if (series?.AnidbAnime is not { } anime)
+            if (series?.MetadataAnime is not { } anime)
                 continue;
 
             if (includeRestricted != IncludeOnlyFilter.True)

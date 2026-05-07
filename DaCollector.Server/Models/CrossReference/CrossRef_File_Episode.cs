@@ -49,11 +49,11 @@ public class CrossRef_File_Episode : IVideoCrossReference
 
     public VideoLocal? VideoLocal => RepoFactory.VideoLocal.GetByEd2k(Hash);
 
-    public AniDB_Episode? AniDBEpisode => RepoFactory.AniDB_Episode.GetByEpisodeID(EpisodeID);
+    public AniDB_Episode? MetadataEpisode => RepoFactory.AniDB_Episode.GetByEpisodeID(EpisodeID);
 
     public MediaEpisode? MediaEpisode => RepoFactory.MediaEpisode.GetByAniDBEpisodeID(EpisodeID);
 
-    public AniDB_Anime? AniDBAnime => AnimeID is 0 ? null : RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
+    public AniDB_Anime? MetadataAnime => AnimeID is 0 ? null : RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
 
     public MediaSeries? MediaSeries => AnimeID is 0 ? null : RepoFactory.MediaSeries.GetByAnimeID(AnimeID);
 
@@ -93,7 +93,7 @@ public class CrossRef_File_Episode : IVideoCrossReference
                         xref: xref2,
                         episode: RepoFactory.CrossRef_File_Episode.GetByEd2k(xref2.Hash)
                             .FirstOrDefault(xref3 => xref3.Percentage == 100 && xref3.ReleaseInfo is IReleaseInfo xref3ReleaseInfo && xref3ReleaseInfo.Group is { } xref3ReleaseGroup && xref3ReleaseGroup.Equals(releaseGroup))
-                            ?.AniDBEpisode
+                            ?.MetadataEpisode
                     ))
                     .OrderBy(tuple => tuple.episode?.EpisodeType)
                     .ThenBy(tuple => tuple.episode?.EpisodeNumber)
@@ -152,7 +152,7 @@ public class CrossRef_File_Episode : IVideoCrossReference
 
     int IReleaseVideoCrossReference.AnidbEpisodeID => EpisodeID;
 
-    int? IReleaseVideoCrossReference.AnidbAnimeID => AnimeID is 0 ? AniDBEpisode?.AnimeID : AnimeID;
+    int? IReleaseVideoCrossReference.AnidbAnimeID => AnimeID is 0 ? MetadataEpisode?.AnimeID : AnimeID;
 
     int IReleaseVideoCrossReference.PercentageStart => PercentageRange.Start;
 
@@ -171,7 +171,7 @@ public class CrossRef_File_Episode : IVideoCrossReference
 
     int IVideoCrossReference.AnidbEpisodeID => EpisodeID;
 
-    int IVideoCrossReference.AnidbAnimeID => AnimeID is 0 ? AniDBEpisode?.AnimeID ?? 0 : AnimeID;
+    int IVideoCrossReference.AnidbAnimeID => AnimeID is 0 ? MetadataEpisode?.AnimeID ?? 0 : AnimeID;
 
     int IVideoCrossReference.Percentage => Percentage;
 
@@ -179,9 +179,9 @@ public class CrossRef_File_Episode : IVideoCrossReference
 
     IVideo? IVideoCrossReference.Video => VideoLocal;
 
-    IAnidbEpisode? IVideoCrossReference.AnidbEpisode => AniDBEpisode;
+    IAnidbEpisode? IVideoCrossReference.MetadataEpisode => MetadataEpisode;
 
-    IAnidbAnime? IVideoCrossReference.AnidbAnime => AniDBAnime;
+    IAnidbAnime? IVideoCrossReference.MetadataAnime => MetadataAnime;
 
     IDaCollectorEpisode? IVideoCrossReference.DaCollectorEpisode => MediaEpisode;
 

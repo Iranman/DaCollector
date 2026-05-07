@@ -41,7 +41,7 @@ public interface IAnidbAnimeSearchResult : IMetadata<int>, IWithTitles
     /// <summary>
     /// AniDB Anime entry, if available locally.
     /// </summary>
-    IAnidbAnime? AnidbAnime { get; }
+    IAnidbAnime? MetadataAnime { get; }
 
     /// <summary>
     /// DaCollector Series entry, if available locally.

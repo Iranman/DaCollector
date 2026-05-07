@@ -1229,10 +1229,10 @@ public class FileController(
                 var episode = RepoFactory.MediaEpisode.GetByID(episodeID);
                 if (episode == null)
                     ModelState.AddModelError(nameof(body.EpisodeIDs), $"Unable to find dacollector episode with id {episodeID}");
-                var anidbEpisode = episode?.AniDB_Episode;
-                if (anidbEpisode == null)
+                var MetadataEpisode = episode?.AniDB_Episode;
+                if (MetadataEpisode == null)
                     ModelState.AddModelError(nameof(body.EpisodeIDs), $"Unable to find anidb episode for dacollector episode with id {episodeID}");
-                return anidbEpisode;
+                return MetadataEpisode;
             })
             .WhereNotNull()
             .ToList();
@@ -1307,21 +1307,21 @@ public class FileController(
         var episodeList = new List<AniDB_Episode>();
         for (var episodeNumber = rangeStart; episodeNumber <= rangeEnd; episodeNumber++)
         {
-            var anidbEpisode = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeTypeNumber(series.AniDB_ID, episodeType, episodeNumber)[0];
-            if (anidbEpisode == null)
+            var MetadataEpisode = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeTypeNumber(series.AniDB_ID, episodeType, episodeNumber)[0];
+            if (MetadataEpisode == null)
             {
                 ModelState.AddModelError("Episodes", $"Could not find the AniDB entry for the {episodeType.ToString().ToLowerInvariant()} episode {episodeNumber}.");
                 continue;
             }
 
-            var episode = RepoFactory.MediaEpisode.GetByAniDBEpisodeID(anidbEpisode.EpisodeID);
+            var episode = RepoFactory.MediaEpisode.GetByAniDBEpisodeID(MetadataEpisode.EpisodeID);
             if (episode == null)
             {
                 ModelState.AddModelError("Episodes", $"Could not find the DaCollector entry for the {episodeType.ToString().ToLowerInvariant()} episode {episodeNumber}.");
                 continue;
             }
 
-            episodeList.Add(anidbEpisode);
+            episodeList.Add(MetadataEpisode);
         }
 
         if (!ModelState.IsValid)
@@ -1421,21 +1421,21 @@ public class FileController(
         var episodeList = new List<(VideoLocal, AniDB_Episode)>();
         foreach (var file in files)
         {
-            var anidbEpisode = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeTypeNumber(series.AniDB_ID, episodeType, episodeNumber)[0];
-            if (anidbEpisode == null)
+            var MetadataEpisode = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeTypeNumber(series.AniDB_ID, episodeType, episodeNumber)[0];
+            if (MetadataEpisode == null)
             {
                 ModelState.AddModelError("Episodes", $"Could not find the AniDB entry for the {episodeType.ToString().ToLowerInvariant()} episode {episodeNumber}.");
                 continue;
             }
 
-            var episode = RepoFactory.MediaEpisode.GetByAniDBEpisodeID(anidbEpisode.EpisodeID);
+            var episode = RepoFactory.MediaEpisode.GetByAniDBEpisodeID(MetadataEpisode.EpisodeID);
             if (episode == null)
             {
                 ModelState.AddModelError("Episodes", $"Could not find the DaCollector entry for the {episodeType.ToString().ToLowerInvariant()} episode {episodeNumber}.");
                 continue;
             }
 
-            episodeList.Add((file, anidbEpisode));
+            episodeList.Add((file, MetadataEpisode));
         }
 
         if (!ModelState.IsValid)
@@ -1520,8 +1520,8 @@ public class FileController(
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
-        var anidbEpisode = episode!.AniDB_Episode;
-        if (anidbEpisode == null)
+        var MetadataEpisode = episode!.AniDB_Episode;
+        if (MetadataEpisode == null)
             return InternalError("Could not find the AniDB entry for episode");
 
         var count = 0;
@@ -1539,8 +1539,8 @@ public class FileController(
                 CrossReferences = [
                     new()
                     {
-                        AnidbAnimeID = anidbEpisode.AnimeID,
-                        AnidbEpisodeID = anidbEpisode.EpisodeID,
+                        AnidbAnimeID = MetadataEpisode.AnimeID,
+                        AnidbEpisodeID = MetadataEpisode.EpisodeID,
                         PercentageStart = percentageStart,
                         PercentageEnd = percentageEnd,
                     },

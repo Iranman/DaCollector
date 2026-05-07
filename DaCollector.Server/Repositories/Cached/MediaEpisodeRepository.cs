@@ -116,11 +116,11 @@ public class MediaEpisodeRepository : BaseCachedRepository<MediaEpisode, int>
 
         return ids
             .Select(GetByAniDBEpisodeID)
-            .Select(episode => (episode, anidbEpisode: episode?.AniDB_Episode))
-            .Where(tuple => tuple.anidbEpisode is not null)
-            .OrderBy(tuple => tuple.anidbEpisode!.AnimeID)
-            .ThenBy(tuple => tuple.anidbEpisode!.EpisodeType)
-            .ThenBy(tuple => tuple.anidbEpisode!.EpisodeNumber)
+            .Select(episode => (episode, MetadataEpisode: episode?.AniDB_Episode))
+            .Where(tuple => tuple.MetadataEpisode is not null)
+            .OrderBy(tuple => tuple.MetadataEpisode!.AnimeID)
+            .ThenBy(tuple => tuple.MetadataEpisode!.EpisodeType)
+            .ThenBy(tuple => tuple.MetadataEpisode!.EpisodeNumber)
             .Select(tuple => tuple.episode!);
     }
 
@@ -209,11 +209,11 @@ GROUP BY
 
         return ids
             .Select(GetByAniDBEpisodeID)
-            .Select(episode => (episode, anidbEpisode: episode?.AniDB_Episode))
-            .Where(tuple => tuple.anidbEpisode is not null)
-            .OrderBy(tuple => tuple.anidbEpisode!.AnimeID)
-            .ThenBy(tuple => tuple.anidbEpisode!.EpisodeType)
-            .ThenBy(tuple => tuple.anidbEpisode!.EpisodeNumber)
+            .Select(episode => (episode, MetadataEpisode: episode?.AniDB_Episode))
+            .Where(tuple => tuple.MetadataEpisode is not null)
+            .OrderBy(tuple => tuple.MetadataEpisode!.AnimeID)
+            .ThenBy(tuple => tuple.MetadataEpisode!.EpisodeType)
+            .ThenBy(tuple => tuple.MetadataEpisode!.EpisodeNumber)
             .Select(tuple => tuple.episode!);
     }
 
@@ -230,11 +230,11 @@ GROUP BY
             var episodeReleasedGroupList = new MediaSeriesService.EpisodeList(animeType);
             var animeGroupStatuses = RepoFactory.AniDB_GroupStatus.GetByAnimeID(series.AniDB_ID);
             var allEpisodes = series.AllAnimeEpisodes
-                .Select(episode => (episode, anidbEpisode: episode.AniDB_Episode!, videos: episode.VideoLocals))
-                .Where(tuple => tuple.anidbEpisode is not null)
+                .Select(episode => (episode, MetadataEpisode: episode.AniDB_Episode!, videos: episode.VideoLocals))
+                .Where(tuple => tuple.MetadataEpisode is not null)
                 .ToList();
             var localReleaseGroups = allEpisodes
-                .Where(tuple => tuple.anidbEpisode.EpisodeType == EpisodeType.Episode)
+                .Where(tuple => tuple.MetadataEpisode.EpisodeType == EpisodeType.Episode)
                 .SelectMany(a => a.videos
                     .Select(b => b.ReleaseGroup)
                     .WhereNotNull()
@@ -242,9 +242,9 @@ GROUP BY
                     .Select(b => int.Parse(b.ID))
                 )
                 .ToHashSet();
-            foreach (var (episode, anidbEpisode, videos) in allEpisodes)
+            foreach (var (episode, MetadataEpisode, videos) in allEpisodes)
             {
-                if (anidbEpisode.EpisodeType is not EpisodeType.Episode || videos.Count is not 0 || !anidbEpisode.HasAired)
+                if (MetadataEpisode.EpisodeType is not EpisodeType.Episode || videos.Count is not 0 || !MetadataEpisode.HasAired)
                     continue;
 
                 if (animeGroupStatuses.Count is 0)
@@ -256,7 +256,7 @@ GROUP BY
                 var filteredGroups = animeGroupStatuses
                     .Where(status =>
                         status.CompletionState is (int)Providers.AniDB.Group_CompletionStatus.Complete or (int)Providers.AniDB.Group_CompletionStatus.Finished ||
-                        status.HasGroupReleasedEpisode(anidbEpisode.EpisodeNumber)
+                        status.HasGroupReleasedEpisode(MetadataEpisode.EpisodeNumber)
                     )
                     .ToList();
                 if (filteredGroups.Count is 0)
@@ -290,17 +290,17 @@ GROUP BY
         => GetAll()
             .Where(a =>
             {
-                var anidbEpisode = a.AniDB_Episode;
-                if (anidbEpisode is null || anidbEpisode.HasAired)
+                var MetadataEpisode = a.AniDB_Episode;
+                if (MetadataEpisode is null || MetadataEpisode.HasAired)
                     return false;
 
-                if (anidbEpisode.EpisodeType is not EpisodeType.Episode and not EpisodeType.Special)
+                if (MetadataEpisode.EpisodeType is not EpisodeType.Episode and not EpisodeType.Special)
                     return false;
 
-                if (!includeSpecials && anidbEpisode.EpisodeType is EpisodeType.Special)
+                if (!includeSpecials && MetadataEpisode.EpisodeType is EpisodeType.Special)
                     return false;
 
-                if (includeOnlyAired && !anidbEpisode.HasAired)
+                if (includeOnlyAired && !MetadataEpisode.HasAired)
                     return false;
 
                 return a.VideoLocals.Count == 0;

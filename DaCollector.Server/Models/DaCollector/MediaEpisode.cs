@@ -184,7 +184,7 @@ public class MediaEpisode : IDaCollectorEpisode, IEquatable<MediaEpisode>
                 });
             }
 
-            var animeTitles = (this as IDaCollectorEpisode).AnidbEpisode.Titles.ToList();
+            var animeTitles = (this as IDaCollectorEpisode).MetadataEpisode.Titles.ToList();
             if (episodeOverrideTitle)
             {
                 var mainTitle = animeTitles.Find(title => title.Type == TitleType.Main);
@@ -405,8 +405,8 @@ public class MediaEpisode : IDaCollectorEpisode, IEquatable<MediaEpisode>
         get
         {
             var list = new List<ICast>();
-            if (AniDB_Episode is IEpisode anidbEpisode)
-                list.AddRange(anidbEpisode.Cast);
+            if (AniDB_Episode is IEpisode MetadataEpisode)
+                list.AddRange(MetadataEpisode.Cast);
             foreach (var movie in TmdbMovies)
                 list.AddRange(movie.Cast);
             foreach (var episode in TmdbEpisodes)
@@ -420,8 +420,8 @@ public class MediaEpisode : IDaCollectorEpisode, IEquatable<MediaEpisode>
         get
         {
             var list = new List<ICrew>();
-            if (AniDB_Episode is IEpisode anidbEpisode)
-                list.AddRange(anidbEpisode.Crew);
+            if (AniDB_Episode is IEpisode MetadataEpisode)
+                list.AddRange(MetadataEpisode.Crew);
             foreach (var movie in TmdbMovies)
                 list.AddRange(movie.Crew);
             foreach (var episode in TmdbEpisodes)
@@ -514,7 +514,7 @@ public class MediaEpisode : IDaCollectorEpisode, IEquatable<MediaEpisode>
 
     IDaCollectorSeries? IDaCollectorEpisode.Series => MediaSeries;
 
-    IAnidbEpisode IDaCollectorEpisode.AnidbEpisode => AniDB_Episode ??
+    IAnidbEpisode IDaCollectorEpisode.MetadataEpisode => AniDB_Episode ??
         throw new NullReferenceException($"Unable to find AniDB Episode {AniDB_EpisodeID} for MediaEpisode {MediaEpisodeID}");
 
     IReadOnlyList<IAnilistEpisode> IDaCollectorEpisode.AnilistEpisodes => [];
@@ -535,9 +535,9 @@ public class MediaEpisode : IDaCollectorEpisode, IEquatable<MediaEpisode>
         {
             var episodeList = new List<IEpisode>();
 
-            var anidbEpisode = AniDB_Episode;
-            if (anidbEpisode is not null)
-                episodeList.Add(anidbEpisode);
+            var MetadataEpisode = AniDB_Episode;
+            if (MetadataEpisode is not null)
+                episodeList.Add(MetadataEpisode);
 
             episodeList.AddRange(TmdbEpisodes);
 

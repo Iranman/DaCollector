@@ -61,7 +61,7 @@ public class CrossRef_AniDB_TMDB_Season : IEquatable<CrossRef_AniDB_TMDB_Season>
     #endregion
     #region Methods
 
-    public AniDB_Anime? AnidbAnime =>
+    public AniDB_Anime? MetadataAnime =>
         RepoFactory.AniDB_Anime.GetByAnimeID(AnidbAnimeID);
 
     public MediaSeries? MediaSeries =>

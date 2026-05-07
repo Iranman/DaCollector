@@ -793,18 +793,18 @@ public class DaCollectorServiceImplementationMetro : IHttpContextAccessor
 
                 var anidbEpisodeList = RepoFactory.AniDB_Episode.GetByAnimeID(ser.AniDB_ID);
                 var animeEpisodeDict = new Dictionary<int, AniDB_Episode>();
-                foreach (var anidbEpisode in anidbEpisodeList)
+                foreach (var MetadataEpisode in anidbEpisodeList)
                 {
-                    animeEpisodeDict[anidbEpisode.EpisodeID] = anidbEpisode;
+                    animeEpisodeDict[MetadataEpisode.EpisodeID] = MetadataEpisode;
                 }
 
                 var candidateEps = new List<CL_AnimeEpisode_User>();
 
                 foreach (var ep in animeEpisodeList)
                 {
-                    if (animeEpisodeDict.TryGetValue(ep.AniDB_EpisodeID, out var anidbEpisode))
+                    if (animeEpisodeDict.TryGetValue(ep.AniDB_EpisodeID, out var MetadataEpisode))
                     {
-                        if (anidbEpisode.EpisodeType is EpisodeType.Episode or EpisodeType.Special)
+                        if (MetadataEpisode.EpisodeType is EpisodeType.Episode or EpisodeType.Special)
                         {
                             // The episode list have already been filtered to only episodes with a user record
                             // So just add the candidate to the list.
@@ -824,7 +824,7 @@ public class DaCollectorServiceImplementationMetro : IHttpContextAccessor
                     foreach (var canEp in candidateEps.OrderBy(a => a.EpisodeType)
                                  .ThenBy(a => a.EpisodeNumber))
                     {
-                        if (animeEpisodeDict.TryGetValue(canEp.AniDB_EpisodeID, out var anidbEpisode))
+                        if (animeEpisodeDict.TryGetValue(canEp.AniDB_EpisodeID, out var MetadataEpisode))
                         {
                             dictEpUsers.TryGetValue(canEp.MediaEpisodeID, out var userEpRecord);
 
@@ -849,12 +849,12 @@ public class DaCollectorServiceImplementationMetro : IHttpContextAccessor
                                 }
 
                                 // anidb
-                                contract.EpisodeNumber = anidbEpisode.EpisodeNumber;
+                                contract.EpisodeNumber = MetadataEpisode.EpisodeNumber;
                                 contract.EpisodeName = epFresh.Title;
 
-                                contract.EpisodeType = (int)anidbEpisode.EpisodeType;
-                                contract.LengthSeconds = anidbEpisode.LengthSeconds;
-                                contract.AirDate = GetAniDBDate(anidbEpisode.AirDate);
+                                contract.EpisodeType = (int)MetadataEpisode.EpisodeType;
+                                contract.LengthSeconds = MetadataEpisode.LengthSeconds;
+                                contract.AirDate = GetAniDBDate(MetadataEpisode.AirDate);
 
                                 ret.NextEpisodesToWatch.Add(contract);
                                 cnt++;

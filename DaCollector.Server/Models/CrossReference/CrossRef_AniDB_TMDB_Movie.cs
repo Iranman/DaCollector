@@ -45,9 +45,9 @@ public class CrossRef_AniDB_TMDB_Movie : ITmdbMovieCrossReference
 
     #region Methods
 
-    public AniDB_Episode? AnidbEpisode => RepoFactory.AniDB_Episode.GetByEpisodeID(AnidbEpisodeID);
+    public AniDB_Episode? MetadataEpisode => RepoFactory.AniDB_Episode.GetByEpisodeID(AnidbEpisodeID);
 
-    public AniDB_Anime? AnidbAnime =>
+    public AniDB_Anime? MetadataAnime =>
         RepoFactory.AniDB_Anime.GetByAnimeID(AnidbAnimeID);
 
     public MediaEpisode? MediaEpisode => RepoFactory.MediaEpisode.GetByAniDBEpisodeID(AnidbEpisodeID);

@@ -73,7 +73,7 @@ public class GetAniDBCreatorJob : BaseJob
             var anidbAnimeCharacters = anidbCharacterCreators
                 .SelectMany(c => RepoFactory.AniDB_Anime_Character.GetByCharacterID(c.CharacterID))
                 .ToList();
-            var anidbAnime = anidbAnimeStaffRoles.Select(a => a.AnimeID)
+            var MetadataAnime = anidbAnimeStaffRoles.Select(a => a.AnimeID)
                 .Concat(anidbAnimeCharacters.Select(a => a.AnimeID))
                 .Distinct()
                 .Select(RepoFactory.AniDB_Anime.GetByAnimeID)
@@ -84,10 +84,10 @@ public class GetAniDBCreatorJob : BaseJob
             RepoFactory.AniDB_Anime_Character_Creator.Delete(anidbCharacterCreators);
             RepoFactory.AniDB_Anime_Staff.Delete(anidbAnimeStaffRoles);
 
-            if (anidbAnime.Count > 0)
+            if (MetadataAnime.Count > 0)
             {
-                _logger.LogInformation("Scheduling {Count} AniDB Anime for a refresh due to removal of creator: {CreatorID}", anidbAnime.Count, CreatorID);
-                foreach (var anime in anidbAnime)
+                _logger.LogInformation("Scheduling {Count} AniDB Anime for a refresh due to removal of creator: {CreatorID}", MetadataAnime.Count, CreatorID);
+                foreach (var anime in MetadataAnime)
                     await _anidbService.ScheduleRefreshOfAnime(anime, AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful).ConfigureAwait(false);
             }
 

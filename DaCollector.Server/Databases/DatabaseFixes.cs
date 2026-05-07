@@ -545,7 +545,7 @@ public class DatabaseFixes
                     return true;
 
                 // AniDB Episode doesn't exist anymore.
-                if (!allAniDBEpisodes.TryGetValue(episode.AniDB_EpisodeID, out var anidbEpisode))
+                if (!allAniDBEpisodes.TryGetValue(episode.AniDB_EpisodeID, out var MetadataEpisode))
                     return true;
 
                 return false;

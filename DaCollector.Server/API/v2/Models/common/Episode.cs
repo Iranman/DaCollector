@@ -62,11 +62,11 @@ public class Episode : BaseDirectory
     {
         var ep = new Episode { id = aep.MediaEpisodeID, art = new ArtCollection() };
 
-        if (aep.AniDB_Episode is { } anidbEpisode)
+        if (aep.AniDB_Episode is { } MetadataEpisode)
         {
-            ep.eptype = anidbEpisode.EpisodeType.ToString();
-            ep.aid = anidbEpisode.AnimeID;
-            ep.eid = anidbEpisode.EpisodeID;
+            ep.eptype = MetadataEpisode.EpisodeType.ToString();
+            ep.aid = MetadataEpisode.AnimeID;
+            ep.eid = MetadataEpisode.EpisodeID;
         }
 
         if (RepoFactory.MediaEpisode_User.GetByUserAndEpisodeID(uid, aep.MediaEpisodeID) is { HasUserRating: true } userData)

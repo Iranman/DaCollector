@@ -81,13 +81,13 @@ public static class Search
 
         public AutoMatchResult(TmdbAutoSearchResult result)
         {
-            AnimeID = result.AnidbAnime.AnimeID;
+            AnimeID = result.MetadataAnime.AnimeID;
             IsLocal = result.IsLocal;
             IsRemote = result.IsRemote;
             if (result.IsMovie)
             {
                 IsMovie = true;
-                EpisodeID = result.AnidbEpisode.EpisodeID;
+                EpisodeID = result.MetadataEpisode.EpisodeID;
                 Movie = new(result.TmdbMovieRaw);
             }
             else

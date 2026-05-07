@@ -111,11 +111,11 @@ public class Series : BaseModel
     public DateTime Updated { get; set; }
 
     /// <summary>
-    /// The <see cref="Series.AniDB"/>, if <see cref="DataSourceType.AniDB"/> is
+    /// The source metadata, if <see cref="DataSourceType.AniDB"/> is
     /// included in the data to add.
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-    public AnidbAnime? AniDB { get; set; }
+    public MetadataAnime? Source { get; set; }
 
     /// <summary>
     /// The <see cref="TmdbData"/> entries, if <see cref="DataSourceType.TMDB"/>
@@ -139,7 +139,7 @@ public class Series : BaseModel
             ID = ser.MediaSeriesID,
             ParentGroup = ser.MediaGroupID,
             TopLevelGroup = ser.TopLevelMediaGroup?.MediaGroupID ?? 0,
-            AniDB = ser.AniDB_ID,
+            SourceID = ser.AniDB_ID,
             TvDB = tmdbShowXRefs.Select(xref => xref.TmdbShow?.TvdbShowID).WhereNotNull().Distinct().ToList(),
             IMDB = tmdbMovieXRefs
                 .Select(xref => xref.TmdbMovie?.ImdbMovieID)
@@ -178,7 +178,7 @@ public class Series : BaseModel
                 Source = "User",
             };
         if (includeDataFrom?.Contains(DataSourceType.AniDB) ?? false)
-            AniDB = new(anime, ser);
+            Source = new(anime, ser);
         if (includeDataFrom?.Contains(DataSourceType.TMDB) ?? false)
             TMDB = new()
             {
@@ -433,10 +433,10 @@ public class Series : BaseModel
         // These are useful for many things, but for clients, it is mostly auxiliary
 
         /// <summary>
-        /// The AniDB ID
+        /// The source metadata ID
         /// </summary>
         [Required]
-        public int AniDB { get; set; }
+        public int SourceID { get; set; }
 
         /// <summary>
         /// The TvDB IDs

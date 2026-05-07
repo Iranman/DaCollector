@@ -11,7 +11,7 @@ using DaCollector.Server.Server;
 #nullable enable
 namespace DaCollector.Server.API.v3.Models.AniDB;
 
-public class AnidbCharacter
+public class MetadataCharacter
 {
     /// <summary>
     /// The ID of the character.
@@ -59,7 +59,7 @@ public class AnidbCharacter
     /// </summary>
     public Image? Image { get; set; }
 
-    public AnidbCharacter(AniDB_Character character)
+    public MetadataCharacter(AniDB_Character character)
     {
         ID = character.CharacterID;
         Name = character.Name;

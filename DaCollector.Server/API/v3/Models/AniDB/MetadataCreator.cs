@@ -13,7 +13,7 @@ namespace DaCollector.Server.API.v3.Models.AniDB;
 /// <summary>
 /// AniDB Creator APIv3 Data Transfer Object (DTO).
 /// </summary>
-public class AnidbCreator
+public class MetadataCreator
 {
     /// <summary>
     /// The global ID of the creator.
@@ -69,7 +69,7 @@ public class AnidbCreator
     /// </summary>
     public Image? Image { get; set; }
 
-    public AnidbCreator(AniDB_Creator creator)
+    public MetadataCreator(AniDB_Creator creator)
     {
         ID = creator.CreatorID;
         Name = creator.Name;

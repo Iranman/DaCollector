@@ -50,10 +50,10 @@ public class CrossRef_AniDB_TMDB_Episode : ITmdbEpisodeCrossReference
     #endregion
     #region Methods
 
-    public AniDB_Episode? AnidbEpisode =>
+    public AniDB_Episode? MetadataEpisode =>
         RepoFactory.AniDB_Episode.GetByEpisodeID(AnidbEpisodeID);
 
-    public AniDB_Anime? AnidbAnime =>
+    public AniDB_Anime? MetadataAnime =>
         RepoFactory.AniDB_Anime.GetByAnimeID(AnidbAnimeID);
 
     public MediaEpisode? MediaEpisode =>

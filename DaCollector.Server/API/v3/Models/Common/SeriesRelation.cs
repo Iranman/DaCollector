@@ -45,10 +45,10 @@ public class SeriesRelation
         series ??= RepoFactory.MediaSeries.GetByAnimeID(relation.BaseID);
         relatedSeries ??= RepoFactory.MediaSeries.GetByAnimeID(relation.RelatedID);
 
-        IDs = new RelationIDs { AniDB = relation.BaseID, DaCollector = series?.ID };
-        RelatedIDs = new RelationIDs { AniDB = relation.RelatedID, DaCollector = relatedSeries?.ID };
+        IDs = new RelationIDs { SourceID = relation.BaseID, DaCollector = series?.ID };
+        RelatedIDs = new RelationIDs { SourceID = relation.RelatedID, DaCollector = relatedSeries?.ID };
         Type = relation.RelationType;
-        Source = "AniDB";
+        Source = "Source";
     }
 
     /// <summary>
@@ -62,8 +62,8 @@ public class SeriesRelation
         public int? DaCollector { get; set; }
 
         /// <summary>
-        /// The ID of the <see cref="Series.AniDB"/> entry.
+        /// The source metadata series ID.
         /// </summary>
-        public int? AniDB { get; set; }
+        public int? SourceID { get; set; }
     }
 }

@@ -80,7 +80,7 @@ public class TmdbLinkingService : ITmdbLinkingService
         ISettingsProvider settingsProvider,
         TmdbImageService imageService,
         MediaSeriesRepository MediaSeries,
-        AniDB_AnimeRepository anidbAnime,
+        AniDB_AnimeRepository MetadataAnime,
         AniDB_EpisodeRepository anidbEpisodes,
         AniDB_Episode_TitleRepository anidbEpisodeTitles,
         TMDB_ShowRepository tmdbShows,
@@ -95,7 +95,7 @@ public class TmdbLinkingService : ITmdbLinkingService
         _settingsProvider = settingsProvider;
         _imageService = imageService;
         _animeSeries = MediaSeries;
-        _anidbAnime = anidbAnime;
+        _anidbAnime = MetadataAnime;
         _anidbEpisodes = anidbEpisodes;
         _anidbEpisodeTitles = anidbEpisodeTitles;
         _tmdbShows = tmdbShows;
@@ -190,7 +190,7 @@ public class TmdbLinkingService : ITmdbLinkingService
             return;
 
         // Disable auto-matching when we remove an existing match for the series.
-        if (_anidbEpisodes.GetByEpisodeID(anidbEpisodeId) is { } anidbEpisode && _animeSeries.GetByAnimeID(anidbEpisode.AnimeID) is { } series && !series.IsTMDBAutoMatchingDisabled)
+        if (_anidbEpisodes.GetByEpisodeID(anidbEpisodeId) is { } MetadataEpisode && _animeSeries.GetByAnimeID(MetadataEpisode.AnimeID) is { } series && !series.IsTMDBAutoMatchingDisabled)
         {
             series.IsTMDBAutoMatchingDisabled = true;
             _animeSeries.Save(series, false, true, false);
@@ -225,7 +225,7 @@ public class TmdbLinkingService : ITmdbLinkingService
             return;
 
         // Disable auto-matching when we remove an existing match for the series.
-        if (_anidbEpisodes.GetByEpisodeID(anidbEpisodeId) is { } anidbEpisode && _animeSeries.GetByAnimeID(anidbEpisode.AnimeID) is { } series && !series.IsTMDBAutoMatchingDisabled)
+        if (_anidbEpisodes.GetByEpisodeID(anidbEpisodeId) is { } MetadataEpisode && _animeSeries.GetByAnimeID(MetadataEpisode.AnimeID) is { } series && !series.IsTMDBAutoMatchingDisabled)
         {
             series.IsTMDBAutoMatchingDisabled = true;
             _animeSeries.Save(series, false, true, false);
@@ -381,8 +381,8 @@ public class TmdbLinkingService : ITmdbLinkingService
             var anidbEpisodesWithoutXrefs = _anidbEpisodes.GetByAnimeID(anidbAnimeId)
                 .Where(episode => !existingIDs.Contains(episode.AniDB_EpisodeID) && episode.EpisodeType is EpisodeType.Episode or EpisodeType.Special)
                 .ToList();
-            foreach (var anidbEpisode in anidbEpisodesWithoutXrefs)
-                toSave.Add(new(anidbEpisode.AniDB_EpisodeID, anidbAnimeId, 0, 0, allowAuto ? MatchRating.None : MatchRating.UserVerified));
+            foreach (var MetadataEpisode in anidbEpisodesWithoutXrefs)
+                toSave.Add(new(MetadataEpisode.AniDB_EpisodeID, anidbAnimeId, 0, 0, allowAuto ? MatchRating.None : MatchRating.UserVerified));
 
             // Save the changes.
             _xrefAnidbTmdbEpisodes.Save(toSave);
@@ -398,15 +398,15 @@ public class TmdbLinkingService : ITmdbLinkingService
 
     public bool SetEpisodeLink(int anidbEpisodeId, int tmdbEpisodeId, bool additiveLink = true, int? index = null)
     {
-        var anidbEpisode = _anidbEpisodes.GetByEpisodeID(anidbEpisodeId);
-        if (anidbEpisode == null)
+        var MetadataEpisode = _anidbEpisodes.GetByEpisodeID(anidbEpisodeId);
+        if (MetadataEpisode == null)
             return false;
 
         // Set an empty link.
         if (tmdbEpisodeId == 0)
         {
             var xrefs = _xrefAnidbTmdbEpisodes.GetByAnidbEpisodeID(anidbEpisodeId);
-            var toSave = xrefs.Count > 0 ? xrefs[0] : new(anidbEpisodeId, anidbEpisode.AnimeID, 0, 0);
+            var toSave = xrefs.Count > 0 ? xrefs[0] : new(anidbEpisodeId, MetadataEpisode.AnimeID, 0, 0);
             toSave.TmdbShowID = 0;
             toSave.TmdbEpisodeID = 0;
             toSave.Ordering = 0;
@@ -426,7 +426,7 @@ public class TmdbLinkingService : ITmdbLinkingService
         if (additiveLink)
         {
             var toSave = _xrefAnidbTmdbEpisodes.GetByAnidbEpisodeAndTmdbEpisodeIDs(anidbEpisodeId, tmdbEpisodeId)
-                ?? new(anidbEpisodeId, anidbEpisode.AnimeID, tmdbEpisodeId, tmdbEpisode.TmdbShowID);
+                ?? new(anidbEpisodeId, MetadataEpisode.AnimeID, tmdbEpisodeId, tmdbEpisode.TmdbShowID);
             var existingAnidbLinks = _xrefAnidbTmdbEpisodes.GetByAnidbEpisodeID(anidbEpisodeId).MaxBy(x => x.Ordering) is { } x1 ? x1.Ordering + 1 : 0;
             var existingTmdbLinks = _xrefAnidbTmdbEpisodes.GetByTmdbEpisodeID(tmdbEpisodeId).MaxBy(x => x.Ordering) is { } x2 ? x2.Ordering + 1 : 0;
             if (toSave.CrossRef_AniDB_TMDB_EpisodeID == 0 && !index.HasValue)
@@ -439,11 +439,11 @@ public class TmdbLinkingService : ITmdbLinkingService
         else
         {
             var xrefs = _xrefAnidbTmdbEpisodes.GetByAnidbEpisodeID(anidbEpisodeId);
-            var toSave = xrefs.Count > 0 ? xrefs[0] : new(anidbEpisodeId, anidbEpisode.AnimeID, tmdbEpisodeId, tmdbEpisode.TmdbShowID);
+            var toSave = xrefs.Count > 0 ? xrefs[0] : new(anidbEpisodeId, MetadataEpisode.AnimeID, tmdbEpisodeId, tmdbEpisode.TmdbShowID);
             toSave.TmdbShowID = tmdbEpisode.TmdbShowID;
             toSave.TmdbEpisodeID = tmdbEpisode.TmdbEpisodeID;
-            if (!index.HasValue && anidbEpisode.EpisodeNumber is > 0 &&
-                _anidbEpisodes.GetByAnimeIDAndEpisodeTypeNumber(anidbEpisode.AnimeID, anidbEpisode.EpisodeType, anidbEpisode.EpisodeNumber - 1).FirstOrDefault() is { } previousEpisode)
+            if (!index.HasValue && MetadataEpisode.EpisodeNumber is > 0 &&
+                _anidbEpisodes.GetByAnimeIDAndEpisodeTypeNumber(MetadataEpisode.AnimeID, MetadataEpisode.EpisodeType, MetadataEpisode.EpisodeNumber - 1).FirstOrDefault() is { } previousEpisode)
             {
                 var previousXrefs = _xrefAnidbTmdbEpisodes.GetByAnidbEpisodeID(previousEpisode.EpisodeID);
                 if (previousXrefs.Count is 1 && previousXrefs[0].TmdbEpisodeID == tmdbEpisodeId)
@@ -806,15 +806,15 @@ public class TmdbLinkingService : ITmdbLinkingService
         int NormalEpisodeSeasonNumberSelector(CrossRef_AniDB_TMDB_Episode xref) => xref.TmdbEpisodeID is not 0 && (isOVA || anidbEpisodes[xref.AnidbEpisodeID].EpisodeType is EpisodeType.Episode) && tmdbEpisodeDict.TryGetValue(xref.TmdbEpisodeID, out var tmdbEpisode) ? tmdbEpisode.SeasonNumber : -1;
     }
 
-    private CrossRef_AniDB_TMDB_Episode TryFindAnidbAndTmdbMatch(AniDB_Anime anime, AniDB_Episode anidbEpisode, IReadOnlyList<TMDB_Episode> tmdbEpisodes, bool isSpecial)
+    private CrossRef_AniDB_TMDB_Episode TryFindAnidbAndTmdbMatch(AniDB_Anime anime, AniDB_Episode MetadataEpisode, IReadOnlyList<TMDB_Episode> tmdbEpisodes, bool isSpecial)
     {
         // Skip matching if we try to match a music video or complete movie.
-        var anidbTitle = _anidbEpisodeTitles.GetByEpisodeIDAndLanguage(anidbEpisode.EpisodeID, TitleLanguage.English)
-            .Where(title => !title.Title.Trim().Equals($"Episode {anidbEpisode.EpisodeNumber}", StringComparison.InvariantCultureIgnoreCase))
+        var anidbTitle = _anidbEpisodeTitles.GetByEpisodeIDAndLanguage(MetadataEpisode.EpisodeID, TitleLanguage.English)
+            .Where(title => !title.Title.Trim().Equals($"Episode {MetadataEpisode.EpisodeNumber}", StringComparison.InvariantCultureIgnoreCase))
             .FirstOrDefault()?.Title;
         var titlesToNotSearch = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase) { "Complete Movie", "Music Video" };
         if (!string.IsNullOrEmpty(anidbTitle) && titlesToNotSearch.Any(title => anidbTitle.Contains(title, StringComparison.InvariantCultureIgnoreCase)))
-            return new(anidbEpisode.EpisodeID, anidbEpisode.AnimeID, 0, 0, MatchRating.None);
+            return new(MetadataEpisode.EpisodeID, MetadataEpisode.AnimeID, 0, 0, MatchRating.None);
 
         // Fix up the title for the first/single episode of a few anime types.
         if (!string.IsNullOrEmpty(anidbTitle) && _titlesToSearch.Contains(anidbTitle))
@@ -827,11 +827,11 @@ public class TmdbLinkingService : ITmdbLinkingService
             }
         }
 
-        var anidbDate = anidbEpisode.GetAirDateAsDate()?.ToDateOnly();
+        var anidbDate = MetadataEpisode.GetAirDateAsDate()?.ToDateOnly();
         if (anidbDate is not null && anidbDate > DateTime.UtcNow.AddDays(1).ToDateOnly())
         {
-            _logger.LogTrace("Skipping future episode {EpisodeID}", anidbEpisode.EpisodeID);
-            return new(anidbEpisode.EpisodeID, anidbEpisode.AnimeID, 0, 0, MatchRating.None, 0);
+            _logger.LogTrace("Skipping future episode {EpisodeID}", MetadataEpisode.EpisodeID);
+            return new(MetadataEpisode.EpisodeID, MetadataEpisode.AnimeID, 0, 0, MatchRating.None, 0);
         }
 
         var airdateProbability = tmdbEpisodes
@@ -853,7 +853,7 @@ public class TmdbLinkingService : ITmdbLinkingService
             var tmdbEpisode = exactTitleMatch.Result;
             var dateMatches = airdateProbability.Any(result => result.episode == tmdbEpisode);
             var rating = dateMatches ? MatchRating.DateAndTitleMatches : MatchRating.TitleMatches;
-            return new(anidbEpisode.EpisodeID, anidbEpisode.AnimeID, tmdbEpisode.TmdbEpisodeID, tmdbEpisode.TmdbShowID, rating);
+            return new(MetadataEpisode.EpisodeID, MetadataEpisode.AnimeID, tmdbEpisode.TmdbEpisodeID, tmdbEpisode.TmdbShowID, rating);
         }
 
         // Almost exact match second.
@@ -862,7 +862,7 @@ public class TmdbLinkingService : ITmdbLinkingService
             var tmdbEpisode = kindaTitleMatch.Result;
             var dateMatches = airdateProbability.Any(result => result.episode == tmdbEpisode);
             var rating = dateMatches ? MatchRating.DateAndTitleKindaMatches : MatchRating.TitleKindaMatches;
-            return new(anidbEpisode.EpisodeID, anidbEpisode.AnimeID, tmdbEpisode.TmdbEpisodeID, tmdbEpisode.TmdbShowID, rating);
+            return new(MetadataEpisode.EpisodeID, MetadataEpisode.AnimeID, tmdbEpisode.TmdbEpisodeID, tmdbEpisode.TmdbShowID, rating);
         }
 
         // Followed by checking the air date.
@@ -871,22 +871,22 @@ public class TmdbLinkingService : ITmdbLinkingService
             var tmdbEpisode = airdateProbability.FirstOrDefault(r => titleSearchResults.Any(result => result.Result == r.episode))?.episode;
             var rating = tmdbEpisode is null ? MatchRating.DateMatches : MatchRating.DateAndTitleKindaMatches;
             tmdbEpisode ??= airdateProbability[0].episode;
-            return new(anidbEpisode.EpisodeID, anidbEpisode.AnimeID, tmdbEpisode.TmdbEpisodeID, tmdbEpisode.TmdbShowID, rating);
+            return new(MetadataEpisode.EpisodeID, MetadataEpisode.AnimeID, tmdbEpisode.TmdbEpisodeID, tmdbEpisode.TmdbShowID, rating);
         }
 
         // Followed by _any_ title match.
         if (titleSearchResults.Count > 0)
         {
             var tmdbEpisode = titleSearchResults[0]!.Result;
-            return new(anidbEpisode.EpisodeID, anidbEpisode.AnimeID, tmdbEpisode.TmdbEpisodeID, tmdbEpisode.TmdbShowID, MatchRating.TitleKindaMatches);
+            return new(MetadataEpisode.EpisodeID, MetadataEpisode.AnimeID, tmdbEpisode.TmdbEpisodeID, tmdbEpisode.TmdbShowID, MatchRating.TitleKindaMatches);
         }
 
         // And finally, just pick the first available episode if it's not a special.
         if (!isSpecial && tmdbEpisodes.Count > 0)
-            return new(anidbEpisode.EpisodeID, anidbEpisode.AnimeID, tmdbEpisodes[0].TmdbEpisodeID, tmdbEpisodes[0].TmdbShowID, MatchRating.FirstAvailable);
+            return new(MetadataEpisode.EpisodeID, MetadataEpisode.AnimeID, tmdbEpisodes[0].TmdbEpisodeID, tmdbEpisodes[0].TmdbShowID, MatchRating.FirstAvailable);
 
         // And if all above failed, then return an empty link.
-        return new(anidbEpisode.EpisodeID, anidbEpisode.AnimeID, 0, 0, MatchRating.None);
+        return new(MetadataEpisode.EpisodeID, MetadataEpisode.AnimeID, 0, 0, MatchRating.None);
     }
 
     private static double CalculateAirDateProbability(DateOnly? firstDate, DateOnly? secondDate, int maxDifferenceInDays = 2)

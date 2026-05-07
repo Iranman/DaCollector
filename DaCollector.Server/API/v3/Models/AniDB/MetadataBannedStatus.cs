@@ -11,7 +11,7 @@ namespace DaCollector.Server.API.v3.Models.AniDB;
 /// <summary>
 /// Represents the status of an AniDB ban.
 /// </summary>
-public class AnidbBannedStatus
+public class MetadataBannedStatus
 {
     /// <summary>
     /// The type of update.
@@ -37,11 +37,11 @@ public class AnidbBannedStatus
     public DateTime LastUpdatedAt { get; set; }
 
     /// <summary>
-    /// Creates a new <see cref="AnidbBannedStatus"/> based on the specified
+    /// Creates a new <see cref="MetadataBannedStatus"/> based on the specified
     /// <see cref="AnidbBanOccurredEventArgs"/>.
     /// </summary>
     /// <param name="eventArgs">The <see cref="AnidbBanOccurredEventArgs"/>.</param>
-    public AnidbBannedStatus(AnidbBanOccurredEventArgs eventArgs)
+    public MetadataBannedStatus(AnidbBanOccurredEventArgs eventArgs)
     {
         Type = eventArgs.Type;
         IsBanned = eventArgs.IsBanned;

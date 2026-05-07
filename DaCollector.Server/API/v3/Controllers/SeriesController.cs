@@ -115,11 +115,11 @@ public class SeriesController : BaseController
 
     internal const string SeriesForbiddenForUser = "Accessing Series is not allowed for the current user";
 
-    internal const string AnidbNotFoundForSeriesID = "No AnidbAnime entry for the given seriesID";
+    internal const string AnidbNotFoundForSeriesID = "No MetadataAnime entry for the given seriesID";
 
-    internal const string AnidbNotFoundForAnidbID = "No AnidbAnime entry for the given anidbID";
+    internal const string AnidbNotFoundForAnidbID = "No MetadataAnime entry for the given anidbID";
 
-    internal const string AnidbForbiddenForUser = "Accessing AnidbAnime is not allowed for the current user";
+    internal const string AnidbForbiddenForUser = "Accessing MetadataAnime is not allowed for the current user";
 
     internal const string TmdbNotFoundForSeriesID = "No TMDB.Show entry for the given seriesID";
 
@@ -500,14 +500,14 @@ public class SeriesController : BaseController
     #region AniDB
 
     /// <summary>
-    /// Get a paginated list of all <see cref="AnidbAnime"/> available to the current <see cref="User"/>.
+    /// Get a paginated list of all <see cref="MetadataAnime"/> available to the current <see cref="User"/>.
     /// </summary>
     /// <param name="pageSize">The page size.</param>
     /// <param name="page">The page index.</param>
     /// <param name="startsWith">Search only for anime with a main title that starts with the given query.</param>
     /// <returns></returns>
     [HttpGet("AniDB")]
-    public ActionResult<ListResult<AnidbAnime>> GetAllAnime([FromQuery, Range(0, 100)] int pageSize = 50,
+    public ActionResult<ListResult<MetadataAnime>> GetAllAnime([FromQuery, Range(0, 100)] int pageSize = 50,
         [FromQuery, Range(1, int.MaxValue)] int page = 1, [FromQuery] string startsWith = "")
     {
         startsWith = startsWith.ToLowerInvariant();
@@ -526,7 +526,7 @@ public class SeriesController : BaseController
             })
             .OrderBy(a => a.animeTitle.ToSortName())
             .ThenBy(a => a.anime.AnimeID)
-            .ToListResult(tuple => new AnidbAnime(tuple.anime), page, pageSize);
+            .ToListResult(tuple => new MetadataAnime(tuple.anime), page, pageSize);
     }
 
     /// <summary>
@@ -555,7 +555,7 @@ public class SeriesController : BaseController
     /// <param name="seriesID">DaCollector ID</param>
     /// <returns></returns>
     [HttpGet("{seriesID}/AniDB")]
-    public ActionResult<AnidbAnime> GetSeriesAnidbBySeriesID([FromRoute, Range(1, int.MaxValue)] int seriesID)
+    public ActionResult<MetadataAnime> GetSeriesAnidbBySeriesID([FromRoute, Range(1, int.MaxValue)] int seriesID)
     {
         var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
@@ -574,16 +574,16 @@ public class SeriesController : BaseController
             return InternalError(AnidbNotFoundForSeriesID);
         }
 
-        return new AnidbAnime(anidb, series);
+        return new MetadataAnime(anidb, series);
     }
 
     /// <summary>
-    /// Get all similar <see cref="AnidbAnime"/> entries for the <paramref name="seriesID"/>.
+    /// Get all similar <see cref="MetadataAnime"/> entries for the <paramref name="seriesID"/>.
     /// </summary>
     /// <param name="seriesID">DaCollector ID</param>
     /// <returns></returns>
     [HttpGet("{seriesID}/AniDB/Similar")]
-    public ActionResult<List<AnidbAnime>> GetAnidbSimilarBySeriesID([FromRoute, Range(1, int.MaxValue)] int seriesID)
+    public ActionResult<List<MetadataAnime>> GetAnidbSimilarBySeriesID([FromRoute, Range(1, int.MaxValue)] int seriesID)
     {
         var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
@@ -603,17 +603,17 @@ public class SeriesController : BaseController
         }
 
         return RepoFactory.AniDB_Anime_Similar.GetByAnimeID(anidb.AnimeID)
-            .Select(similar => new AnidbAnime(similar))
+            .Select(similar => new MetadataAnime(similar))
             .ToList();
     }
 
     /// <summary>
-    /// Get all similar <see cref="AnidbAnime"/> entries for the <paramref name="seriesID"/>.
+    /// Get all similar <see cref="MetadataAnime"/> entries for the <paramref name="seriesID"/>.
     /// </summary>
     /// <param name="seriesID">DaCollector ID</param>
     /// <returns></returns>
     [HttpGet("{seriesID}/AniDB/Related")]
-    public ActionResult<List<AnidbAnime>> GetAnidbRelatedBySeriesID([FromRoute, Range(1, int.MaxValue)] int seriesID)
+    public ActionResult<List<MetadataAnime>> GetAnidbRelatedBySeriesID([FromRoute, Range(1, int.MaxValue)] int seriesID)
     {
         var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
@@ -638,7 +638,7 @@ public class SeriesController : BaseController
             .OrderBy(a => a.BaseID)
             .ThenBy(a => a.RelatedID)
             .ThenBy(a => a.RelationType)
-            .Select(relation => new AnidbAnime(relation))
+            .Select(relation => new MetadataAnime(relation))
             .ToList();
     }
 
@@ -743,7 +743,7 @@ public class SeriesController : BaseController
             {
                 var (anime, series) = unwatchedAnimeDict[similarTo.Key];
                 var similarToCount = similarTo.Count();
-                return new AnidbAnimeRecommendedForYou(new AnidbAnime(anime, series), similarToCount);
+                return new AnidbAnimeRecommendedForYou(new MetadataAnime(anime, series), similarToCount);
             })
             .OrderByDescending(e => e.SimilarTo)
             .ToListResult(page, pageSize);
@@ -839,7 +839,7 @@ public class SeriesController : BaseController
     /// <param name="anidbID">AniDB ID</param>
     /// <returns></returns>
     [HttpGet("AniDB/{anidbID}")]
-    public ActionResult<AnidbAnime> GetSeriesAnidbByAnidbID([FromRoute] int anidbID)
+    public ActionResult<MetadataAnime> GetSeriesAnidbByAnidbID([FromRoute] int anidbID)
     {
         var anidb = RepoFactory.AniDB_Anime.GetByAnimeID(anidbID);
         if (anidb == null)
@@ -852,16 +852,16 @@ public class SeriesController : BaseController
             return Forbid(AnidbForbiddenForUser);
         }
 
-        return new AnidbAnime(anidb);
+        return new MetadataAnime(anidb);
     }
 
     /// <summary>
-    /// Get all similar <see cref="AnidbAnime"/> entries for the <paramref name="anidbID"/>.
+    /// Get all similar <see cref="MetadataAnime"/> entries for the <paramref name="anidbID"/>.
     /// </summary>
     /// <param name="anidbID">AniDB ID</param>
     /// <returns></returns>
     [HttpGet("AniDB/{anidbID}/Similar")]
-    public ActionResult<List<AnidbAnime>> GetAnidbSimilarByAnidbID([FromRoute] int anidbID)
+    public ActionResult<List<MetadataAnime>> GetAnidbSimilarByAnidbID([FromRoute] int anidbID)
     {
         var anidb = RepoFactory.AniDB_Anime.GetByAnimeID(anidbID);
         if (anidb == null)
@@ -875,17 +875,17 @@ public class SeriesController : BaseController
         }
 
         return RepoFactory.AniDB_Anime_Similar.GetByAnimeID(anidbID)
-            .Select(similar => new AnidbAnime(similar))
+            .Select(similar => new MetadataAnime(similar))
             .ToList();
     }
 
     /// <summary>
-    /// Get all related <see cref="AnidbAnime"/> entries for the <paramref name="anidbID"/>.
+    /// Get all related <see cref="MetadataAnime"/> entries for the <paramref name="anidbID"/>.
     /// </summary>
     /// <param name="anidbID">AniDB ID</param>
     /// <returns></returns>
     [HttpGet("AniDB/{anidbID}/Related")]
-    public ActionResult<List<AnidbAnime>> GetAnidbRelatedByAnidbID([FromRoute] int anidbID)
+    public ActionResult<List<MetadataAnime>> GetAnidbRelatedByAnidbID([FromRoute] int anidbID)
     {
         var anidb = RepoFactory.AniDB_Anime.GetByAnimeID(anidbID);
         if (anidb == null)
@@ -899,7 +899,7 @@ public class SeriesController : BaseController
         }
 
         return RepoFactory.AniDB_Anime_Relation.GetByAnimeID(anidbID)
-            .Select(relation => new AnidbAnime(relation))
+            .Select(relation => new MetadataAnime(relation))
             .ToList();
     }
 
@@ -1056,7 +1056,7 @@ public class SeriesController : BaseController
 
         var anime = series.AniDB_Anime;
         if (anime is null)
-            return InternalError($"Unable to get AnidbAnime with ID {series.AniDB_ID} for Series with ID {series.MediaSeriesID}!");
+            return InternalError($"Unable to get MetadataAnime with ID {series.AniDB_ID} for Series with ID {series.MediaSeriesID}!");
 
         var results = await _tmdbSearchService.SearchForAutoMatch(anime);
 
@@ -1588,12 +1588,12 @@ public class SeriesController : BaseController
             .Select(xref => xref.TmdbShowID)
             .ToHashSet();
         var missingIDs = new HashSet<int>();
-        var mapping = new List<(Series.Input.OverrideTmdbEpisodeLinkBody link, AniDB_Episode aniDBEpisode)>();
+        var mapping = new List<(Series.Input.OverrideTmdbEpisodeLinkBody link, AniDB_Episode MetadataEpisode)>();
         foreach (var link in body.Mapping)
         {
             var dacollectorEpisode = RepoFactory.MediaEpisode.GetByAniDBEpisodeID(link.AniDBID);
-            var anidbEpisode = dacollectorEpisode?.AniDB_Episode;
-            if (anidbEpisode is null)
+            var MetadataEpisode = dacollectorEpisode?.AniDB_Episode;
+            if (MetadataEpisode is null)
             {
                 ModelState.AddModelError("Mapping", $"Unable to find an AniDB Episode with id '{link.AniDBID}'");
                 continue;
@@ -1615,7 +1615,7 @@ public class SeriesController : BaseController
                     missingIDs.Add(tmdbEpisode.TmdbShowID);
             }
 
-            mapping.Add((link, anidbEpisode));
+            mapping.Add((link, MetadataEpisode));
         }
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
@@ -1631,8 +1631,8 @@ public class SeriesController : BaseController
         // Make sure the mappings are in the correct order before linking.
         mapping = mapping
             .OrderByDescending(x => x.link.Replace)
-            .ThenBy(x => x.aniDBEpisode.EpisodeType)
-            .ThenBy(x => x.aniDBEpisode.EpisodeNumber)
+            .ThenBy(x => x.MetadataEpisode.EpisodeType)
+            .ThenBy(x => x.MetadataEpisode.EpisodeNumber)
             .ToList();
 
         // Do the actual linking.
@@ -2210,7 +2210,7 @@ public class SeriesController : BaseController
     }
 
     /// <summary>
-    /// Get the <see cref="AnidbEpisode"/>s for the <see cref="AnidbAnime"/> with <paramref name="anidbID"/>.
+    /// Get the <see cref="MetadataEpisode"/>s for the <see cref="MetadataAnime"/> with <paramref name="anidbID"/>.
     /// </summary>
     /// <remarks>
     /// <see cref="Filter"/> or <see cref="Group"/> is irrelevant at this level.
@@ -2227,7 +2227,7 @@ public class SeriesController : BaseController
     /// <param name="fuzzy">Indicates that fuzzy-matching should be used for the search query.</param>
     /// <returns>A list of episodes based on the specified filters.</returns>
     [HttpGet("AniDB/{anidbID}/Episode")]
-    public ActionResult<ListResult<AnidbEpisode>> GetAniDBEpisodes(
+    public ActionResult<ListResult<MetadataEpisode>> GetAniDBEpisodes(
         [FromRoute] int anidbID,
         [FromQuery, Range(0, 1000)] int pageSize = 20,
         [FromQuery, Range(1, int.MaxValue)] int page = 1,
@@ -2331,14 +2331,14 @@ public class SeriesController : BaseController
                         .ToList(),
                     fuzzy
                 )
-                .ToListResult(a => new AnidbEpisode(a.Result.AniDB), page, pageSize);
+                .ToListResult(a => new MetadataEpisode(a.Result.AniDB), page, pageSize);
         }
 
         // Order the episodes since we're not using the search ordering.
         return episodes
             .OrderBy(episode => episode.AniDB.EpisodeType)
             .ThenBy(episode => episode.AniDB.EpisodeNumber)
-            .ToListResult(a => new AnidbEpisode(a.AniDB), page, pageSize);
+            .ToListResult(a => new MetadataEpisode(a.AniDB), page, pageSize);
     }
 
     /// <summary>
@@ -2943,7 +2943,7 @@ public class SeriesController : BaseController
     /// <param name="page">The page index.</param>
     /// <returns></returns>
     [HttpGet("AniDB/Search")]
-    public ActionResult<ListResult<AnidbAnime>> AnidbSearchQuery([FromQuery] string query = "",
+    public ActionResult<ListResult<MetadataAnime>> AnidbSearchQuery([FromQuery] string query = "",
         [FromQuery] bool fuzzy = true,
         [FromQuery] bool? local = null,
         [FromQuery] bool includeTitles = true,
@@ -2965,7 +2965,7 @@ public class SeriesController : BaseController
     /// <returns></returns>
     [Obsolete("Use the other endpoint instead.")]
     [HttpGet("AniDB/Search/{query}")]
-    public ActionResult<ListResult<AnidbAnime>> AnidbSearchPath([FromRoute] string query,
+    public ActionResult<ListResult<MetadataAnime>> AnidbSearchPath([FromRoute] string query,
         [FromQuery] bool fuzzy = true,
         [FromQuery] bool? local = null,
         [FromQuery] bool includeTitles = true,
@@ -2975,7 +2975,7 @@ public class SeriesController : BaseController
         => AnidbSearchInternal(HttpUtility.UrlDecode(query), fuzzy, local, searchById, includeTitles, pageSize, page);
 
     [NonAction]
-    internal ListResult<AnidbAnime> AnidbSearchInternal(
+    internal ListResult<MetadataAnime> AnidbSearchInternal(
         string query,
         bool fuzzy = true,
         bool? local = null,
@@ -3014,7 +3014,7 @@ public class SeriesController : BaseController
                     if (local.HasValue && series is null == local.Value)
                         return null;
 
-                    return new AnidbAnime(result, series, includeTitles);
+                    return new MetadataAnime(result, series, includeTitles);
                 })
                 .WhereNotNull()
                 .ToListResult(page, pageSize);
@@ -3027,7 +3027,7 @@ public class SeriesController : BaseController
                 if (local.HasValue && series is null == local.Value)
                     return null;
 
-                return new AnidbAnime(result.Result, series, includeTitles);
+                return new MetadataAnime(result.Result, series, includeTitles);
             })
             .WhereNotNull()
             .ToListResult(page, pageSize);

@@ -106,28 +106,28 @@ public interface IAnidbService
     #region By AniDB Anime
 
     /// <summary>
-    /// Refreshes the AniDB anime represented by <paramref name="anidbAnime"/>.
+    /// Refreshes the AniDB anime represented by <paramref name="MetadataAnime"/>.
     /// </summary>
-    /// <param name="anidbAnime">AniDB anime.</param>
+    /// <param name="MetadataAnime">AniDB anime.</param>
     /// <param name="refreshMethod">Refresh method.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <exception cref="AnidbHttpBannedException">
     /// Indicates that the AniDB user has been temporarily (or permanently) banned.
     /// </exception>
     /// <returns>The refreshed AniDB anime.</returns>
-    Task<IAnidbAnime> RefreshAnime(IAnidbAnime anidbAnime, AnidbRefreshMethod refreshMethod = AnidbRefreshMethod.Auto, CancellationToken cancellationToken = default);
+    Task<IAnidbAnime> RefreshAnime(IAnidbAnime MetadataAnime, AnidbRefreshMethod refreshMethod = AnidbRefreshMethod.Auto, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Schedules a refresh of the AniDB anime represented by <paramref name="anidbAnime"/> in the queue.
+    /// Schedules a refresh of the AniDB anime represented by <paramref name="MetadataAnime"/> in the queue.
     /// </summary>
-    /// <param name="anidbAnime">AniDB anime.</param>
+    /// <param name="MetadataAnime">AniDB anime.</param>
     /// <param name="refreshMethod">Refresh method.</param>
     /// <param name="prioritize">Whether to prioritize the refresh in the queue.</param>
     /// <exception cref="AnidbHttpBannedException">
     /// Indicates that the AniDB user has been temporarily (or permanently) banned.
     /// </exception>
     /// <returns>The refreshed AniDB anime.</returns>
-    Task ScheduleRefreshOfAnime(IAnidbAnime anidbAnime, AnidbRefreshMethod refreshMethod = AnidbRefreshMethod.Auto, bool prioritize = false);
+    Task ScheduleRefreshOfAnime(IAnidbAnime MetadataAnime, AnidbRefreshMethod refreshMethod = AnidbRefreshMethod.Auto, bool prioritize = false);
 
     #endregion
 

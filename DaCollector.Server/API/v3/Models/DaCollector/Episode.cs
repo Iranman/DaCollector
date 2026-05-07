@@ -112,11 +112,11 @@ public class Episode : BaseModel
     public DateTime Updated { get; set; }
 
     /// <summary>
-    /// The <see cref="Episode.AniDB"/>, if <see cref="DataSourceType.AniDB"/> is
+    /// The source metadata, if <see cref="DataSourceType.AniDB"/> is
     /// included in the data to add.
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-    public AnidbEpisode? AniDB { get; set; }
+    public MetadataEpisode? Source { get; set; }
 
     /// <summary>
     /// The <see cref="TmdbData"/> entries, if <see cref="DataSourceType.TMDB"/>
@@ -142,7 +142,7 @@ public class Episode : BaseModel
         includeDataFrom ??= [];
         var userID = context.GetUser()?.JMMUserID ?? 0;
         var episodeUserRecord = episode.GetUserRecord(userID);
-        var anidbEpisode = episode.AniDB_Episode ??
+        var MetadataEpisode = episode.AniDB_Episode ??
             throw new NullReferenceException($"Unable to get AniDB Episode {episode.AniDB_EpisodeID} for Anime Episode {episode.MediaEpisodeID}");
         var tmdbMovieXRefs = episode.TmdbMovieCrossReferences;
         var tmdbEpisodeXRefs = episode.TmdbEpisodeCrossReferences;
@@ -155,7 +155,7 @@ public class Episode : BaseModel
         {
             ID = episode.MediaEpisodeID,
             ParentSeries = episode.MediaSeriesID,
-            AniDB = episode.AniDB_EpisodeID,
+            SourceID = episode.AniDB_EpisodeID,
             TvDB = tmdbEpisodeXRefs.Select(xref => xref.TmdbEpisode?.TvdbEpisodeID).WhereNotNull().Distinct().ToList(),
             IMDB = tmdbMovieXRefs
                 .Select(xref => xref.TmdbMovie?.ImdbMovieID)
@@ -180,7 +180,7 @@ public class Episode : BaseModel
         };
         HasCustomName = !string.IsNullOrEmpty(episode.EpisodeNameOverride);
         Images = episode.GetImages().ToDto(includeThumbnails: true, preferredImages: true);
-        Duration = file?.DurationTimeSpan ?? new TimeSpan(0, 0, anidbEpisode.LengthSeconds);
+        Duration = file?.DurationTimeSpan ?? new TimeSpan(0, 0, MetadataEpisode.LengthSeconds);
         ResumePosition = fileUserRecord?.ProgressPosition;
         Watched = episodeUserRecord?.WatchedDate?.ToUniversalTime();
         WatchCount = episodeUserRecord?.WatchedCount ?? 0;
@@ -204,7 +204,7 @@ public class Episode : BaseModel
         }
 
         if (includeDataFrom.Contains(DataSourceType.AniDB))
-            AniDB = new AnidbEpisode(anidbEpisode);
+            Source = new MetadataEpisode(MetadataEpisode);
         if (includeDataFrom.Contains(DataSourceType.TMDB))
             TMDB = new()
             {
@@ -266,10 +266,10 @@ public class Episode : BaseModel
         // These are useful for many things, but for clients, it is mostly auxiliary
 
         /// <summary>
-        /// The AniDB Episode ID.
+        /// The source metadata episode ID.
         /// </summary>
         [Required]
-        public int AniDB { get; set; }
+        public int SourceID { get; set; }
 
         /// <summary>
         /// The TvDB Episode IDs.

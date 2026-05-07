@@ -2209,7 +2209,7 @@ public class WebAOMRenamer(ILogger<WebAOMRenamer> _logger, IVideoRelocationServi
 
         if (_relocationService.GetFirstDestinationWithSpace(args) is { } firstDestinationWithSpace)
         {
-            var series = args.Series.Select(s => s.AnidbAnime).FirstOrDefault();
+            var series = args.Series.Select(s => s.MetadataAnime).FirstOrDefault();
             if (series is null)
                 return (null, "Series not found");
             return (firstDestinationWithSpace, series.Title.ReplaceInvalidPathCharacters());

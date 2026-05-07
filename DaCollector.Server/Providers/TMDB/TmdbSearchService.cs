@@ -44,9 +44,9 @@ public partial class TmdbSearchService : ITmdbSearchService
 
     async Task<IReadOnlyList<ITmdbAutoSearchResult>> ITmdbSearchService.SearchForAutoMatch(IAnidbAnime anime)
     {
-        if (anime is not AniDB_Anime anidbAnime)
+        if (anime is not AniDB_Anime MetadataAnime)
             return [];
-        return await SearchForAutoMatch(anidbAnime).ConfigureAwait(false);
+        return await SearchForAutoMatch(MetadataAnime).ConfigureAwait(false);
     }
 
     public async Task<IReadOnlyList<TmdbAutoSearchResult>> SearchForAutoMatch(AniDB_Anime anime)

@@ -379,7 +379,7 @@ public class MediaSeries : IDaCollectorSeries
                 seriesOverrideTitle = true;
             }
 
-            var animeTitles = (this as IDaCollectorSeries).AnidbAnime.Titles.ToList();
+            var animeTitles = (this as IDaCollectorSeries).MetadataAnime.Titles.ToList();
             if (seriesOverrideTitle)
             {
                 var mainTitle = animeTitles.Find(title => title.Type == TitleType.Main);
@@ -532,16 +532,16 @@ public class MediaSeries : IDaCollectorSeries
 
     public IReadOnlyList<MediaEpisode> AnimeEpisodes => RepoFactory.MediaEpisode.GetBySeriesID(MediaSeriesID)
         .Where(episode => !episode.IsHidden)
-        .Select(episode => (episode, anidbEpisode: episode.AniDB_Episode))
-        .OrderBy(tuple => tuple.anidbEpisode?.EpisodeType)
-        .ThenBy(tuple => tuple.anidbEpisode?.EpisodeNumber)
+        .Select(episode => (episode, MetadataEpisode: episode.AniDB_Episode))
+        .OrderBy(tuple => tuple.MetadataEpisode?.EpisodeType)
+        .ThenBy(tuple => tuple.MetadataEpisode?.EpisodeNumber)
         .Select(tuple => tuple.episode)
         .ToList();
 
     public IReadOnlyList<MediaEpisode> AllAnimeEpisodes => RepoFactory.MediaEpisode.GetBySeriesID(MediaSeriesID)
-        .Select(episode => (episode, anidbEpisode: episode.AniDB_Episode))
-        .OrderBy(tuple => tuple.anidbEpisode?.EpisodeType)
-        .ThenBy(tuple => tuple.anidbEpisode?.EpisodeNumber)
+        .Select(episode => (episode, MetadataEpisode: episode.AniDB_Episode))
+        .OrderBy(tuple => tuple.MetadataEpisode?.EpisodeType)
+        .ThenBy(tuple => tuple.MetadataEpisode?.EpisodeNumber)
         .Select(tuple => tuple.episode)
         .ToList();
 
@@ -811,8 +811,8 @@ public class MediaSeries : IDaCollectorSeries
         get
         {
             var list = new List<ICast>();
-            if (AniDB_Anime is ISeries anidbAnime)
-                list.AddRange(anidbAnime.Cast);
+            if (AniDB_Anime is ISeries MetadataAnime)
+                list.AddRange(MetadataAnime.Cast);
             foreach (var movie in TmdbMovies)
                 list.AddRange(movie.Cast);
             foreach (var show in TmdbShows)
@@ -826,8 +826,8 @@ public class MediaSeries : IDaCollectorSeries
         get
         {
             var list = new List<ICrew>();
-            if (AniDB_Anime is ISeries anidbAnime)
-                list.AddRange(anidbAnime.Crew);
+            if (AniDB_Anime is ISeries MetadataAnime)
+                list.AddRange(MetadataAnime.Crew);
             foreach (var movie in TmdbMovies)
                 list.AddRange(movie.Crew);
             foreach (var show in TmdbShows)
@@ -845,8 +845,8 @@ public class MediaSeries : IDaCollectorSeries
         get
         {
             var list = new List<IStudio>();
-            if (AniDB_Anime is ISeries anidbAnime)
-                list.AddRange(anidbAnime.Studios);
+            if (AniDB_Anime is ISeries MetadataAnime)
+                list.AddRange(MetadataAnime.Studios);
             foreach (var movie in TmdbMovies)
                 list.AddRange(movie.TmdbStudios);
             foreach (var show in TmdbShows)
@@ -864,8 +864,8 @@ public class MediaSeries : IDaCollectorSeries
         get
         {
             var list = new List<IContentRating>();
-            if (AniDB_Anime is ISeries anidbAnime)
-                list.AddRange(anidbAnime.ContentRatings);
+            if (AniDB_Anime is ISeries MetadataAnime)
+                list.AddRange(MetadataAnime.ContentRatings);
             foreach (var movie in TmdbMovies)
                 list.AddRange(movie.ContentRatings);
             foreach (var show in TmdbShows)
@@ -917,7 +917,7 @@ public class MediaSeries : IDaCollectorSeries
             .WhereNotNull()
             .ToList();
 
-    EpisodeCounts ISeries.EpisodeCounts => (this as IDaCollectorSeries).AnidbAnime.EpisodeCounts;
+    EpisodeCounts ISeries.EpisodeCounts => (this as IDaCollectorSeries).MetadataAnime.EpisodeCounts;
 
     #endregion
 
@@ -948,8 +948,8 @@ public class MediaSeries : IDaCollectorSeries
 
     IReadOnlyList<IDaCollectorGroup> IDaCollectorSeries.AllParentGroups => AllGroupsAbove;
 
-    IAnidbAnime IDaCollectorSeries.AnidbAnime => AniDB_Anime ??
-        throw new NullReferenceException($"Unable to find AniDB anime with id {AniDB_ID} in IDaCollectorSeries.AnidbAnime");
+    IAnidbAnime IDaCollectorSeries.MetadataAnime => AniDB_Anime ??
+        throw new NullReferenceException($"Unable to find AniDB anime with id {AniDB_ID} in IDaCollectorSeries.MetadataAnime");
 
     bool IDaCollectorSeries.AnilistAutoMatchingDisabled => IsAniListAutoMatchingDisabled;
 
@@ -979,9 +979,9 @@ public class MediaSeries : IDaCollectorSeries
         {
             var seriesList = new List<ISeries>();
 
-            var anidbAnime = AniDB_Anime;
-            if (anidbAnime is not null)
-                seriesList.Add(anidbAnime);
+            var MetadataAnime = AniDB_Anime;
+            if (MetadataAnime is not null)
+                seriesList.Add(MetadataAnime);
 
             seriesList.AddRange(TmdbShows);
 

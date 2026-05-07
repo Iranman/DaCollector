@@ -112,13 +112,13 @@ public class RepoFactory
         AniDB_Anime_StaffRepository anidbAnimeStaff,
         AniDB_Anime_TagRepository anidbAnimeTag,
         AniDB_Anime_TitleRepository anidbAnimeTitle,
-        AniDB_AnimeRepository anidbAnime,
+        AniDB_AnimeRepository MetadataAnime,
         AniDB_AnimeUpdateRepository anidbAnimeUpdate,
-        AniDB_CharacterRepository anidbCharacter,
-        AniDB_CreatorRepository anidbCreator,
+        AniDB_CharacterRepository MetadataCharacter,
+        AniDB_CreatorRepository MetadataCreator,
         AniDB_Episode_PreferredImageRepository anidbEpisodePreferredImage,
         AniDB_Episode_TitleRepository anidbEpisodeTitle,
-        AniDB_EpisodeRepository anidbEpisode,
+        AniDB_EpisodeRepository MetadataEpisode,
         AniDB_GroupStatusRepository anidbGroupStatus,
         AniDB_MessageRepository anidbMessage,
         AniDB_NotifyQueueRepository anidbNotifyQueue,
@@ -184,7 +184,7 @@ public class RepoFactory
         _logger = logger;
         _systemService = systemService;
         _cachedRepositories = repositories.ToArray();
-        AniDB_Anime = anidbAnime;
+        AniDB_Anime = MetadataAnime;
         AniDB_Anime_Character = anidbAnimeCharacter;
         AniDB_Anime_Character_Creator = anidbAnimeCharacterCreator;
         AniDB_Anime_PreferredImage = anidbAnimePreferredImage;
@@ -194,9 +194,9 @@ public class RepoFactory
         AniDB_Anime_Tag = anidbAnimeTag;
         AniDB_Anime_Title = anidbAnimeTitle;
         AniDB_AnimeUpdate = anidbAnimeUpdate;
-        AniDB_Character = anidbCharacter;
-        AniDB_Creator = anidbCreator;
-        AniDB_Episode = anidbEpisode;
+        AniDB_Character = MetadataCharacter;
+        AniDB_Creator = MetadataCreator;
+        AniDB_Episode = MetadataEpisode;
         AniDB_Episode_PreferredImage = anidbEpisodePreferredImage;
         AniDB_Episode_Title = anidbEpisodeTitle;
         AniDB_GroupStatus = anidbGroupStatus;

@@ -573,7 +573,7 @@ public class ActionService
         // Clean up failed imports
         var list = RepoFactory.VideoLocal.GetAll()
             .SelectMany(a => a.EpisodeCrossReferences)
-            .Where(a => a.AniDBAnime == null || a.AniDBEpisode == null)
+            .Where(a => a.MetadataAnime == null || a.MetadataEpisode == null)
             .ToArray();
         BaseRepository.Lock(session, s =>
         {
@@ -1007,15 +1007,15 @@ public class ActionService
         var missingSeries = RepoFactory.VideoLocal.GetAll().SelectMany(vid =>
         {
             var xrefs = RepoFactory.CrossRef_File_Episode.GetByEd2k(vid.Hash);
-            var aniDBAnime = xrefs.Select(a => RepoFactory.AniDB_Anime.GetByAnimeID(a.AnimeID)).WhereNotNull();
-            return aniDBAnime.Where(a => RepoFactory.MediaSeries.GetByAnimeID(a.AnimeID) == null);
+            var MetadataAnime = xrefs.Select(a => RepoFactory.AniDB_Anime.GetByAnimeID(a.AnimeID)).WhereNotNull();
+            return MetadataAnime.Where(a => RepoFactory.MediaSeries.GetByAnimeID(a.AnimeID) == null);
         }).ToList();
 
         _logger.LogInformation("Creating {Count} Series that are missing.", missingSeries.Count);
 
         var methods = AnidbRefreshMethod.Cache | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful | AnidbRefreshMethod.CreateDaCollectorSeries;
-        foreach (var aniDBAnime in missingSeries)
-            await _anidbService.ScheduleRefreshOfAnime(aniDBAnime, methods, prioritize: false);
+        foreach (var MetadataAnime in missingSeries)
+            await _anidbService.ScheduleRefreshOfAnime(MetadataAnime, methods, prioritize: false);
 
         _logger.LogInformation("Queued Creation of {Count} Series that were missing.", missingSeries.Count);
     }

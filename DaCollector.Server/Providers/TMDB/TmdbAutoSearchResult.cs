@@ -20,7 +20,7 @@ public class TmdbAutoSearchResult : ITmdbAutoSearchResult
     public MatchRating MatchRating { get; set; }
 
     /// <inheritdoc/>
-    [MemberNotNullWhen(true, nameof(AnidbEpisode))]
+    [MemberNotNullWhen(true, nameof(MetadataEpisode))]
     [MemberNotNullWhen(true, nameof(TmdbMovie))]
     [MemberNotNullWhen(true, nameof(TmdbMovieRaw))]
     [MemberNotNullWhen(false, nameof(TmdbShow))]
@@ -28,10 +28,10 @@ public class TmdbAutoSearchResult : ITmdbAutoSearchResult
     public bool IsMovie { get; init; }
 
     /// <inheritdoc/>
-    IAnidbAnime ITmdbAutoSearchResult.AnidbAnime => AnidbAnime;
+    IAnidbAnime ITmdbAutoSearchResult.MetadataAnime => MetadataAnime;
 
     /// <inheritdoc/>
-    IAnidbEpisode? ITmdbAutoSearchResult.AnidbEpisode => AnidbEpisode;
+    IAnidbEpisode? ITmdbAutoSearchResult.MetadataEpisode => MetadataEpisode;
 
     /// <inheritdoc/>
     ITmdbShowSearchResult? ITmdbAutoSearchResult.TmdbShow => _tmdbShowResult;
@@ -42,12 +42,12 @@ public class TmdbAutoSearchResult : ITmdbAutoSearchResult
     /// <summary>
     /// The AniDB anime associated with the search result.
     /// </summary>
-    public AniDB_Anime AnidbAnime { get; init; }
+    public AniDB_Anime MetadataAnime { get; init; }
 
     /// <summary>
     /// The AniDB episode associated with the search result, if it's a movie match.
     /// </summary>
-    public AniDB_Episode? AnidbEpisode { get; init; }
+    public AniDB_Episode? MetadataEpisode { get; init; }
 
     /// <summary>
     /// The raw TMDB show search result from TMDbLib, if it's a show match.
@@ -75,7 +75,7 @@ public class TmdbAutoSearchResult : ITmdbAutoSearchResult
     public TmdbAutoSearchResult(AniDB_Anime anime, SearchTv show, MatchRating matchRating = MatchRating.FirstAvailable)
     {
         IsMovie = false;
-        AnidbAnime = anime;
+        MetadataAnime = anime;
         TmdbShowRaw = show;
         _tmdbShowResult = new TmdbShowSearchResult(show);
         MatchRating = matchRating;
@@ -84,8 +84,8 @@ public class TmdbAutoSearchResult : ITmdbAutoSearchResult
     public TmdbAutoSearchResult(AniDB_Anime anime, AniDB_Episode episode, SearchMovie movie, MatchRating matchRating = MatchRating.FirstAvailable)
     {
         IsMovie = true;
-        AnidbAnime = anime;
-        AnidbEpisode = episode;
+        MetadataAnime = anime;
+        MetadataEpisode = episode;
         TmdbMovieRaw = movie;
         _tmdbMovieResult = new TmdbMovieSearchResult(movie);
         MatchRating = matchRating;
@@ -96,8 +96,8 @@ public class TmdbAutoSearchResult : ITmdbAutoSearchResult
         IsMovie = result.IsMovie;
         IsLocal = result.IsLocal;
         IsRemote = result.IsRemote;
-        AnidbAnime = result.AnidbAnime;
-        AnidbEpisode = result.AnidbEpisode;
+        MetadataAnime = result.MetadataAnime;
+        MetadataEpisode = result.MetadataEpisode;
         TmdbMovieRaw = result.TmdbMovieRaw;
         TmdbShowRaw = result.TmdbShowRaw;
         _tmdbMovieResult = result._tmdbMovieResult;

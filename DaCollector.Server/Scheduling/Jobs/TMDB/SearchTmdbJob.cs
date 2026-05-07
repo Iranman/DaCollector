@@ -59,14 +59,14 @@ public partial class SearchTmdbJob : BaseJob
         {
             if (result.IsMovie)
             {
-                _logger.LogInformation("Linking anime {AnimeName} ({AnimeID}), episode {EpisodeName} ({EpisodeID}) to movie {MovieName} ({MovieID})", result.AnidbAnime.PreferredTitle, result.AnidbAnime.AnimeID, result.AnidbEpisode.Title, result.AnidbEpisode.EpisodeID, result.TmdbMovie.OriginalTitle, result.TmdbMovie.ID);
-                await _tmdbLinkingService.AddMovieLinkForEpisode(result.AnidbEpisode.EpisodeID, result.TmdbMovie.ID, additiveLink: true, matchRating: result.MatchRating).ConfigureAwait(false);
+                _logger.LogInformation("Linking anime {AnimeName} ({AnimeID}), episode {EpisodeName} ({EpisodeID}) to movie {MovieName} ({MovieID})", result.MetadataAnime.PreferredTitle, result.MetadataAnime.AnimeID, result.MetadataEpisode.Title, result.MetadataEpisode.EpisodeID, result.TmdbMovie.OriginalTitle, result.TmdbMovie.ID);
+                await _tmdbLinkingService.AddMovieLinkForEpisode(result.MetadataEpisode.EpisodeID, result.TmdbMovie.ID, additiveLink: true, matchRating: result.MatchRating).ConfigureAwait(false);
                 await _tmdbMetadataService.ScheduleUpdateOfMovie(result.TmdbMovie.ID, forceRefresh: ForceRefresh, downloadImages: true).ConfigureAwait(false);
             }
             else
             {
-                _logger.LogInformation("Linking anime {AnimeName} ({AnimeID}) to show {ShowName} ({ShowID})", result.AnidbAnime.PreferredTitle, result.AnidbAnime.AnimeID, result.TmdbShow.OriginalTitle, result.TmdbShow.ID);
-                await _tmdbLinkingService.AddShowLink(result.AnidbAnime.AnimeID, result.TmdbShow.ID, additiveLink: true, matchRating: result.MatchRating).ConfigureAwait(false);
+                _logger.LogInformation("Linking anime {AnimeName} ({AnimeID}) to show {ShowName} ({ShowID})", result.MetadataAnime.PreferredTitle, result.MetadataAnime.AnimeID, result.TmdbShow.OriginalTitle, result.TmdbShow.ID);
+                await _tmdbLinkingService.AddShowLink(result.MetadataAnime.AnimeID, result.TmdbShow.ID, additiveLink: true, matchRating: result.MatchRating).ConfigureAwait(false);
                 await _tmdbMetadataService.ScheduleUpdateOfShow(result.TmdbShow.ID, forceRefresh: ForceRefresh, downloadImages: true).ConfigureAwait(false);
             }
         }

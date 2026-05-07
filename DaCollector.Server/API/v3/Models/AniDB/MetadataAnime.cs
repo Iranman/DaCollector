@@ -22,7 +22,7 @@ namespace DaCollector.Server.API.v3.Models.AniDB;
 /// <summary>
 /// Basic anidb data across all anidb types.
 /// </summary>
-public class AnidbAnime
+public class MetadataAnime
 {
     private static AniDBTitleHelper? _titleHelper = null;
 
@@ -108,7 +108,7 @@ public class AnidbAnime
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public RelationType? Relation { get; set; }
 
-    private AnidbAnime(int animeId, bool includeTitles, MediaSeries? series = null, AniDB_Anime? anime = null, ResponseAniDBTitles.Anime? result = null)
+    private MetadataAnime(int animeId, bool includeTitles, MediaSeries? series = null, AniDB_Anime? anime = null, ResponseAniDBTitles.Anime? result = null)
     {
         ID = animeId;
         if ((anime ??= (series is not null ? series.AniDB_Anime : RepoFactory.AniDB_Anime.GetByAnimeID(animeId))) is not null)
@@ -165,13 +165,13 @@ public class AnidbAnime
         }
     }
 
-    public AnidbAnime(AniDB_Anime anime, MediaSeries? series = null, bool includeTitles = true)
+    public MetadataAnime(AniDB_Anime anime, MediaSeries? series = null, bool includeTitles = true)
         : this(anime.AnimeID, includeTitles, series, anime) { }
 
-    public AnidbAnime(ResponseAniDBTitles.Anime result, MediaSeries? series = null, bool includeTitles = true)
+    public MetadataAnime(ResponseAniDBTitles.Anime result, MediaSeries? series = null, bool includeTitles = true)
         : this(result.AnimeID, includeTitles, series) { }
 
-    public AnidbAnime(IRelatedMetadata relation, MediaSeries? series = null, bool includeTitles = true)
+    public MetadataAnime(IRelatedMetadata relation, MediaSeries? series = null, bool includeTitles = true)
         : this(relation.RelatedID, includeTitles, series)
     {
         Relation = relation.RelationType;
@@ -180,7 +180,7 @@ public class AnidbAnime
             Restricted = RepoFactory.AniDB_Anime.GetByAnimeID(relation.BaseID) is { IsRestricted: true };
     }
 
-    public AnidbAnime(AniDB_Anime_Similar similar, MediaSeries? series = null, bool includeTitles = true)
+    public MetadataAnime(AniDB_Anime_Similar similar, MediaSeries? series = null, bool includeTitles = true)
         : this(similar.SimilarAnimeID, includeTitles, series)
     {
         UserApproval = new()

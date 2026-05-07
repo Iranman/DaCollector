@@ -63,7 +63,7 @@ public class AniDB_Anime_Tag_Abstract(AniDB_Tag tag, AniDB_Anime_Tag xref) : IAn
 
     bool IAnidbTagForAnime.IsLocalSpoiler => xref.LocalSpoiler;
 
-    IAnidbAnime IAnidbTagForAnime.AnidbAnime => RepoFactory.AniDB_Anime.GetByAnimeID(xref.AnimeID)
+    IAnidbAnime IAnidbTagForAnime.MetadataAnime => RepoFactory.AniDB_Anime.GetByAnimeID(xref.AnimeID)
         ?? throw new InvalidOperationException("Unable to find AniDB_Anime with ID " + xref.AnimeID);
 
     #endregion

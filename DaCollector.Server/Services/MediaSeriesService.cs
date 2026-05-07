@@ -101,8 +101,8 @@ public class MediaSeriesService
                 _logger.LogTrace($"Generating episodes for {anime.MainTitle}: 100%");
             }
 
-            var anidbEpisode = anidbEpisodes[i];
-            var (dacollectorEpisode, isNew, isUpdated) = CreateAnimeEpisode(anidbEpisode, series.MediaSeriesID);
+            var MetadataEpisode = anidbEpisodes[i];
+            var (dacollectorEpisode, isNew, isUpdated) = CreateAnimeEpisode(MetadataEpisode, series.MediaSeriesID);
             if (isUpdated)
                 episodeDict.Add(dacollectorEpisode, isNew ? UpdateReason.Added : UpdateReason.Updated);
         }
@@ -744,7 +744,7 @@ public class MediaSeriesService
         }
 
         // Find the first episode that's unwatched.
-        var (unwatchedEpisode, anidbEpisode) = episodeList
+        var (unwatchedEpisode, MetadataEpisode) = episodeList
             .Where(tuple =>
             {
                 var episodeUserRecord = tuple.dacollector.GetUserRecord(userID);
@@ -756,7 +756,7 @@ public class MediaSeriesService
             .FirstOrDefault(options.IncludeUnaired ? _ => true : options.IncludeMissing ? tuple => tuple.anidb.HasAired || tuple.dacollector.VideoLocals.Count > 0 : tuple => tuple.dacollector.VideoLocals.Count > 0);
 
         // Disable first episode from showing up in the search.
-        if (options.DisableFirstEpisode && anidbEpisode is not null && anidbEpisode.EpisodeType is EpisodeType.Episode && anidbEpisode.EpisodeNumber == 1)
+        if (options.DisableFirstEpisode && MetadataEpisode is not null && MetadataEpisode.EpisodeType is EpisodeType.Episode && MetadataEpisode.EpisodeNumber == 1)
             return null;
 
         return unwatchedEpisode;

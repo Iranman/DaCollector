@@ -419,7 +419,7 @@ public partial class TmdbController : BaseController
     /// <param name="movieID">TMDB Movie ID.</param>
     /// <returns></returns>
     [HttpGet("Movie/{movieID}/AniDB/Anime")]
-    public ActionResult<List<AnidbAnime>> GetAniDBAnimeByTmdbMovieID(
+    public ActionResult<List<MetadataAnime>> GetAniDBAnimeByTmdbMovieID(
         [FromRoute] int movieID
     )
     {
@@ -428,9 +428,9 @@ public partial class TmdbController : BaseController
             return NotFound(MovieNotFound);
 
         return movie.CrossReferences
-            .Select(xref => xref.AnidbAnime)
+            .Select(xref => xref.MetadataAnime)
             .WhereNotNull()
-            .Select(anime => new AnidbAnime(anime))
+            .Select(anime => new MetadataAnime(anime))
             .ToList();
     }
 
@@ -440,7 +440,7 @@ public partial class TmdbController : BaseController
     /// <param name="movieID">TMDB Movie ID.</param>
     /// <returns></returns>
     [HttpGet("Movie/{movieID}/AniDB/Episode")]
-    public ActionResult<List<AnidbEpisode>> GetAniDBEpisodesByTmdbMovieID(
+    public ActionResult<List<MetadataEpisode>> GetAniDBEpisodesByTmdbMovieID(
         [FromRoute] int movieID
     )
     {
@@ -449,9 +449,9 @@ public partial class TmdbController : BaseController
             return NotFound(MovieNotFound);
 
         return movie.CrossReferences
-            .Select(xref => xref.AnidbEpisode)
+            .Select(xref => xref.MetadataEpisode)
             .WhereNotNull()
-            .Select(episode => new AnidbEpisode(episode))
+            .Select(episode => new MetadataEpisode(episode))
             .ToList();
     }
 
@@ -1594,7 +1594,7 @@ public partial class TmdbController : BaseController
     /// <param name="showID">TMDB Show ID.</param>
     /// <returns></returns>
     [HttpGet("Show/{showID}/AniDB/Anime")]
-    public ActionResult<List<AnidbAnime>> GetAnidbAnimeByTmdbShowID(
+    public ActionResult<List<MetadataAnime>> GetAnidbAnimeByTmdbShowID(
         [FromRoute] int showID
     )
     {
@@ -1605,9 +1605,9 @@ public partial class TmdbController : BaseController
             return NotFound(ShowNotFound);
 
         return show.CrossReferences
-            .Select(xref => xref.AnidbAnime)
+            .Select(xref => xref.MetadataAnime)
             .WhereNotNull()
-            .Select(anime => new AnidbAnime(anime))
+            .Select(anime => new MetadataAnime(anime))
             .ToList();
     }
 
@@ -2203,7 +2203,7 @@ public partial class TmdbController : BaseController
     #region Cross-Source Linked Entries
 
     [HttpGet("Season/{seasonID}/AniDB/Anime")]
-    public ActionResult<List<AnidbAnime>> GetAniDBAnimeBySeasonID(
+    public ActionResult<List<MetadataAnime>> GetAniDBAnimeBySeasonID(
         [FromRoute, RegularExpression(SeasonIdRegex)] string seasonID
     )
     {
@@ -2220,9 +2220,9 @@ public partial class TmdbController : BaseController
                 .WhereNotNull()
                 .SelectMany(episode => episode.CrossReferences)
                 .DistinctBy(xref => xref.AnidbAnimeID)
-                .Select(xref => xref.AnidbAnime)
+                .Select(xref => xref.MetadataAnime)
                 .WhereNotNull()
-                .Select(anime => new AnidbAnime(anime))
+                .Select(anime => new MetadataAnime(anime))
                 .ToList();
         }
 
@@ -2236,9 +2236,9 @@ public partial class TmdbController : BaseController
         return season.TmdbEpisodes
             .SelectMany(episode => episode.CrossReferences)
             .DistinctBy(xref => xref.AnidbAnimeID)
-            .Select(xref => xref.AnidbAnime)
+            .Select(xref => xref.MetadataAnime)
             .WhereNotNull()
-            .Select(anime => new AnidbAnime(anime))
+            .Select(anime => new MetadataAnime(anime))
             .ToList();
     }
 
@@ -2699,7 +2699,7 @@ public partial class TmdbController : BaseController
     #region Cross-Source Linked Entries
 
     [HttpGet("Episode/{episodeID}/AniDB/Anime")]
-    public ActionResult<List<AnidbAnime>> GetAniDBAnimeByEpisodeID(
+    public ActionResult<List<MetadataAnime>> GetAniDBAnimeByEpisodeID(
         [FromRoute] int episodeID
     )
     {
@@ -2711,14 +2711,14 @@ public partial class TmdbController : BaseController
 
         return episode.CrossReferences
             .DistinctBy(xref => xref.AnidbAnimeID)
-            .Select(xref => xref.AnidbAnime)
+            .Select(xref => xref.MetadataAnime)
             .WhereNotNull()
-            .Select(anime => new AnidbAnime(anime))
+            .Select(anime => new MetadataAnime(anime))
             .ToList();
     }
 
     [HttpGet("Episode/{episodeID}/Anidb/Episode")]
-    public ActionResult<List<AnidbEpisode>> GetAniDBEpisodeByEpisodeID(
+    public ActionResult<List<MetadataEpisode>> GetAniDBEpisodeByEpisodeID(
         [FromRoute] int episodeID
     )
     {
@@ -2730,9 +2730,9 @@ public partial class TmdbController : BaseController
 
         return episode.CrossReferences
             .DistinctBy(xref => xref.AnidbAnimeID)
-            .Select(xref => xref.AnidbEpisode)
+            .Select(xref => xref.MetadataEpisode)
             .WhereNotNull()
-            .Select(anidbEpisode => new AnidbEpisode(anidbEpisode))
+            .Select(MetadataEpisode => new MetadataEpisode(MetadataEpisode))
             .ToList();
     }
 
@@ -2887,20 +2887,20 @@ public partial class TmdbController : BaseController
                     if (!body.IncludeComments)
                         return new string[1] { entry };
 
-                    var anime = xref.AnidbAnime;
+                    var anime = xref.MetadataAnime;
                     var animeTitle = anime?.MainTitle ?? "<missing title>";
                     var movie = xref.TmdbMovie;
                     var movieTitle = movie?.EnglishTitle ?? "<missing title>";
                     var episodeNumber = "---";
-                    var anidbEpisode = xref.AnidbEpisode;
-                    if (anidbEpisode is null)
+                    var MetadataEpisode = xref.MetadataEpisode;
+                    if (MetadataEpisode is null)
                         episodeNumber = "???";
-                    else if (anidbEpisode.EpisodeType is EpisodeType.Episode)
-                        episodeNumber = anidbEpisode.EpisodeNumber.ToString().PadLeft(3, '0');
+                    else if (MetadataEpisode.EpisodeType is EpisodeType.Episode)
+                        episodeNumber = MetadataEpisode.EpisodeNumber.ToString().PadLeft(3, '0');
                     else
-                        episodeNumber = $"{anidbEpisode.EpisodeType.ToString()[0]}{anidbEpisode.EpisodeNumber.ToString().PadLeft(2, '0')}";
+                        episodeNumber = $"{MetadataEpisode.EpisodeType.ToString()[0]}{MetadataEpisode.EpisodeNumber.ToString().PadLeft(2, '0')}";
                     episodeNumber += $" (e{xref.AnidbEpisodeID})";
-                    var episodeTitle = anidbEpisode?.DefaultTitle is { } defaultTile ? defaultTile.Value : "<missing title>";
+                    var episodeTitle = MetadataEpisode?.DefaultTitle is { } defaultTile ? defaultTile.Value : "<missing title>";
                     return
                     [
                         "",
@@ -2960,14 +2960,14 @@ public partial class TmdbController : BaseController
                     if (!body.IncludeComments)
                         return new string[1] { entry };
 
-                    var anidbAnime = xref.AnidbAnime;
-                    var anidbAnimeTitle = anidbAnime?.MainTitle ?? "<missing title>";
+                    var MetadataAnime = xref.MetadataAnime;
+                    var anidbAnimeTitle = MetadataAnime?.MainTitle ?? "<missing title>";
                     var tmdbShow = xref.TmdbShow;
                     var tmdbShowTitle = tmdbShow?.EnglishTitle ?? "<missing title>";
                     return
                     [
                         "",
-                        $"# AniDB: {MapAnimeType(anidbAnime?.AnimeType)} ``{anidbAnimeTitle}`` (a{xref.AnidbAnimeID}) → TMDB: ``{tmdbShowTitle}`` (s{xref.TmdbShowID})",
+                        $"# AniDB: {MapAnimeType(MetadataAnime?.AnimeType)} ``{anidbAnimeTitle}`` (a{xref.AnidbAnimeID}) → TMDB: ``{tmdbShowTitle}`` (s{xref.TmdbShowID})",
                         entry,
                     ];
                 })
@@ -3020,16 +3020,16 @@ public partial class TmdbController : BaseController
                     if (!body.IncludeComments)
                         return new string[1] { entry };
 
-                    var anidbAnime = xref.AnidbAnime;
-                    var anidbAnimeTitle = anidbAnime?.MainTitle ?? "<missing title>";
-                    var anidbEpisode = xref.AnidbEpisode;
+                    var MetadataAnime = xref.MetadataAnime;
+                    var anidbAnimeTitle = MetadataAnime?.MainTitle ?? "<missing title>";
+                    var MetadataEpisode = xref.MetadataEpisode;
                     var anidbEpisodeNumber = "???";
-                    if (anidbEpisode is not null)
-                        if (anidbEpisode.EpisodeType is EpisodeType.Episode)
-                            anidbEpisodeNumber = anidbEpisode.EpisodeNumber.ToString().PadLeft(3, '0');
+                    if (MetadataEpisode is not null)
+                        if (MetadataEpisode.EpisodeType is EpisodeType.Episode)
+                            anidbEpisodeNumber = MetadataEpisode.EpisodeNumber.ToString().PadLeft(3, '0');
                         else
-                            anidbEpisodeNumber = $"{anidbEpisode.EpisodeType.ToString()[0]}{anidbEpisode.EpisodeNumber.ToString().PadLeft(2, '0')}";
-                    var anidbEpisodeTitle = anidbEpisode?.DefaultTitle is { } defaultTile ? defaultTile.Value : "<missing title>";
+                            anidbEpisodeNumber = $"{MetadataEpisode.EpisodeType.ToString()[0]}{MetadataEpisode.EpisodeNumber.ToString().PadLeft(2, '0')}";
+                    var anidbEpisodeTitle = MetadataEpisode?.DefaultTitle is { } defaultTile ? defaultTile.Value : "<missing title>";
                     var tmdbShow = xref.TmdbShow;
                     var tmdbShowTitle = tmdbShow?.EnglishTitle ?? "<missing title>";
                     var tmdbEpisode = xref.TmdbEpisode;
@@ -3040,7 +3040,7 @@ public partial class TmdbController : BaseController
                     return
                     [
                         "",
-                        $"# AniDB: {MapAnimeType(anidbAnime?.AnimeType)} ``{anidbAnimeTitle}`` (a{xref.AnidbAnimeID}) {anidbEpisodeNumber} ``{anidbEpisodeTitle}`` (e{xref.AnidbEpisodeID}) → TMDB: ``{tmdbShowTitle}`` (s{xref.TmdbShowID}) {tmdbEpisodeNumber} ``{tmdbEpisodeTitle}`` (e{xref.TmdbEpisodeID})",
+                        $"# AniDB: {MapAnimeType(MetadataAnime?.AnimeType)} ``{anidbAnimeTitle}`` (a{xref.AnidbAnimeID}) {anidbEpisodeNumber} ``{anidbEpisodeTitle}`` (e{xref.AnidbEpisodeID}) → TMDB: ``{tmdbShowTitle}`` (s{xref.TmdbShowID}) {tmdbEpisodeNumber} ``{tmdbEpisodeTitle}`` (e{xref.TmdbEpisodeID})",
                         entry,
                     ];
                 })
@@ -3099,9 +3099,9 @@ public partial class TmdbController : BaseController
         string? line;
         var lineNumber = 0;
         var currentHeader = "";
-        var movieIdXrefs = new List<(int anidbAnime, int anidbEpisode, int tmdbMovie, MatchRating rating)>();
-        var showIdXrefs = new List<(int anidbAnime, int tmdbShow, MatchRating rating)>();
-        var episodeIdXrefs = new List<(int anidbAnime, int anidbEpisode, int tmdbShow, int tmdbEpisode, MatchRating rating)>();
+        var movieIdXrefs = new List<(int MetadataAnime, int MetadataEpisode, int tmdbMovie, MatchRating rating)>();
+        var showIdXrefs = new List<(int MetadataAnime, int tmdbShow, MatchRating rating)>();
+        var episodeIdXrefs = new List<(int MetadataAnime, int MetadataEpisode, int tmdbShow, int tmdbEpisode, MatchRating rating)>();
         while ((line = stream.ReadLine()) is not null)
         {
             lineNumber++;
@@ -3166,10 +3166,10 @@ public partial class TmdbController : BaseController
                 }
                 case EpisodeCrossReferenceWithIdHeader:
                 {
-                    var (anime, anidbEpisode, show, tmdbEpisode, rating) = line.Split(",");
+                    var (anime, MetadataEpisode, show, tmdbEpisode, rating) = line.Split(",");
                     if (
                         !int.TryParse(anime, out var anidbAnimeId) || anidbAnimeId <= 0 ||
-                        !int.TryParse(anidbEpisode, out var anidbEpisodeId) || anidbEpisodeId <= 0 ||
+                        !int.TryParse(MetadataEpisode, out var anidbEpisodeId) || anidbEpisodeId <= 0 ||
                         !int.TryParse(show, out var tmdbShowId) || tmdbShowId < 0 ||
                         !int.TryParse(tmdbEpisode, out var tmdbEpisodeId) || tmdbEpisodeId < 0 ||
                         !Enum.TryParse<MatchRating>(rating, true, out var matchRating)

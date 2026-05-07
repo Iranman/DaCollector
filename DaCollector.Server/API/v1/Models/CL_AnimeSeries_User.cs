@@ -29,7 +29,7 @@ public class CL_AnimeSeries_User
     public int MissingEpisodeCountGroups { get; set; }
     public DayOfWeek? AirsOn { get; set; }
 
-    public CL_AniDB_AnimeDetailed AniDBAnime { get; set; }
+    public CL_AniDB_AnimeDetailed MetadataAnime { get; set; }
     public List<object> CrossRefAniDBTvDBV2 { get; set; }
     public CL_CrossRef_AniDB_Other CrossRefAniDBMovieDB { get; set; }
     public List<CL_CrossRef_AniDB_MAL> CrossRefAniDBMAL { get; set; }

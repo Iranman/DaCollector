@@ -22,13 +22,13 @@ public interface IVideoCrossReference : IReleaseVideoCrossReference
     long Size { get; }
 
     /// <summary>
-    /// AniDB episode ID. Will be available even if <see cref="AnidbEpisode"/>
+    /// AniDB episode ID. Will be available even if <see cref="MetadataEpisode"/>
     /// is not available yet.
     /// </summary>
     new int AnidbEpisodeID { get; }
 
     /// <summary>
-    /// AniDB anime ID. Will be available even if <see cref="AnidbAnime"/> is
+    /// AniDB anime ID. Will be available even if <see cref="MetadataAnime"/> is
     /// not available yet.
     /// </summary>
     new int AnidbAnimeID { get; }
@@ -58,12 +58,12 @@ public interface IVideoCrossReference : IReleaseVideoCrossReference
     /// <summary>
     /// The AniDB episode, if available.
     /// </summary>
-    IAnidbEpisode? AnidbEpisode { get; }
+    IAnidbEpisode? MetadataEpisode { get; }
 
     /// <summary>
     /// The AniDB anime series, if available.
     /// </summary>
-    IAnidbAnime? AnidbAnime { get; }
+    IAnidbAnime? MetadataAnime { get; }
 
     /// <summary>
     /// The DaCollector episode, if available.

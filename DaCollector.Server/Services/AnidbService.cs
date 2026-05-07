@@ -254,35 +254,35 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
     #region By AniDB Anime
 
     /// <inheritdoc/>
-    public async Task<IAnidbAnime> RefreshAnime(IAnidbAnime anidbAnime, AnidbRefreshMethod refreshMethod = AnidbRefreshMethod.Auto, CancellationToken cancellationToken = default)
+    public async Task<IAnidbAnime> RefreshAnime(IAnidbAnime MetadataAnime, AnidbRefreshMethod refreshMethod = AnidbRefreshMethod.Auto, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(anidbAnime);
+        ArgumentNullException.ThrowIfNull(MetadataAnime);
 
-        return await RefreshInternal(anidbAnime.ID, anidbAnime, refreshMethod, cancellationToken).ConfigureAwait(false) ?? anidbAnime;
+        return await RefreshInternal(MetadataAnime.ID, MetadataAnime, refreshMethod, cancellationToken).ConfigureAwait(false) ?? MetadataAnime;
     }
 
     /// <inheritdoc/>
-    public async Task ScheduleRefreshOfAnime(IAnidbAnime anidbAnime, AnidbRefreshMethod refreshMethod = AnidbRefreshMethod.Auto, bool prioritize = false)
+    public async Task ScheduleRefreshOfAnime(IAnidbAnime MetadataAnime, AnidbRefreshMethod refreshMethod = AnidbRefreshMethod.Auto, bool prioritize = false)
     {
-        ArgumentNullException.ThrowIfNull(anidbAnime);
+        ArgumentNullException.ThrowIfNull(MetadataAnime);
 
-        await ScheduleRefreshInternal(anidbAnime.ID, refreshMethod, prioritize).ConfigureAwait(false);
+        await ScheduleRefreshInternal(MetadataAnime.ID, refreshMethod, prioritize).ConfigureAwait(false);
     }
 
     #endregion
 
     #region Internals
 
-    private async Task<IAnidbAnime?> RefreshInternal(int anidbAnimeID, IAnidbAnime? anidbAnime = null, AnidbRefreshMethod refreshMethod = AnidbRefreshMethod.Auto, CancellationToken cancellationToken = default)
+    private async Task<IAnidbAnime?> RefreshInternal(int anidbAnimeID, IAnidbAnime? MetadataAnime = null, AnidbRefreshMethod refreshMethod = AnidbRefreshMethod.Auto, CancellationToken cancellationToken = default)
     {
         if (!refreshMethod.HasFlag(AnidbRefreshMethod.Cache) && !refreshMethod.HasFlag(AnidbRefreshMethod.Remote))
-            return anidbAnime;
+            return MetadataAnime;
 
         try
         {
             var job = CreateJobDetails(anidbAnimeID, refreshMethod);
             var anime = await Process(job, cancellationToken).ConfigureAwait(false);
-            return anime ?? anidbAnime;
+            return anime ?? MetadataAnime;
         }
         catch (AniDBBannedException ex)
         {
@@ -851,7 +851,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
         public int LengthDifference { get; init; } = searchResult.LengthDifference;
 
         /// <inheritdoc/>
-        public IAnidbAnime? AnidbAnime => ID > 0 ? _anidbAnime ??= _anidbAnimeRepository.GetByAnimeID(ID) : null;
+        public IAnidbAnime? MetadataAnime => ID > 0 ? _anidbAnime ??= _anidbAnimeRepository.GetByAnimeID(ID) : null;
 
         /// <inheritdoc/>
         public IDaCollectorSeries? DaCollectorSeries => ID > 0 ? _dacollectorSeries ??= _seriesRepository.GetByAnimeID(ID) : null;

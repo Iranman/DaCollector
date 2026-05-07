@@ -22,7 +22,7 @@ namespace DaCollector.Server.API.v3.Controllers;
 [Route("/api/v{version:apiVersion}/[controller]")]
 [ApiV3]
 [Authorize]
-public class AniDBController(
+public class MetadataController(
     ISettingsProvider settingsProvider,
     IAnidbService anidbService,
     StoredReleaseInfoRepository storedReleaseInfos,
@@ -38,12 +38,12 @@ public class AniDBController(
     /// where the key is the name of the connection and the value is the current ban status.
     /// </returns>
     [HttpGet("BanStatus")]
-    public Dictionary<string, AnidbBannedStatus> GetBanStatus()
+    public Dictionary<string, MetadataBannedStatus> GetBanStatus()
     {
-        return new Dictionary<string, AnidbBannedStatus>
+        return new Dictionary<string, MetadataBannedStatus>
         {
-            { "UDP", new AnidbBannedStatus(anidbService.LastUdpBanEventArgs) },
-            { "HTTP", new AnidbBannedStatus(anidbService.LastHttpBanEventArgs) },
+            { "UDP", new MetadataBannedStatus(anidbService.LastUdpBanEventArgs) },
+            { "HTTP", new MetadataBannedStatus(anidbService.LastHttpBanEventArgs) },
         };
     }
 
@@ -93,7 +93,7 @@ public class AniDBController(
     /// <param name="page">The page index.</param>
     /// <returns></returns>
     [HttpGet("Creator")]
-    public ActionResult<ListResult<AnidbCreator>> GetCreators(
+    public ActionResult<ListResult<MetadataCreator>> GetCreators(
         [FromQuery] string? query = null,
         [FromQuery, Range(0, 1000)] int pageSize = 20,
         [FromQuery, Range(1, int.MaxValue)] int page = 1)
@@ -101,10 +101,10 @@ public class AniDBController(
         if (!string.IsNullOrEmpty(query))
             return anidbCreators.GetAll()
                 .Search(query, c => [c.Name, c.OriginalName])
-                .ToListResult(c => new AnidbCreator(c.Result), page, pageSize);
+                .ToListResult(c => new MetadataCreator(c.Result), page, pageSize);
 
         return anidbCreators.GetAll()
-            .ToListResult(c => new AnidbCreator(c), page, pageSize);
+            .ToListResult(c => new MetadataCreator(c), page, pageSize);
     }
 
     /// <summary>
@@ -113,13 +113,13 @@ public class AniDBController(
     /// <param name="id">The creator id.</param>
     /// <returns></returns>
     [HttpGet("Creator/{id}")]
-    public ActionResult<AnidbCreator> GetCreator(int id)
+    public ActionResult<MetadataCreator> GetCreator(int id)
     {
         var creator = anidbCreators.GetByCreatorID(id);
         if (creator == null)
             return NotFound();
 
-        return new AnidbCreator(creator);
+        return new MetadataCreator(creator);
     }
 
     /// <summary>
@@ -128,13 +128,13 @@ public class AniDBController(
     /// <param name="name">The creator name.</param>
     /// <returns></returns>
     [HttpGet("Creator/Name/{name}")]
-    public ActionResult<AnidbCreator> GetCreator(string name)
+    public ActionResult<MetadataCreator> GetCreator(string name)
     {
         var creator = anidbCreators.GetByName(name);
         if (creator == null)
             return NotFound();
 
-        return new AnidbCreator(creator);
+        return new MetadataCreator(creator);
     }
 
     /// <summary>
@@ -145,7 +145,7 @@ public class AniDBController(
     /// <param name="page">The page index.</param>
     /// <returns></returns>
     [HttpGet("Character")]
-    public ActionResult<ListResult<AnidbCharacter>> GetCharacters(
+    public ActionResult<ListResult<MetadataCharacter>> GetCharacters(
         [FromQuery] string? query = null,
         [FromQuery, Range(0, 1000)] int pageSize = 20,
         [FromQuery, Range(1, int.MaxValue)] int page = 1
@@ -154,10 +154,10 @@ public class AniDBController(
         if (!string.IsNullOrEmpty(query))
             return anidbCharacters.GetAll()
                 .Search(query, c => [c.Name, c.OriginalName])
-                .ToListResult(c => new AnidbCharacter(c.Result), page, pageSize);
+                .ToListResult(c => new MetadataCharacter(c.Result), page, pageSize);
 
         return anidbCharacters.GetAll()
-            .ToListResult(c => new AnidbCharacter(c), 1, 0);
+            .ToListResult(c => new MetadataCharacter(c), 1, 0);
     }
 
     /// <summary>
@@ -166,13 +166,13 @@ public class AniDBController(
     /// <param name="id">The character id.</param>
     /// <returns></returns>
     [HttpGet("Character/{id}")]
-    public ActionResult<AnidbCharacter> GetCharacter(int id)
+    public ActionResult<MetadataCharacter> GetCharacter(int id)
     {
         var character = anidbCharacters.GetByCharacterID(id);
         if (character == null)
             return NotFound();
 
-        return new AnidbCharacter(character);
+        return new MetadataCharacter(character);
     }
 
     /// <summary>
@@ -181,12 +181,12 @@ public class AniDBController(
     /// <param name="name">The character name.</param>
     /// <returns></returns>
     [HttpGet("Character/Name/{name}")]
-    public ActionResult<AnidbCharacter> GetCharacter(string name)
+    public ActionResult<MetadataCharacter> GetCharacter(string name)
     {
         var character = anidbCharacters.GetByName(name);
         if (character == null)
             return NotFound();
 
-        return new AnidbCharacter(character);
+        return new MetadataCharacter(character);
     }
 }

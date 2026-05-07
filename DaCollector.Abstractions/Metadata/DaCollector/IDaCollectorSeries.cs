@@ -63,7 +63,7 @@ public interface IDaCollectorSeries : ISeries, IWithCreationDate, IWithUpdateDat
     /// <summary>
     /// A direct link to the AniDB anime metadata.
     /// </summary>
-    IAnidbAnime AnidbAnime { get; }
+    IAnidbAnime MetadataAnime { get; }
 
     /// <summary>
     ///   Wether or not AniList auto matching is disabled for the DaCollector series.

@@ -14,7 +14,7 @@ namespace DaCollector.Server.API.v3.Models.AniDB;
 /// <summary>
 /// AniDB specific data for an Episode
 /// </summary>
-public class AnidbEpisode
+public class MetadataEpisode
 {
     /// <summary>
     /// AniDB Episode ID
@@ -69,7 +69,7 @@ public class AnidbEpisode
     [Required]
     public Rating Rating { get; set; }
 
-    public AnidbEpisode(AniDB_Episode ep)
+    public MetadataEpisode(AniDB_Episode ep)
     {
         var defaultTitle = ep.DefaultTitle;
         var mainTitle = ep.Title;

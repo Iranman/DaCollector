@@ -36,10 +36,10 @@ public class FileCrossReference
         public int? ID { get; set; }
 
         /// <summary>
-        /// The AniDB ID.
+        /// The source metadata episode ID.
         /// </summary>
         [Required]
-        public int AniDB { get; set; }
+        public int SourceID { get; set; }
 
         /// <summary>
         /// The Movie DataBase (TMDB) Cross-Reference IDs.
@@ -117,10 +117,10 @@ public class FileCrossReference
         public int? ID { get; set; }
 
         /// <summary>
-        /// The AniDB ID.
+        /// The source metadata episode ID.
         /// </summary>
         [Required]
-        public int AniDB { get; set; }
+        public int SourceID { get; set; }
 
         /// <summary>
         /// The Movie DataBase (TMDB) Cross-Reference IDs.
@@ -171,7 +171,7 @@ public class FileCrossReference
                         dto: new EpisodeCrossReferenceIDs
                         {
                             ID = dacollectorEpisode?.MediaEpisodeID,
-                            AniDB = xref.AnidbEpisodeID,
+                            SourceID = xref.AnidbEpisodeID,
                             ReleaseGroup = releaseGroup,
                             TMDB = new()
                             {
@@ -208,7 +208,7 @@ public class FileCrossReference
                 // we will attempt to lookup the episode to grab it's id but fallback
                 // to the cross-reference anime id if the episode is not locally available
                 // yet.
-                .GroupBy(tuple => tuple.xref.AnidbEpisode?.SeriesID ?? tuple.xref.AnidbAnimeID)
+                .GroupBy(tuple => tuple.xref.MetadataEpisode?.SeriesID ?? tuple.xref.AnidbAnimeID)
                 .Select(tuples =>
                 {
                     var dacollectorSeries = RepoFactory.MediaSeries.GetByAnimeID(tuples.Key);

@@ -704,7 +704,7 @@ public class UserDataService(
             userRating = Math.Round(userRating.Value, 1, MidpointRounding.AwayFromZero);
             if (userRating < 1 || userRating > 10)
                 throw new ArgumentOutOfRangeException(nameof(userRating), "User rating must be between 1 and 10, or -1 or null for no rating.");
-            voteType ??= series.AnidbAnime.EndDate is { } endDate && endDate < DateTime.Now
+            voteType ??= series.MetadataAnime.EndDate is { } endDate && endDate < DateTime.Now
                 ? SeriesVoteType.Permanent
                 : SeriesVoteType.Temporary;
         }

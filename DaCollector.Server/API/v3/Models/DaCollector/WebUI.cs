@@ -455,7 +455,7 @@ public class WebUI
                 .Where(episode => !presentEpisodes.Contains(episode.ID) && !episode.IsHidden && (episode.AirDate.HasValue ? (showMissingFutureEpisodes || episode.AirDate.Value < now) : showMissingUnknownEpisodes))
                 .OrderBy(episode => episode.Type)
                 .ThenBy(episode => episode.Number)
-                .Select(episode => new AnidbEpisode(episode.AniDB))
+                .Select(episode => new MetadataEpisode(episode.AniDB))
                 .ToList();
         }
 
@@ -463,7 +463,7 @@ public class WebUI
 
         public List<EpisodeGroupSummary> Groups { get; set; }
 
-        public List<AnidbEpisode> MissingEpisodes { get; set; }
+        public List<MetadataEpisode> MissingEpisodes { get; set; }
 
         [JsonConverter(typeof(StringEnumConverter))]
         public enum FileSummaryGroupByCriteria

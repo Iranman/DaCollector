@@ -4,7 +4,7 @@ namespace DaCollector.Server.API.v1.Models;
 
 public class CL_AniDB_AnimeDetailed
 {
-    public CL_AniDB_Anime AniDBAnime { get; set; }
+    public CL_AniDB_Anime MetadataAnime { get; set; }
     public List<CL_AnimeTitle> AnimeTitles { get; set; }
     public List<CL_AnimeTag> Tags { get; set; }
     public List<CL_CustomTag> CustomTags { get; set; }

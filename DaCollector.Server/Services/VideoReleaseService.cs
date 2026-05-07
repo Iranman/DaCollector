@@ -907,7 +907,7 @@ public class VideoReleaseService(
                     anidbAnimeRepository.GetByAnimeID(groupBy.Key) is null ||
                     dacollectorSeriesRepository.GetByAnimeID(groupBy.Key) is null ||
                     anidbAnimeUpdateRepository.GetByAnimeID(groupBy.Key) is null ||
-                    groupBy.Any(xref => xref.AnidbEpisode is null || xref.DaCollectorEpisode is null)
+                    groupBy.Any(xref => xref.MetadataEpisode is null || xref.DaCollectorEpisode is null)
             );
         if (animeIDs.Count == 0)
             return;
@@ -1079,15 +1079,15 @@ public class VideoReleaseService(
                 if (xref.AnidbAnimeID is null or 0)
                     continue;
 
-                var anidbEpisode = anidbEpisodeRepository.GetByEpisodeID(xref.AnidbEpisodeID);
-                if (anidbEpisode is null)
+                var MetadataEpisode = anidbEpisodeRepository.GetByEpisodeID(xref.AnidbEpisodeID);
+                if (MetadataEpisode is null)
                     continue;
 
                 await scheduler.StartJob<DeleteFileFromMyListJob>(c =>
                     {
                         c.AnimeID = xref.AnidbAnimeID.Value;
-                        c.EpisodeType = anidbEpisode.EpisodeType;
-                        c.EpisodeNumber = anidbEpisode.EpisodeNumber;
+                        c.EpisodeType = MetadataEpisode.EpisodeType;
+                        c.EpisodeNumber = MetadataEpisode.EpisodeNumber;
                     }
                 );
             }

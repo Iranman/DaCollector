@@ -69,5 +69,5 @@ public interface IAnidbTagForAnime : IAnidbTag
     /// <summary>
     /// A direct link to the AniDB anime metadata.
     /// </summary>
-    IAnidbAnime AnidbAnime { get; }
+    IAnidbAnime MetadataAnime { get; }
 }

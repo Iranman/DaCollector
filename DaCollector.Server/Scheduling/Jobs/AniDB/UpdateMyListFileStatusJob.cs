@@ -82,7 +82,7 @@ public class UpdateMyListFileStatusJob : BaseJob
         {
             // we have a manual link, so get the xrefs and add the episodes instead as generic files
             var xrefs = vid.EpisodeCrossReferences;
-            foreach (var episode in xrefs.Select(xref => xref.AniDBEpisode).WhereNotNull())
+            foreach (var episode in xrefs.Select(xref => xref.MetadataEpisode).WhereNotNull())
             {
                 _logger.LogInformation("Updating Episode MyList Status: AnimeID: {AnimeID}, Episode Type: {Type}, Episode No: {EP}", episode.AnimeID,
                     episode.EpisodeType, episode.EpisodeNumber);

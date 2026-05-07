@@ -137,7 +137,7 @@ public static class ModelHelper
         var remainingXrefs = new List<CrossRef_AniDB_TMDB_Episode>();
         var anidbEpisodeDictionary = episodeList
             .DistinctBy(xref => xref.AnidbEpisodeID)
-            .Select(xref => (xref, anidb: xref.AnidbEpisode))
+            .Select(xref => (xref, anidb: xref.MetadataEpisode))
             .Where(tuple => tuple.anidb is not null)
             .ToDictionary(tuple => tuple.xref.AnidbEpisodeID, tuple => tuple.anidb);
         var anidbXrefs = episodeList
@@ -227,7 +227,7 @@ public static class ModelHelper
     {
         return episodeList
             .Select(episode => episode.AniDB_Episode)
-            .Count(anidbEpisode => anidbEpisode != null && (EpisodeType)anidbEpisode.EpisodeType == episodeType);
+            .Count(MetadataEpisode => MetadataEpisode != null && (EpisodeType)MetadataEpisode.EpisodeType == episodeType);
     }
 
     public static SeriesSizes GenerateSeriesSizes(IEnumerable<MediaEpisode> episodeList, int userID)
@@ -236,7 +236,7 @@ public static class ModelHelper
         var fileSet = new HashSet<int>();
         foreach (var episode in episodeList)
         {
-            var anidbEpisode = episode.AniDB_Episode;
+            var MetadataEpisode = episode.AniDB_Episode;
             var fileList = episode.VideoLocals;
             var isLocal = fileList.Count > 0;
             var isWatched = episode.GetUserRecord(userID)?.WatchedDate.HasValue ?? false;
@@ -294,7 +294,7 @@ public static class ModelHelper
                 continue;
             }
 
-            if (anidbEpisode == null)
+            if (MetadataEpisode == null)
             {
                 sizes.Total.Unknown++;
                 if (isLocal)
@@ -310,7 +310,7 @@ public static class ModelHelper
                 continue;
             }
 
-            switch ((EpisodeType)anidbEpisode.EpisodeType)
+            switch ((EpisodeType)MetadataEpisode.EpisodeType)
             {
                 case EpisodeType.Episode:
                     sizes.Total.Episodes++;
@@ -323,7 +323,7 @@ public static class ModelHelper
                             sizes.Watched.Episodes++;
                         }
                     }
-                    else if (anidbEpisode.HasAired)
+                    else if (MetadataEpisode.HasAired)
                     {
                         sizes.Missing.Episodes++;
                     }
@@ -353,7 +353,7 @@ public static class ModelHelper
                             sizes.Watched.Specials++;
                         }
                     }
-                    else if (anidbEpisode.HasAired)
+                    else if (MetadataEpisode.HasAired)
                     {
                         sizes.Missing.Specials++;
                     }
@@ -488,7 +488,7 @@ public static class ModelHelper
                 var xrefs = video.EpisodeCrossReferences;
                 var isAnimeAllowed = xrefs
                     .DistinctBy(xref => xref.AnimeID)
-                    .Select(xref => xref.AniDBAnime)
+                    .Select(xref => xref.MetadataAnime)
                     .WhereNotNull()
                     .All(user.AllowedAnime);
                 if (!isAnimeAllowed)
@@ -505,8 +505,8 @@ public static class ModelHelper
                 if (include_only.Contains(FileIncludeOnlyType.Unrecognized) && xrefs.Count > 0) return false;
 
                 // this one is also special because files in import limbo are excluded by default
-                if (!include_only.Contains(FileIncludeOnlyType.ImportLimbo) && !include.Contains(FileNonDefaultIncludeType.ImportLimbo) && xrefs.Count > 0 && xrefs.Any(x => x.AniDBAnime is null || x.AniDBEpisode is null)) return false;
-                if (include_only.Contains(FileIncludeOnlyType.ImportLimbo) && !(xrefs.Count > 0 && xrefs.Any(x => x.AniDBAnime is null || x.AniDBEpisode is null))) return false;
+                if (!include_only.Contains(FileIncludeOnlyType.ImportLimbo) && !include.Contains(FileNonDefaultIncludeType.ImportLimbo) && xrefs.Count > 0 && xrefs.Any(x => x.MetadataAnime is null || x.MetadataEpisode is null)) return false;
+                if (include_only.Contains(FileIncludeOnlyType.ImportLimbo) && !(xrefs.Count > 0 && xrefs.Any(x => x.MetadataAnime is null || x.MetadataEpisode is null))) return false;
 
                 if (exclude.Contains(FileExcludeTypes.ManualLinks) && xrefs.Count > 0 &&
                     xrefs.All(xref => xref.IsManuallyLinked)) return false;

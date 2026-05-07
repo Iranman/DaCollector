@@ -260,7 +260,7 @@ public static class Dashboard
     public class EpisodeDetailsIDs : IDs
     {
         /// <summary>
-        /// The related <see cref="AnidbEpisode"/> id for the entry.
+        /// The related <see cref="MetadataEpisode"/> id for the entry.
         /// </summary>
         public new int ID { get; set; }
 
