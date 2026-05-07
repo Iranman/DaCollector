@@ -16,7 +16,8 @@ The server hosts the Web UI from the same process. If you changed the port, repl
 4. Configure provider settings for TMDB, IMDb, and TVDB as needed.
 5. Configure the Plex target URL, token, and library section key if you want DaCollector to apply collections to Plex.
 6. Run an import or scan job.
-7. Open the duplicate review page at `http://127.0.0.1:8111/webui/dacollector-duplicates.html`.
+7. Open the managed collections page at `http://127.0.0.1:8111/webui/dacollector-collections.html`.
+8. Open the duplicate review page at `http://127.0.0.1:8111/webui/dacollector-duplicates.html`.
 
 ## Server Data
 
@@ -58,6 +59,7 @@ Use these URLs after signing in:
 | `/api/v3/DaCollectorStatus/Providers` | Provider readiness without secrets. |
 | `/api/v3/DaCollectorStatus/Plex` | Plex target readiness without exposing the token. |
 | `/api/v3/CollectionBuilder` | Available collection builders. |
+| `/api/v3/ManagedCollection` | Saved collection definitions. |
 | `/api/v3/Duplicates/Exact/Summary` | Exact duplicate summary. |
 
 ## Stop DaCollector

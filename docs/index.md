@@ -25,7 +25,7 @@ DaCollector is a self-hosted movie and TV collection manager. It keeps a local s
 
 ## Current Status
 
-DaCollector is under active conversion into a general movie and TV collection manager. The core server, local database, Web UI hosting, provider settings, collection APIs, Plex target APIs, and exact duplicate review page are present. Some older internal model names may remain while the migration continues, but public project-facing documentation and new feature work should use DaCollector.
+DaCollector is under active conversion into a general movie and TV collection manager. The core server, local database, Web UI hosting, provider settings, collection APIs, managed collection review page, Plex target APIs, and exact duplicate review page are present. Some older internal model names may remain while the migration continues, but public project-facing documentation and new feature work should use DaCollector.
 
 ## Documentation Site
 

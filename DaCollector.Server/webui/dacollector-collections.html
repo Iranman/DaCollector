@@ -1,0 +1,1206 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>DaCollector Collections</title>
+    <style>
+        :root {
+            color-scheme: dark;
+            --bg: #10151b;
+            --side: #0c1117;
+            --panel: #171f29;
+            --panel-2: #202a36;
+            --field: #0f151d;
+            --line: #304052;
+            --text: #eef3f8;
+            --muted: #aab7c6;
+            --gold: #d7aa47;
+            --blue: #6fb7ff;
+            --green: #76d49b;
+            --red: #f17878;
+            --purple: #bf9cff;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: var(--bg);
+            color: var(--text);
+            font-family: Segoe UI, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        button,
+        input,
+        select,
+        textarea {
+            font: inherit;
+        }
+
+        button {
+            border: 1px solid transparent;
+            border-radius: 6px;
+            padding: 0.58rem 0.78rem;
+            background: var(--gold);
+            color: #17140c;
+            font-weight: 800;
+            cursor: pointer;
+            min-height: 2.35rem;
+        }
+
+        button.secondary {
+            background: var(--panel-2);
+            border-color: var(--line);
+            color: var(--text);
+        }
+
+        button.blue {
+            background: #153a5b;
+            border-color: #28689e;
+            color: #e6f4ff;
+        }
+
+        button.danger {
+            background: #5b2024;
+            border-color: #91343b;
+            color: #ffe8e8;
+        }
+
+        button:disabled {
+            cursor: wait;
+            opacity: 0.62;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            min-width: 0;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            padding: 0.62rem 0.72rem;
+            background: var(--field);
+            color: var(--text);
+        }
+
+        textarea {
+            min-height: 6rem;
+            resize: vertical;
+            line-height: 1.4;
+        }
+
+        label {
+            display: grid;
+            gap: 0.36rem;
+            color: var(--muted);
+            font-size: 0.82rem;
+            font-weight: 800;
+        }
+
+        label.inline {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            min-height: 2.35rem;
+        }
+
+        label.inline input {
+            width: auto;
+        }
+
+        .shell {
+            display: grid;
+            grid-template-columns: 16rem minmax(0, 1fr);
+            min-height: 100vh;
+        }
+
+        .side {
+            border-right: 1px solid var(--line);
+            background: var(--side);
+            padding: 1.25rem;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.4rem;
+        }
+
+        .mark {
+            display: grid;
+            place-items: center;
+            width: 2.5rem;
+            height: 2.5rem;
+            border: 1px solid #7e642d;
+            border-radius: 50%;
+            background: #171207;
+            color: var(--gold);
+            font-weight: 900;
+        }
+
+        .brand h1 {
+            margin: 0;
+            font-size: 1rem;
+            letter-spacing: 0;
+        }
+
+        .nav {
+            display: grid;
+            gap: 0.45rem;
+        }
+
+        .nav a {
+            display: block;
+            color: var(--muted);
+            text-decoration: none;
+            border-radius: 6px;
+            padding: 0.68rem 0.75rem;
+        }
+
+        .nav a.active {
+            background: var(--panel);
+            color: var(--text);
+        }
+
+        .main {
+            padding: 1.5rem;
+            display: grid;
+            gap: 1rem;
+            align-content: start;
+        }
+
+        .topbar,
+        .row-actions {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .topbar h2 {
+            margin: 0 0 0.25rem;
+            font-size: 1.45rem;
+        }
+
+        .topbar p {
+            margin: 0;
+            color: var(--muted);
+        }
+
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 1rem;
+        }
+
+        .panel h3 {
+            margin: 0 0 0.85rem;
+            font-size: 1rem;
+        }
+
+        .login-grid,
+        .collection-grid,
+        .rule-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 0.8rem;
+            align-items: end;
+        }
+
+        .login-grid {
+            grid-template-columns: 1fr 1fr 1fr auto;
+        }
+
+        .collection-grid {
+            grid-template-columns: minmax(14rem, 1.5fr) minmax(8rem, 0.7fr) minmax(8rem, 0.6fr) auto;
+        }
+
+        .rule-grid {
+            grid-template-columns: minmax(12rem, 1.1fr) minmax(8rem, 0.65fr) minmax(16rem, 1.6fr) auto;
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 0.75rem;
+        }
+
+        .metric {
+            background: var(--panel-2);
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            padding: 0.8rem;
+            min-height: 4.8rem;
+        }
+
+        .metric span {
+            display: block;
+            color: var(--muted);
+            font-size: 0.78rem;
+            font-weight: 800;
+        }
+
+        .metric strong {
+            display: block;
+            margin-top: 0.25rem;
+            font-size: 1.1rem;
+            overflow-wrap: anywhere;
+        }
+
+        .split {
+            display: grid;
+            grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+            gap: 1rem;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 46rem;
+        }
+
+        th,
+        td {
+            padding: 0.7rem;
+            border-bottom: 1px solid var(--line);
+            text-align: left;
+            vertical-align: top;
+        }
+
+        th {
+            color: var(--muted);
+            font-size: 0.78rem;
+            text-transform: uppercase;
+        }
+
+        tr:last-child td {
+            border-bottom: 0;
+        }
+
+        .compact {
+            min-width: 36rem;
+        }
+
+        .wide {
+            min-width: 62rem;
+        }
+
+        .sub {
+            color: var(--muted);
+            font-size: 0.78rem;
+            margin-top: 0.2rem;
+            overflow-wrap: anywhere;
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            min-height: 1.55rem;
+            padding: 0.18rem 0.52rem;
+            font-size: 0.76rem;
+            font-weight: 900;
+            white-space: nowrap;
+        }
+
+        .pill.green {
+            border-color: #32704b;
+            background: #143622;
+            color: var(--green);
+        }
+
+        .pill.blue {
+            border-color: #2b628d;
+            background: #122d44;
+            color: var(--blue);
+        }
+
+        .pill.gold {
+            border-color: #7e642d;
+            background: #211906;
+            color: var(--gold);
+        }
+
+        .pill.purple {
+            border-color: #644c89;
+            background: #251d35;
+            color: var(--purple);
+        }
+
+        .pill.red {
+            border-color: #8c3a40;
+            background: #35191c;
+            color: #ffc9c9;
+        }
+
+        .small-actions {
+            display: flex;
+            gap: 0.45rem;
+            flex-wrap: wrap;
+        }
+
+        .small-actions button {
+            padding: 0.38rem 0.55rem;
+            min-height: 2rem;
+            font-size: 0.82rem;
+        }
+
+        .empty,
+        .status {
+            color: var(--muted);
+        }
+
+        .status.error {
+            color: #ffabab;
+        }
+
+        .warnings {
+            display: grid;
+            gap: 0.45rem;
+            margin-top: 0.75rem;
+        }
+
+        .warning {
+            border: 1px solid #7e642d;
+            border-radius: 6px;
+            padding: 0.62rem 0.72rem;
+            background: #211906;
+            color: #f4d79a;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 980px) {
+            .shell {
+                grid-template-columns: 1fr;
+            }
+
+            .side {
+                border-right: 0;
+                border-bottom: 1px solid var(--line);
+            }
+
+            .nav {
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+            }
+
+            .login-grid,
+            .collection-grid,
+            .rule-grid,
+            .metrics,
+            .split {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="shell">
+    <aside class="side">
+        <div class="brand">
+            <div class="mark">DC</div>
+            <h1>DaCollector</h1>
+        </div>
+        <nav class="nav" aria-label="DaCollector admin">
+            <a href="/webui">Web UI</a>
+            <a class="active" href="/webui/dacollector-collections.html">Collections</a>
+            <a href="/webui/dacollector-duplicates.html">Duplicates</a>
+            <a href="/swagger">API</a>
+        </nav>
+    </aside>
+
+    <main class="main">
+        <div class="topbar">
+            <div>
+                <h2>Managed Collections</h2>
+                <p id="sessionState">Not signed in.</p>
+            </div>
+            <div class="row-actions">
+                <button class="secondary" type="button" id="newCollectionButton">New</button>
+                <button type="button" id="refreshButton">Refresh</button>
+            </div>
+        </div>
+
+        <section class="panel" aria-label="Sign in">
+            <form id="loginForm" class="login-grid">
+                <label>
+                    Username
+                    <input id="username" autocomplete="username">
+                </label>
+                <label>
+                    Password
+                    <input id="password" type="password" autocomplete="current-password">
+                </label>
+                <label>
+                    Device
+                    <input id="device" value="collection-manager">
+                </label>
+                <button type="submit" id="loginButton">Sign in</button>
+            </form>
+            <div class="row-actions" style="margin-top: 0.75rem;">
+                <div id="status" class="status">Sign in or use an existing API session.</div>
+                <button class="secondary" type="button" id="clearTokenButton">Sign out</button>
+            </div>
+        </section>
+
+        <section class="metrics" aria-label="Collection summary" id="metrics"></section>
+
+        <div class="split">
+            <section class="panel" aria-label="Saved collections">
+                <h3>Saved Collections</h3>
+                <div class="table-wrap">
+                    <table class="compact">
+                        <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>State</th>
+                            <th>Mode</th>
+                            <th>Rules</th>
+                            <th>Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody id="collectionRows">
+                        <tr><td class="empty" colspan="5">Sign in and refresh.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="panel" aria-label="Collection editor">
+                <h3 id="editorTitle">New Collection</h3>
+                <form id="collectionForm" class="collection-grid">
+                    <label>
+                        Name
+                        <input id="collectionName" placeholder="Top Movies">
+                    </label>
+                    <label>
+                        Sync Mode
+                        <select id="syncMode">
+                            <option value="0">Preview</option>
+                            <option value="1">Append</option>
+                            <option value="2">Sync</option>
+                        </select>
+                    </label>
+                    <label class="inline">
+                        <input id="enabled" type="checkbox" checked>
+                        Enabled
+                    </label>
+                    <button type="submit" id="saveCollectionButton">Save</button>
+                </form>
+
+                <div style="margin-top: 1rem;">
+                    <h3>Rules</h3>
+                    <form id="ruleForm" class="rule-grid">
+                        <label>
+                            Builder
+                            <select id="builder"></select>
+                        </label>
+                        <label>
+                            Kind
+                            <select id="kind">
+                                <option value="0">Unknown</option>
+                                <option value="1">Movie</option>
+                                <option value="2">Show</option>
+                                <option value="5">Collection</option>
+                            </select>
+                        </label>
+                        <label>
+                            Options
+                            <textarea id="options" placeholder="ids=550, 680&#10;limit=20"></textarea>
+                        </label>
+                        <button type="submit" id="addRuleButton">Add Rule</button>
+                    </form>
+                </div>
+
+                <div class="table-wrap" style="margin-top: 0.9rem;">
+                    <table class="compact">
+                        <thead>
+                        <tr>
+                            <th>Builder</th>
+                            <th>Kind</th>
+                            <th>Options</th>
+                            <th>Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody id="ruleRows">
+                        <tr><td class="empty" colspan="4">No rules.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="row-actions" style="margin-top: 0.9rem;">
+                    <div id="editingHint" class="sub">Unsaved collection.</div>
+                    <div class="small-actions">
+                        <button class="blue" type="button" id="previewButton">Preview</button>
+                        <button class="secondary" type="button" id="syncDryRunButton">Sync Dry Run</button>
+                        <button class="danger" type="button" id="syncApplyButton">Apply</button>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <section class="panel" aria-label="Preview output">
+            <div class="topbar">
+                <h3>Preview Output</h3>
+                <div class="status" id="previewSummary">No preview loaded.</div>
+            </div>
+            <div class="table-wrap">
+                <table class="wide">
+                    <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Provider ID</th>
+                        <th>Kind</th>
+                        <th>Summary</th>
+                    </tr>
+                    </thead>
+                    <tbody id="previewRows">
+                    <tr><td class="empty" colspan="4">Preview a collection.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div id="warnings" class="warnings"></div>
+        </section>
+
+        <section class="panel" aria-label="Builder catalog">
+            <h3>Builder Catalog</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Builder</th>
+                        <th>Provider</th>
+                        <th>Kind</th>
+                        <th>Description</th>
+                    </tr>
+                    </thead>
+                    <tbody id="builderRows">
+                    <tr><td class="empty" colspan="4">Builder catalog not loaded.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</div>
+
+<script>
+    const TOKEN_KEY = 'dacollector-api-key';
+    const EMPTY_GUID = '00000000-0000-0000-0000-000000000000';
+    const providerNames = { 0: 'Unknown', 1: 'AniDB', 2: 'TMDB', 3: 'IMDb', 4: 'TVDB', 5: 'Trakt', 6: 'Plex', 7: 'Jellyfin', 8: 'Manual' };
+    const kindNames = { 0: 'Unknown', 1: 'Movie', 2: 'Show', 3: 'Season', 4: 'Episode', 5: 'Collection', 6: 'Person', 7: 'Company', 8: 'Network' };
+    const syncModeNames = { 0: 'Preview', 1: 'Append', 2: 'Sync' };
+    const els = {
+        loginForm: document.getElementById('loginForm'),
+        username: document.getElementById('username'),
+        password: document.getElementById('password'),
+        device: document.getElementById('device'),
+        loginButton: document.getElementById('loginButton'),
+        clearTokenButton: document.getElementById('clearTokenButton'),
+        refreshButton: document.getElementById('refreshButton'),
+        newCollectionButton: document.getElementById('newCollectionButton'),
+        status: document.getElementById('status'),
+        sessionState: document.getElementById('sessionState'),
+        metrics: document.getElementById('metrics'),
+        collectionRows: document.getElementById('collectionRows'),
+        collectionForm: document.getElementById('collectionForm'),
+        editorTitle: document.getElementById('editorTitle'),
+        collectionName: document.getElementById('collectionName'),
+        syncMode: document.getElementById('syncMode'),
+        enabled: document.getElementById('enabled'),
+        saveCollectionButton: document.getElementById('saveCollectionButton'),
+        ruleForm: document.getElementById('ruleForm'),
+        builder: document.getElementById('builder'),
+        kind: document.getElementById('kind'),
+        options: document.getElementById('options'),
+        addRuleButton: document.getElementById('addRuleButton'),
+        ruleRows: document.getElementById('ruleRows'),
+        editingHint: document.getElementById('editingHint'),
+        previewButton: document.getElementById('previewButton'),
+        syncDryRunButton: document.getElementById('syncDryRunButton'),
+        syncApplyButton: document.getElementById('syncApplyButton'),
+        previewSummary: document.getElementById('previewSummary'),
+        previewRows: document.getElementById('previewRows'),
+        warnings: document.getElementById('warnings'),
+        builderRows: document.getElementById('builderRows')
+    };
+
+    let builders = [];
+    let collections = [];
+    let currentRules = [];
+    let editingCollectionId = null;
+    let editingRuleIndex = null;
+
+    function getToken() {
+        return localStorage.getItem(TOKEN_KEY) || '';
+    }
+
+    function setToken(token) {
+        localStorage.setItem(TOKEN_KEY, token);
+        updateSession();
+    }
+
+    function clearToken() {
+        localStorage.removeItem(TOKEN_KEY);
+        updateSession();
+    }
+
+    function updateSession() {
+        const signedIn = Boolean(getToken());
+        els.sessionState.textContent = signedIn ? 'API session active.' : 'Not signed in.';
+        els.clearTokenButton.disabled = !signedIn;
+    }
+
+    function setStatus(message, isError = false) {
+        els.status.textContent = message;
+        els.status.classList.toggle('error', isError);
+    }
+
+    function setBusy(isBusy) {
+        for (const button of document.querySelectorAll('button')) button.disabled = isBusy;
+        updateSession();
+    }
+
+    function apiHeaders() {
+        const token = getToken();
+        return token ? { apikey: token } : {};
+    }
+
+    async function apiFetch(path, options = {}) {
+        const response = await fetch(path, {
+            ...options,
+            headers: {
+                ...(options.headers || {}),
+                ...apiHeaders()
+            }
+        });
+        if (response.status === 401) {
+            clearToken();
+            throw new Error('Authentication failed.');
+        }
+        if (response.status === 204) return null;
+        if (!response.ok) {
+            const text = await response.text();
+            throw new Error(text || `Request failed with ${response.status}`);
+        }
+        return response.json();
+    }
+
+    function prop(source, pascalName, camelName) {
+        if (!source) return undefined;
+        if (Object.prototype.hasOwnProperty.call(source, pascalName)) return source[pascalName];
+        return source[camelName];
+    }
+
+    function enumLabel(map, value) {
+        if (typeof value === 'string' && Number.isNaN(Number(value))) return value;
+        return map[Number(value)] || String(value ?? '');
+    }
+
+    function escapeHtml(value) {
+        return String(value ?? '')
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#039;');
+    }
+
+    function normalizeCollection(collection) {
+        return {
+            ID: prop(collection, 'ID', 'id') || EMPTY_GUID,
+            Name: prop(collection, 'Name', 'name') || '',
+            Enabled: Boolean(prop(collection, 'Enabled', 'enabled')),
+            SyncMode: Number(prop(collection, 'SyncMode', 'syncMode') ?? 0),
+            Rules: (prop(collection, 'Rules', 'rules') || []).map(normalizeRule)
+        };
+    }
+
+    function normalizeRule(rule) {
+        return {
+            Builder: prop(rule, 'Builder', 'builder') || '',
+            Kind: Number(prop(rule, 'Kind', 'kind') ?? 0),
+            Options: prop(rule, 'Options', 'options') || {}
+        };
+    }
+
+    function renderMetrics() {
+        const enabledCount = collections.filter(collection => collection.Enabled).length;
+        const ruleCount = collections.reduce((total, collection) => total + collection.Rules.length, 0);
+        const metrics = [
+            ['Collections', collections.length],
+            ['Enabled', enabledCount],
+            ['Rules', ruleCount],
+            ['Builders', builders.length],
+            ['Current Rules', currentRules.length]
+        ];
+        els.metrics.innerHTML = metrics.map(([label, value]) => `
+            <div class="metric">
+                <span>${escapeHtml(label)}</span>
+                <strong>${escapeHtml(value)}</strong>
+            </div>
+        `).join('');
+    }
+
+    function renderBuilders() {
+        if (builders.length === 0) {
+            els.builderRows.innerHTML = '<tr><td class="empty" colspan="4">No builders returned.</td></tr>';
+            els.builder.innerHTML = '<option value="">No builders</option>';
+            return;
+        }
+
+        els.builderRows.innerHTML = builders.map(builder => `
+            <tr>
+                <td><strong>${escapeHtml(prop(builder, 'Name', 'name'))}</strong></td>
+                <td>${escapeHtml(enumLabel(providerNames, prop(builder, 'Provider', 'provider')))}</td>
+                <td>${escapeHtml(enumLabel(kindNames, prop(builder, 'Kind', 'kind')))}</td>
+                <td>${escapeHtml(prop(builder, 'Description', 'description') || '')}</td>
+            </tr>
+        `).join('');
+
+        els.builder.innerHTML = builders.map(builder => {
+            const name = prop(builder, 'Name', 'name');
+            return `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`;
+        }).join('');
+        applyBuilderKindDefault();
+    }
+
+    function renderCollections() {
+        if (collections.length === 0) {
+            els.collectionRows.innerHTML = '<tr><td class="empty" colspan="5">No managed collections saved.</td></tr>';
+            return;
+        }
+
+        els.collectionRows.innerHTML = collections.map(collection => {
+            const id = collection.ID;
+            return `
+                <tr>
+                    <td>
+                        <strong>${escapeHtml(collection.Name)}</strong>
+                        <div class="sub">${escapeHtml(id)}</div>
+                    </td>
+                    <td>${collection.Enabled ? '<span class="pill green">Enabled</span>' : '<span class="pill red">Disabled</span>'}</td>
+                    <td><span class="pill blue">${escapeHtml(enumLabel(syncModeNames, collection.SyncMode))}</span></td>
+                    <td>${escapeHtml(collection.Rules.length)}</td>
+                    <td>
+                        <div class="small-actions">
+                            <button class="secondary edit-collection" type="button" data-id="${escapeHtml(id)}">Edit</button>
+                            <button class="blue preview-collection" type="button" data-id="${escapeHtml(id)}">Preview</button>
+                            <button class="secondary sync-collection" type="button" data-id="${escapeHtml(id)}">Dry Run</button>
+                            <button class="danger delete-collection" type="button" data-id="${escapeHtml(id)}">Delete</button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    function renderRules() {
+        if (currentRules.length === 0) {
+            els.ruleRows.innerHTML = '<tr><td class="empty" colspan="4">No rules.</td></tr>';
+            return;
+        }
+
+        els.ruleRows.innerHTML = currentRules.map((rule, index) => `
+            <tr>
+                <td><strong>${escapeHtml(rule.Builder)}</strong></td>
+                <td>${escapeHtml(enumLabel(kindNames, rule.Kind))}</td>
+                <td><div class="sub">${escapeHtml(formatOptions(rule.Options) || 'No options')}</div></td>
+                <td>
+                    <div class="small-actions">
+                        <button class="secondary edit-rule" type="button" data-index="${index}">Edit</button>
+                        <button class="danger remove-rule" type="button" data-index="${index}">Remove</button>
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function renderWarnings(warnings) {
+        els.warnings.innerHTML = (warnings || [])
+            .map(warning => `<div class="warning">${escapeHtml(warning)}</div>`)
+            .join('');
+    }
+
+    function renderPreview(result) {
+        const items = prop(result, 'Items', 'items') || [];
+        const warnings = prop(result, 'Warnings', 'warnings') || [];
+        els.previewSummary.textContent = `${items.length} item${items.length === 1 ? '' : 's'}, ${warnings.length} warning${warnings.length === 1 ? '' : 's'}.`;
+        renderWarnings(warnings);
+
+        if (items.length === 0) {
+            els.previewRows.innerHTML = '<tr><td class="empty" colspan="4">No preview items.</td></tr>';
+            return;
+        }
+
+        els.previewRows.innerHTML = items.map(item => {
+            const external = prop(item, 'ExternalID', 'externalID') || {};
+            const provider = enumLabel(providerNames, prop(external, 'Provider', 'provider'));
+            const kind = enumLabel(kindNames, prop(external, 'Kind', 'kind'));
+            const value = prop(external, 'Value', 'value') || '';
+            return `
+                <tr>
+                    <td><strong>${escapeHtml(prop(item, 'Title', 'title') || '')}</strong></td>
+                    <td>${escapeHtml(`${provider}:${value}`)}</td>
+                    <td>${escapeHtml(kind)}</td>
+                    <td>${escapeHtml(prop(item, 'Summary', 'summary') || '')}</td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    function renderSyncResult(result) {
+        const warnings = prop(result, 'Warnings', 'warnings') || [];
+        const items = prop(result, 'Items', 'items') || [];
+        const matched = prop(result, 'MatchedItemCount', 'matchedItemCount') || 0;
+        const missing = prop(result, 'MissingItemCount', 'missingItemCount') || 0;
+        const added = prop(result, 'AddedItemCount', 'addedItemCount') || 0;
+        const removed = prop(result, 'RemovedItemCount', 'removedItemCount') || 0;
+        const applied = Boolean(prop(result, 'Applied', 'applied'));
+        renderPreview({ Items: items, Warnings: warnings });
+        els.previewSummary.textContent = `Items ${items.length}, matched ${matched}, missing ${missing}, added ${added}, removed ${removed}, applied ${applied ? 'yes' : 'no'}.`;
+    }
+
+    function resetEditor() {
+        editingCollectionId = null;
+        currentRules = [];
+        editingRuleIndex = null;
+        els.editorTitle.textContent = 'New Collection';
+        els.collectionName.value = '';
+        els.syncMode.value = '0';
+        els.enabled.checked = true;
+        els.editingHint.textContent = 'Unsaved collection.';
+        els.addRuleButton.textContent = 'Add Rule';
+        clearRuleForm();
+        renderRules();
+        renderMetrics();
+    }
+
+    function editCollection(id) {
+        const collection = collections.find(item => item.ID === id);
+        if (!collection) return;
+        editingCollectionId = collection.ID;
+        currentRules = collection.Rules.map(rule => ({ ...rule, Options: { ...rule.Options } }));
+        editingRuleIndex = null;
+        els.editorTitle.textContent = 'Edit Collection';
+        els.collectionName.value = collection.Name;
+        els.syncMode.value = String(collection.SyncMode);
+        els.enabled.checked = collection.Enabled;
+        els.editingHint.textContent = collection.ID;
+        els.addRuleButton.textContent = 'Add Rule';
+        clearRuleForm();
+        renderRules();
+        renderMetrics();
+    }
+
+    function clearRuleForm() {
+        editingRuleIndex = null;
+        els.options.value = '';
+        if (builders.length > 0) {
+            els.builder.value = prop(builders[0], 'Name', 'name');
+        }
+        applyBuilderKindDefault();
+        els.addRuleButton.textContent = 'Add Rule';
+    }
+
+    function editRule(index) {
+        const rule = currentRules[index];
+        if (!rule) return;
+        editingRuleIndex = index;
+        els.builder.value = rule.Builder;
+        els.kind.value = String(rule.Kind);
+        els.options.value = formatOptions(rule.Options);
+        els.addRuleButton.textContent = 'Update Rule';
+    }
+
+    function parseOptions(raw) {
+        const trimmed = raw.trim();
+        if (!trimmed) return {};
+        if (trimmed.startsWith('{')) {
+            const parsed = JSON.parse(trimmed);
+            return Object.fromEntries(Object.entries(parsed).map(([key, value]) => [key, String(value ?? '')]));
+        }
+
+        const options = {};
+        for (const line of raw.split(/\r?\n/)) {
+            const item = line.trim();
+            if (!item || item.startsWith('#')) continue;
+            const splitAt = item.indexOf('=');
+            if (splitAt < 0) {
+                options.values = options.values ? `${options.values},${item}` : item;
+                continue;
+            }
+            const key = item.slice(0, splitAt).trim();
+            const value = item.slice(splitAt + 1).trim();
+            if (key) options[key] = value;
+        }
+        return options;
+    }
+
+    function formatOptions(options) {
+        return Object.entries(options || {})
+            .map(([key, value]) => `${key}=${value}`)
+            .join('\n');
+    }
+
+    function applyBuilderKindDefault() {
+        const builder = builders.find(item => prop(item, 'Name', 'name') === els.builder.value);
+        const kind = Number(prop(builder, 'Kind', 'kind') ?? 0);
+        if (kind > 0) els.kind.value = String(kind);
+    }
+
+    function buildPayload() {
+        return {
+            ID: editingCollectionId || EMPTY_GUID,
+            Name: els.collectionName.value.trim(),
+            Enabled: els.enabled.checked,
+            SyncMode: Number(els.syncMode.value || 0),
+            Rules: currentRules.map(rule => ({
+                Builder: rule.Builder,
+                Kind: Number(rule.Kind || 0),
+                Options: rule.Options || {}
+            }))
+        };
+    }
+
+    async function refresh() {
+        if (!getToken()) {
+            updateSession();
+            setStatus('Sign in first.', true);
+            return;
+        }
+
+        setBusy(true);
+        setStatus('Loading collections...');
+        try {
+            const [builderResponse, collectionResponse] = await Promise.all([
+                apiFetch('/api/v3/CollectionBuilder'),
+                apiFetch('/api/v3/ManagedCollection')
+            ]);
+            builders = builderResponse || [];
+            collections = (collectionResponse || []).map(normalizeCollection);
+            renderBuilders();
+            renderCollections();
+            renderMetrics();
+            setStatus(`Loaded ${collections.length} collection${collections.length === 1 ? '' : 's'}.`);
+        } catch (error) {
+            setStatus(error.message || String(error), true);
+        } finally {
+            setBusy(false);
+        }
+    }
+
+    async function saveCollection() {
+        const payload = buildPayload();
+        if (!payload.Name) throw new Error('Collection name cannot be empty.');
+        if (payload.Rules.length === 0) throw new Error('Add at least one rule.');
+
+        const isUpdate = Boolean(editingCollectionId);
+        const path = isUpdate
+            ? `/api/v3/ManagedCollection/${encodeURIComponent(editingCollectionId)}`
+            : '/api/v3/ManagedCollection';
+        const saved = await apiFetch(path, {
+            method: isUpdate ? 'PUT' : 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const normalized = normalizeCollection(saved);
+        editingCollectionId = normalized.ID;
+        await refresh();
+        editCollection(normalized.ID);
+        setStatus(`Saved ${normalized.Name}.`);
+    }
+
+    async function previewCurrent() {
+        const payload = buildPayload();
+        if (!payload.Name) payload.Name = 'Preview';
+        if (payload.Rules.length === 0) throw new Error('Add at least one rule.');
+        const result = await apiFetch('/api/v3/ManagedCollection/Preview', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        renderPreview(result);
+        setStatus('Preview loaded.');
+    }
+
+    async function previewSaved(id) {
+        const result = await apiFetch(`/api/v3/ManagedCollection/${encodeURIComponent(id)}/Preview`, {
+            method: 'POST'
+        });
+        renderPreview(result);
+        setStatus('Saved collection preview loaded.');
+    }
+
+    async function syncSaved(id, apply) {
+        if (apply && !window.confirm('Apply collection changes to the configured Plex target?')) return;
+        const result = await apiFetch(`/api/v3/ManagedCollection/${encodeURIComponent(id)}/Sync?apply=${apply ? 'true' : 'false'}`, {
+            method: 'POST'
+        });
+        renderSyncResult(result);
+        setStatus(apply ? 'Collection sync applied.' : 'Collection sync dry run loaded.');
+    }
+
+    async function deleteCollection(id) {
+        const collection = collections.find(item => item.ID === id);
+        if (!window.confirm(`Delete ${collection?.Name || id}?`)) return;
+        await apiFetch(`/api/v3/ManagedCollection/${encodeURIComponent(id)}`, {
+            method: 'DELETE'
+        });
+        if (editingCollectionId === id) resetEditor();
+        await refresh();
+        setStatus('Collection deleted.');
+    }
+
+    els.loginForm.addEventListener('submit', async event => {
+        event.preventDefault();
+        setBusy(true);
+        setStatus('Signing in...');
+        try {
+            const response = await fetch('/api/auth', {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({
+                    user: els.username.value.trim(),
+                    pass: els.password.value,
+                    device: els.device.value.trim() || 'collection-manager'
+                })
+            });
+            if (!response.ok) throw new Error('Unable to sign in.');
+            const body = await response.json();
+            if (!body.apikey) throw new Error('Sign in did not return an API key.');
+            setToken(body.apikey);
+            els.password.value = '';
+            await refresh();
+        } catch (error) {
+            setStatus(error.message || String(error), true);
+        } finally {
+            setBusy(false);
+        }
+    });
+
+    els.collectionForm.addEventListener('submit', async event => {
+        event.preventDefault();
+        setBusy(true);
+        setStatus('Saving collection...');
+        try {
+            await saveCollection();
+        } catch (error) {
+            setStatus(error.message || String(error), true);
+        } finally {
+            setBusy(false);
+        }
+    });
+
+    els.ruleForm.addEventListener('submit', event => {
+        event.preventDefault();
+        try {
+            const rule = {
+                Builder: els.builder.value,
+                Kind: Number(els.kind.value || 0),
+                Options: parseOptions(els.options.value)
+            };
+            if (!rule.Builder) throw new Error('Select a builder.');
+            if (editingRuleIndex === null) {
+                currentRules.push(rule);
+            } else {
+                currentRules[editingRuleIndex] = rule;
+            }
+            clearRuleForm();
+            renderRules();
+            renderMetrics();
+            setStatus('Rule updated.');
+        } catch (error) {
+            setStatus(error.message || String(error), true);
+        }
+    });
+
+    els.collectionRows.addEventListener('click', event => {
+        const button = event.target.closest('button');
+        if (!button) return;
+        const id = button.dataset.id;
+        if (button.classList.contains('edit-collection')) editCollection(id);
+        if (button.classList.contains('preview-collection')) {
+            setBusy(true);
+            previewSaved(id).catch(error => setStatus(error.message || String(error), true)).finally(() => setBusy(false));
+        }
+        if (button.classList.contains('sync-collection')) {
+            setBusy(true);
+            syncSaved(id, false).catch(error => setStatus(error.message || String(error), true)).finally(() => setBusy(false));
+        }
+        if (button.classList.contains('delete-collection')) {
+            setBusy(true);
+            deleteCollection(id).catch(error => setStatus(error.message || String(error), true)).finally(() => setBusy(false));
+        }
+    });
+
+    els.ruleRows.addEventListener('click', event => {
+        const button = event.target.closest('button');
+        if (!button) return;
+        const index = Number(button.dataset.index);
+        if (button.classList.contains('edit-rule')) editRule(index);
+        if (button.classList.contains('remove-rule')) {
+            currentRules.splice(index, 1);
+            clearRuleForm();
+            renderRules();
+            renderMetrics();
+            setStatus('Rule removed.');
+        }
+    });
+
+    els.builder.addEventListener('change', applyBuilderKindDefault);
+    els.refreshButton.addEventListener('click', refresh);
+    els.newCollectionButton.addEventListener('click', resetEditor);
+    els.previewButton.addEventListener('click', () => {
+        setBusy(true);
+        previewCurrent().catch(error => setStatus(error.message || String(error), true)).finally(() => setBusy(false));
+    });
+    els.syncDryRunButton.addEventListener('click', () => {
+        if (!editingCollectionId) {
+            setStatus('Save the collection before sync.', true);
+            return;
+        }
+        setBusy(true);
+        syncSaved(editingCollectionId, false).catch(error => setStatus(error.message || String(error), true)).finally(() => setBusy(false));
+    });
+    els.syncApplyButton.addEventListener('click', () => {
+        if (!editingCollectionId) {
+            setStatus('Save the collection before apply.', true);
+            return;
+        }
+        setBusy(true);
+        syncSaved(editingCollectionId, true).catch(error => setStatus(error.message || String(error), true)).finally(() => setBusy(false));
+    });
+    els.clearTokenButton.addEventListener('click', () => {
+        clearToken();
+        collections = [];
+        builders = [];
+        resetEditor();
+        renderBuilders();
+        renderCollections();
+        setStatus('Signed out.');
+        els.previewRows.innerHTML = '<tr><td class="empty" colspan="4">Preview a collection.</td></tr>';
+        els.previewSummary.textContent = 'No preview loaded.';
+        renderWarnings([]);
+    });
+
+    updateSession();
+    resetEditor();
+    renderMetrics();
+    if (getToken()) refresh();
+</script>
+</body>
+</html>

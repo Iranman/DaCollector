@@ -6,6 +6,16 @@ DaCollector managed collections are saved collection definitions that can be pre
 
 Use `GET /api/v3/CollectionBuilder` to list the builders available in the running server.
 
+## Web UI
+
+Open the managed collections page:
+
+```text
+http://127.0.0.1:8111/webui/dacollector-collections.html
+```
+
+Use it to create collection definitions, edit builder rules, preview output, run sync dry runs, and apply saved collections to the configured Plex target.
+
 Current builder names include:
 
 | Provider | Builders |
