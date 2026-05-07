@@ -28,26 +28,19 @@ Context:
 
 ---
 
-## P1 — Clean Up AniDB Settings Exposure
+## ✅ P1 — Update CLAUDE.md Architecture Documentation — DONE
 
-File: `DaCollector.Server/Settings/AniDbSettings.cs` and `ServerSettings.cs`
-
-- Rename `AniDbSettings` class → `SourceSettings` (or `MetadataSourceSettings`)
-- Update the settings JSON key if it is serialized (check `[JsonProperty]` or `[StorageLocation]` attributes)
-- Rename the property in `ServerSettings` that holds `AniDbSettings`
-- Update all references in services, controllers, and the web UI that expose AniDB connection settings to end users
+Cache index example, TVDB property names, and StoredReleaseInfo description updated.
+All domain model references already use Media* names throughout.
 
 ---
 
-## P1 — Update CLAUDE.md Architecture Documentation
+## ⏸ P1 — Clean Up AniDB Settings Exposure — DEFERRED
 
-File: `CLAUDE.md`
-
-- Update the "Domain Model Relationships" section: replace `AnimeSeries`, `AnimeGroup`, `AnimeEpisode` with `MediaSeries`, `MediaGroup`, `MediaEpisode` throughout
-- Update the "Import Pipeline" job chain diagram references
-- Keep references to `AniDB_Anime`, `AniDB_Episode` etc. — those are the external metadata cache models, not the domain
-- Note TVDB as a new metadata provider alongside TMDB
-- Update the API section to reflect `MetadataController` at `/api/v3/Metadata/`
+`AniDbSettings` follows the same naming convention as `TMDBSettings`, `TVDBSettings`, `TraktSettings`, `IMDbSettings`.
+Renaming to `SourceSettings` would be inconsistent and break existing `settings-server.json` configs.
+The class name is internal (not user-facing). The JSON key `"AniDb"` in the settings file would need a migration.
+**Decision: do not rename** — it accurately identifies the AniDB provider settings.
 
 ---
 
