@@ -29,6 +29,11 @@ public sealed record PlexCollectionApplyResult
     public bool Applied { get; init; }
 
     /// <summary>
+    /// Whether this was a dry run that computed the diff without writing changes.
+    /// </summary>
+    public bool DryRun { get; init; }
+
+    /// <summary>
     /// Match result used by the apply run.
     /// </summary>
     public PlexCollectionMatch Match { get; init; } = new();

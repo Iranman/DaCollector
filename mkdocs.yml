@@ -15,6 +15,7 @@ nav:
       - Verify Install: getting-started/verify-install.md
       - Configuration: getting-started/configuration.md
       - Updating: getting-started/updating.md
+      - Troubleshooting: getting-started/troubleshooting.md
   - Features:
       - Collection Management: features/collection-management.md
       - Duplicate Management: features/duplicate-management.md

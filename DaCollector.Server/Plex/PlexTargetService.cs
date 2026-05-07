@@ -155,12 +155,18 @@ public class PlexTargetService(ISettingsProvider settingsProvider, IHttpClientFa
             missing.Add(target);
         }
 
+        var noIDCount = libraryItems.Count(item => item.ExternalIDs.Count == 0);
+        var matchWarnings = noIDCount > 0
+            ? (IReadOnlyList<string>)[$"{noIDCount} library item(s) have no provider IDs and cannot be matched to collection targets."]
+            : [];
+
         return new()
         {
             SectionKey = sectionKey,
             Matched = matched,
             Missing = missing,
             TargetItemCount = targetItems.Count,
+            Warnings = matchWarnings,
         };
     }
 
@@ -169,6 +175,7 @@ public class PlexTargetService(ISettingsProvider settingsProvider, IHttpClientFa
         string collectionName,
         IReadOnlyList<CollectionBuilderPreviewItem> targetItems,
         CollectionSyncMode syncMode,
+        bool dryRun = false,
         string? baseUrl = null,
         string? token = null,
         CancellationToken cancellationToken = default
@@ -216,15 +223,19 @@ public class PlexTargetService(ISettingsProvider settingsProvider, IHttpClientFa
             ? existingItems.Where(item => !matchedKeys.Contains(item.RatingKey)).ToList()
             : [];
 
-        await UpdateCollectionMembership(sectionKey, normalizedName, itemsToAdd, add: true, targetUrl, targetToken, cancellationToken).ConfigureAwait(false);
-        await UpdateCollectionMembership(sectionKey, normalizedName, itemsToRemove, add: false, targetUrl, targetToken, cancellationToken).ConfigureAwait(false);
+        if (!dryRun)
+        {
+            await UpdateCollectionMembership(sectionKey, normalizedName, itemsToAdd, add: true, targetUrl, targetToken, cancellationToken).ConfigureAwait(false);
+            await UpdateCollectionMembership(sectionKey, normalizedName, itemsToRemove, add: false, targetUrl, targetToken, cancellationToken).ConfigureAwait(false);
+        }
 
         return new()
         {
             SectionKey = sectionKey,
             CollectionName = normalizedName,
             SyncMode = syncMode,
-            Applied = itemsToAdd.Count > 0 || itemsToRemove.Count > 0,
+            Applied = !dryRun && (itemsToAdd.Count > 0 || itemsToRemove.Count > 0),
+            DryRun = dryRun,
             Match = match,
             ExistingItemCount = existingItems.Count,
             AddedItemCount = itemsToAdd.Count,

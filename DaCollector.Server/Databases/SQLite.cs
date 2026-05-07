@@ -886,6 +886,10 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         new(145, 18, "ALTER TABLE MediaSeries RENAME COLUMN AnimeGroupID TO MediaGroupID;"),
         new(145, 19, "ALTER TABLE MediaSeries_User RENAME COLUMN AnimeSeries_UserID TO MediaSeries_UserID;"),
         new(145, 20, "ALTER TABLE MediaSeries_User RENAME COLUMN AnimeSeriesID TO MediaSeriesID;"),
+        new(146,  1, "CREATE TABLE ProviderMatchCandidate ( ProviderMatchCandidateID INTEGER PRIMARY KEY AUTOINCREMENT, MediaSeriesID INTEGER NOT NULL, Provider TEXT NOT NULL, ProviderItemID INTEGER NOT NULL, ProviderType TEXT NOT NULL, Title TEXT NOT NULL, Year INTEGER NULL, ConfidenceScore REAL NOT NULL, ReasonsJson TEXT NOT NULL, Status TEXT NOT NULL, ReviewedAt DATETIME NULL, CreatedAt DATETIME NOT NULL, UpdatedAt DATETIME NOT NULL );"),
+        new(146,  2, "CREATE INDEX IX_ProviderMatchCandidate_MediaSeriesID ON ProviderMatchCandidate(MediaSeriesID);"),
+        new(146,  3, "CREATE INDEX IX_ProviderMatchCandidate_Status ON ProviderMatchCandidate(Status);"),
+        new(147,  1, "CREATE UNIQUE INDEX UIX_ProviderMatchCandidate ON ProviderMatchCandidate(MediaSeriesID, Provider, ProviderItemID, ProviderType);"),
     ];
 
     #endregion

@@ -37,7 +37,7 @@ if [ $(getent passwd $USER) ]; then
     fi
     [ $(id -g $USER) -ne $PGID ] && usermod -g "$PGID" $USER
 else
-    echo "Adding user $USER and changing ownership of /home/dacollector and all its sub-directories..."
+    echo "Creating user $USER (uid=$PUID, gid=$PGID)..."
     useradd  -N -o -u "$PUID" -g "$PGID" -d /home/dacollector $USER
 
     mkdir -p /home/dacollector/
@@ -59,10 +59,28 @@ if [ ! -d "$DACOLLECTOR_HOME" ]; then
 fi
 
 # Set ownership of application data to dacollector user.
+# Set SKIP_CHOWN=true to bypass ownership repair (useful on TrueNAS/ZFS with ACL-managed datasets).
+SKIP_CHOWN=${SKIP_CHOWN:-false}
 OWNER=$(stat -c '%u:%g' "$DACOLLECTOR_HOME" 2>/dev/null)
-if [ "$OWNER" != "$PUID:$PGID" ]; then
-    echo "Changing ownership of /home/dacollector and all its sub-directories..."
-    chown -R $PUID:$PGID /home/dacollector/
+if [ "$SKIP_CHOWN" = "true" ]; then
+    echo "Ownership repair skipped (SKIP_CHOWN=true). Owner of $DACOLLECTOR_HOME: ${OWNER:-unknown}"
+elif [ "$OWNER" != "$PUID:$PGID" ]; then
+    echo "Ownership mismatch on $DACOLLECTOR_HOME"
+    echo "  Current owner : ${OWNER:-unknown}"
+    echo "  Expected owner: $PUID:$PGID"
+    echo "Starting ownership repair. This may be slow on large datasets or ZFS/TrueNAS volumes."
+    echo "Set SKIP_CHOWN=true to skip this step if you manage permissions externally."
+
+    # Fix parent directories without recursion (fast)
+    [ -d /home/dacollector ] && chown $PUID:$PGID /home/dacollector
+    PARENT_DIR=$(dirname "$DACOLLECTOR_HOME")
+    [ -d "$PARENT_DIR" ] && chown $PUID:$PGID "$PARENT_DIR"
+
+    # Recursively fix only the DaCollector data directory (not unrelated paths under /home/dacollector)
+    chown -R $PUID:$PGID "$DACOLLECTOR_HOME"
+    echo "Ownership of $DACOLLECTOR_HOME repaired to $PUID:$PGID."
+else
+    echo "Ownership of $DACOLLECTOR_HOME is correct ($OWNER)."
 fi
 
 # Set ownership of DaCollector files to dacollector user
@@ -91,6 +109,7 @@ User ID:   $(id -u $USER)
 Group ID:  $(id -g $USER)
 UMASK set: $(umask)
 Directory: \"$DACOLLECTOR_HOME\"
+Owner:     $(stat -c '%u:%g' "$DACOLLECTOR_HOME" 2>/dev/null || echo 'unknown')
 -------------------------------------
 "
 

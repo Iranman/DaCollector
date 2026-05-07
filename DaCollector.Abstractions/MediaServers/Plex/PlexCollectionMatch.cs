@@ -27,4 +27,9 @@ public sealed record PlexCollectionMatch
     /// Total number of target items considered.
     /// </summary>
     public int TargetItemCount { get; init; }
+
+    /// <summary>
+    /// Non-fatal issues encountered while matching items.
+    /// </summary>
+    public IReadOnlyList<string> Warnings { get; init; } = [];
 }

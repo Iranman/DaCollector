@@ -1068,6 +1068,10 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(163, 18, "ALTER TABLE `MediaSeries` RENAME COLUMN `AnimeGroupID` TO `MediaGroupID`;"),
         new(163, 19, "ALTER TABLE `MediaSeries_User` RENAME COLUMN `AnimeSeries_UserID` TO `MediaSeries_UserID`;"),
         new(163, 20, "ALTER TABLE `MediaSeries_User` RENAME COLUMN `AnimeSeriesID` TO `MediaSeriesID`;"),
+        new(164,  1, "CREATE TABLE `ProviderMatchCandidate` ( `ProviderMatchCandidateID` INT NOT NULL AUTO_INCREMENT, `MediaSeriesID` INT NOT NULL, `Provider` VARCHAR(32) NOT NULL, `ProviderItemID` INT NOT NULL, `ProviderType` VARCHAR(16) NOT NULL, `Title` TEXT NOT NULL, `Year` INT NULL, `ConfidenceScore` DOUBLE NOT NULL, `ReasonsJson` TEXT NOT NULL, `Status` VARCHAR(16) NOT NULL, `ReviewedAt` DATETIME NULL, `CreatedAt` DATETIME NOT NULL, `UpdatedAt` DATETIME NOT NULL, PRIMARY KEY (`ProviderMatchCandidateID`) );"),
+        new(164,  2, "CREATE INDEX IX_ProviderMatchCandidate_MediaSeriesID ON ProviderMatchCandidate(MediaSeriesID);"),
+        new(164,  3, "CREATE INDEX IX_ProviderMatchCandidate_Status ON ProviderMatchCandidate(Status);"),
+        new(165,  1, "CREATE UNIQUE INDEX UIX_ProviderMatchCandidate ON ProviderMatchCandidate(MediaSeriesID, Provider, ProviderItemID, ProviderType);"),
     ];
 
     #endregion

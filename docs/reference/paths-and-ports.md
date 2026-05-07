@@ -29,6 +29,18 @@
 | `PLEX_TARGET_SECTION_KEY` | Set the Plex library section key. |
 | `PLEX_TARGET_TOKEN` | Set the Plex token. |
 
+## Docker-Only Variables
+
+These variables are read by the container entrypoint (`dockerentry.sh`) and are not used by the DaCollector server process itself.
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `PUID` | `1000` | UID the `dacollector` OS user is created with. Files in `DACOLLECTOR_HOME` are owned by this UID. |
+| `PGID` | `1000` | GID the `dacollector` OS group is created with. |
+| `UMASK` | `002` | umask applied before the server process starts. |
+| `TZ` | `Etc/UTC` | Container timezone (sets `/etc/localtime`). |
+| `SKIP_CHOWN` | `false` | Set to `true` to skip the recursive `chown` on `DACOLLECTOR_HOME`. Useful on TrueNAS/ZFS where ownership is managed via ACLs. See [TrueNAS and ZFS](../getting-started/installation/docker.md#truenas-and-zfs). |
+
 ## Portable Instance Example
 
 ```powershell

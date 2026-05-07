@@ -48,6 +48,7 @@ using DaCollector.Server.Plex;
 using DaCollector.Server.Plugin;
 using DaCollector.Server.Providers.AniDB;
 using DaCollector.Server.Providers.AniDB.Interfaces;
+using DaCollector.Server.Providers;
 using DaCollector.Server.Providers.TMDB;
 using DaCollector.Server.Providers.TVDB;
 using DaCollector.Server.Providers.TraktTV;
@@ -396,6 +397,7 @@ public class SystemService : ISystemService
             services.AddSingleton<ManagedCollectionSyncService>();
             services.AddSingleton<ExactDuplicateService>();
             services.AddSingleton<MediaDuplicateReviewService>();
+            services.AddSingleton<ProviderMatchQueueService>();
             services.AddSingleton<MediaCatalogService>();
             services.AddSingleton<PlexTargetService>();
             services.AddSingleton<DaCollectorStatusService>();

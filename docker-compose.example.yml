@@ -12,11 +12,15 @@ services:
 
     environment:
       # Replace PUID and PGID with the user and group that should own DaCollector files.
+      # On TrueNAS, set these to the UID and GID of the ZFS dataset owner.
       PUID: "1000"
       PGID: "1000"
       UMASK: "002"
       TZ: Etc/UTC
       DACOLLECTOR_HOME: /home/dacollector/.dacollector/DaCollector
+      # Set SKIP_CHOWN=true on TrueNAS/ZFS or ACL-managed datasets to skip recursive chown on startup.
+      # Without this, a first-boot ownership repair can appear to stall on ZFS pools with many files.
+      SKIP_CHOWN: "false"
 
       # Plex target. Use host.docker.internal when Plex runs on the Docker host.
       PLEX_TARGET_BASE_URL: http://host.docker.internal:32400

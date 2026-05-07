@@ -2,7 +2,7 @@
 
 Context:
 - Branch: `daccollector-main`
-- Latest commits: `f9bc8af Update CLAUDE_TASKS.md: bump latest commit ref to 60b429d`
+- Latest commits: `becf507 Fix local Docker build startup version fallback`
 - Follow `CLAUDE.md`: append database migrations; **never rewrite historical migration strings**.
 - Keep legacy API contract class names like `CL_AnimeSeries_User` unless intentionally versioning the public API.
 - `.NET SDK 10.0.203` may not be in PATH in the sandbox — use `& "C:\Program Files\dotnet\dotnet.exe"` if needed.
@@ -148,7 +148,7 @@ Acceptance criteria:
 - Safe-delete candidates are visually distinct but still review-only.
 - The page works with API keys stored in the same browser storage flow used today.
 
-### P3.4 — Improve Plex Collection Sync Feedback
+### ✅ P3.4 — Improve Plex Collection Sync Feedback — DONE
 
 Files:
 - `DaCollector.Server/Collections/ManagedCollectionSyncService.cs`
@@ -174,7 +174,7 @@ Acceptance criteria:
 - Sync mode removes only members that are absent from the evaluated target set.
 - Tests cover preview, append, sync, missing IDs, and failed Plex responses.
 
-### P3.5 — Build a Provider Match Queue for Movie/TV Imports
+### ✅ P3.5 — Build a Provider Match Queue for Movie/TV Imports — DONE
 
 Files:
 - `DaCollector.Server/Models/DaCollector/MediaSeries.cs`
@@ -201,7 +201,7 @@ Acceptance criteria:
 - Rejected candidates do not reappear unless provider data changes or the user refreshes manually.
 - Candidate reasons are visible through API responses.
 
-### P3.6 — Harden TVDB and IMDb Provider Behavior
+### ✅ P3.6 — Harden TVDB and IMDb Provider Behavior — DONE
 
 Files:
 - `DaCollector.Server/Collections/TvdbCollectionBuilderClient.cs`
@@ -247,7 +247,7 @@ Acceptance criteria:
 - Release docs match actual artifact names.
 - The installer, standalone ZIP, and Docker image all use the same default port.
 
-### P3.8 — Documentation Quality Pass
+### ✅ P3.8 — Documentation Quality Pass — DONE
 
 Files:
 - `docs/index.md`
@@ -274,7 +274,7 @@ Acceptance criteria:
 - Every feature page links to the related API page or endpoint table.
 - Docker docs keep direct environment values in `docker-compose.yml`, not a recommended `.env` file.
 
-### P3.9 — Fix Docker First-Boot Ownership Stall on TrueNAS
+### ✅ P3.9 — Fix Docker First-Boot Ownership Stall on TrueNAS — DONE
 
 Context:
 - A TrueNAS install can appear stuck after:
@@ -341,6 +341,51 @@ Acceptance criteria:
 - A local Docker build no longer crashes at `PluginManager.cs:line 50`.
 - `docker compose up -d --build` reaches server startup after the entrypoint finishes.
 - `/api/v3/Init/Status` becomes reachable on port `38111`, unless a later startup error appears.
+
+### ✅ P3.11 — Claude Review: Double-Check Docker Startup Fix — DONE
+
+Goal: independently review and verify the fix in commit `becf507` before treating Docker install as stable.
+
+Context:
+- TrueNAS log before the fix:
+  - Entry point completed ownership setup.
+  - DaCollector crashed with `System.NullReferenceException`.
+  - Stack trace pointed at `DaCollector.Server.Plugin.PluginManager..ctor(...)` in `PluginManager.cs:line 50`.
+- The suspected root cause was local Docker build metadata:
+  - `compose.yaml` defaulted `DACOLLECTOR_BUILD_VERSION` to `0.0.0-local`.
+  - That produced assembly version `0.0.0.0`.
+  - `PluginManager.GetVersionInformation()` returned null for the core server assembly.
+- Codex changed:
+  - `DaCollector.Server/Plugin/PluginManager.cs`
+  - `compose.yaml`
+  - `Dockerfile`
+  - `Dockerfile.aarch64`
+  - `CLAUDE_TASKS.md`
+
+Review tasks:
+- Confirm the fallback in `PluginManager.ReadVersionInformationFromAssembly` is safe only for the core server assembly and does not accidentally load invalid plugin DLLs.
+- Confirm `typeof(IPlugin).Assembly.GetName().Version` is the correct fallback source for `AbstractionVersion`.
+- Confirm `0.0.1-local` is accepted by MSBuild `/p:Version` and produces a non-zero assembly version.
+- Confirm Dockerfile build args remain compatible with CI workflows that pass explicit version/channel/commit/tag/date values.
+- Confirm `Dockerfile.aarch64` changing `EXPOSE` and healthcheck from `8111` to `38111` matches the project-wide port decision.
+- Run the verification commands if SDK is available.
+- Rebuild locally on Docker and verify the TrueNAS crash no longer happens.
+
+Suggested Docker verification:
+```bash
+docker compose down
+docker compose build --no-cache dacollector
+docker compose up -d
+docker logs dacollector -f
+curl -i http://127.0.0.1:38111/api/v3/Init/Status
+curl -i http://127.0.0.1:38111/webui
+```
+
+Acceptance criteria:
+- Claude either confirms the fix or proposes a narrower safer patch.
+- No startup crash remains at `PluginManager.cs:line 50`.
+- Server reaches Kestrel startup or reports a new, different startup issue.
+- Any new issue is added as the next task with logs and file pointers.
 
 ---
 

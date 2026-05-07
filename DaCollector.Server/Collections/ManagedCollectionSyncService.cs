@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using DaCollector.Abstractions.Collections;
+using DaCollector.Abstractions.MediaServers.Plex;
 using DaCollector.Server.Plex;
 using DaCollector.Server.Settings;
 
@@ -86,18 +87,20 @@ public class ManagedCollectionSyncService(
         var missingItemCount = 0;
         var addedItemCount = 0;
         var removedItemCount = 0;
+        PlexCollectionApplyResult? plexDiff = null;
 
-        if (apply && definition.SyncMode is not CollectionSyncMode.Preview)
+        if (definition.SyncMode is not CollectionSyncMode.Preview)
         {
             var sectionKey = settingsProvider.GetSettings().Plex.TargetSectionKey;
             if (string.IsNullOrWhiteSpace(sectionKey))
             {
-                warnings.Add("Plex target library section key is not configured. This collection was evaluated without applying membership changes.");
+                if (apply)
+                    warnings.Add("Plex target library section key is not configured. This collection was evaluated without applying membership changes.");
             }
             else
             {
                 var applyResult = await plexTargetService
-                    .ApplyCollection(sectionKey, preview.Collection.Name, preview.Items, definition.SyncMode, cancellationToken: cancellationToken)
+                    .ApplyCollection(sectionKey, preview.Collection.Name, preview.Items, definition.SyncMode, dryRun: !apply, cancellationToken: cancellationToken)
                     .ConfigureAwait(false);
                 effectiveMode = definition.SyncMode;
                 target = $"plex:{sectionKey}";
@@ -106,6 +109,8 @@ public class ManagedCollectionSyncService(
                 missingItemCount = applyResult.Match.Missing.Count;
                 addedItemCount = applyResult.AddedItemCount;
                 removedItemCount = applyResult.RemovedItemCount;
+                plexDiff = applyResult;
+                warnings.AddRange(applyResult.Match.Warnings);
                 warnings.AddRange(applyResult.Warnings);
             }
         }
@@ -122,6 +127,7 @@ public class ManagedCollectionSyncService(
             MissingItemCount = missingItemCount,
             AddedItemCount = addedItemCount,
             RemovedItemCount = removedItemCount,
+            PlexDiff = plexDiff,
             Warnings = warnings,
         };
     }

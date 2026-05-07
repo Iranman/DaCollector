@@ -94,6 +94,7 @@ public class RepoFactory
     public static TVDB_MovieRepository TVDB_Movie;
     public static TVDB_SeasonRepository TVDB_Season;
     public static TVDB_EpisodeRepository TVDB_Episode;
+    public static ProviderMatchCandidateRepository ProviderMatchCandidate;
     public static VersionsRepository Versions;
     public static VideoLocalRepository VideoLocal;
     public static VideoLocal_HashDigestRepository VideoLocalHashDigest;
@@ -174,6 +175,7 @@ public class RepoFactory
         TVDB_MovieRepository tvdbMovie,
         TVDB_SeasonRepository tvdbSeason,
         TVDB_EpisodeRepository tvdbEpisode,
+        ProviderMatchCandidateRepository providerMatchCandidate,
         VersionsRepository versions,
         VideoLocal_HashDigestRepository videoLocalHashDigest,
         VideoLocal_PlaceRepository videoLocalPlace,
@@ -254,6 +256,7 @@ public class RepoFactory
         TVDB_Movie = tvdbMovie;
         TVDB_Season = tvdbSeason;
         TVDB_Episode = tvdbEpisode;
+        ProviderMatchCandidate = providerMatchCandidate;
         Versions = versions;
         VideoLocal = videoLocal;
         VideoLocalHashDigest = videoLocalHashDigest;

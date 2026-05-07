@@ -102,3 +102,4 @@ Only remove the volume when you intentionally want to reset the test instance.
 | `/webui` returns 404 | Confirm the published output includes the `webui` folder. |
 | Docker starts but Windows cannot connect | Confirm the Compose file maps `"38111:38111"` and Docker Desktop is running. |
 | Clean SQLite startup fails | Save the logs before deleting the temporary data directory or Docker volume. |
+| Docker appears stuck after `Starting ownership repair...` | The container is running `chown -R` on the data directory. On TrueNAS/ZFS with many files this takes minutes. Set `SKIP_CHOWN=true` in `docker-compose.yml` to bypass it if you manage permissions externally. See [TrueNAS and ZFS](installation/docker.md#truenas-and-zfs). |

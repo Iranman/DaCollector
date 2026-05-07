@@ -50,6 +50,16 @@ Most endpoints require authentication. Admin-only endpoints require an admin use
 | `POST` | `/api/v3/PlexTarget/Library/{sectionKey}/Match` | Match a collection definition. |
 | `POST` | `/api/v3/PlexTarget/Library/{sectionKey}/Apply` | Apply a collection definition. |
 
+## Provider Match Queue
+
+| Method | Endpoint | Purpose |
+| --- | --- | --- |
+| `GET` | `/api/v3/ProviderMatch/Candidates` | List all pending provider match candidates. |
+| `GET` | `/api/v3/ProviderMatch/Candidates/Series/{mediaSeriesID}` | List candidates for one series. |
+| `POST` | `/api/v3/ProviderMatch/Series/{mediaSeriesID}/Scan` | Queue a provider match scan for one series. |
+| `POST` | `/api/v3/ProviderMatch/Candidates/{candidateID}/Approve` | Approve a candidate match. |
+| `DELETE` | `/api/v3/ProviderMatch/Candidates/{candidateID}` | Dismiss a candidate match. |
+
 ## Duplicates
 
 | Method | Endpoint | Purpose |

@@ -969,6 +969,10 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(158, 18, "EXEC sp_rename 'MediaSeries.AnimeGroupID', 'MediaGroupID', 'COLUMN';"),
         new(158, 19, "EXEC sp_rename 'MediaSeries_User.AnimeSeries_UserID', 'MediaSeries_UserID', 'COLUMN';"),
         new(158, 20, "EXEC sp_rename 'MediaSeries_User.AnimeSeriesID', 'MediaSeriesID', 'COLUMN';"),
+        new(159,  1, "CREATE TABLE ProviderMatchCandidate ( ProviderMatchCandidateID INT IDENTITY(1,1) PRIMARY KEY, MediaSeriesID INT NOT NULL, Provider NVARCHAR(32) NOT NULL, ProviderItemID INT NOT NULL, ProviderType NVARCHAR(16) NOT NULL, Title NVARCHAR(MAX) NOT NULL, Year INT NULL, ConfidenceScore FLOAT NOT NULL, ReasonsJson NVARCHAR(MAX) NOT NULL, Status NVARCHAR(16) NOT NULL, ReviewedAt DATETIME NULL, CreatedAt DATETIME NOT NULL, UpdatedAt DATETIME NOT NULL );"),
+        new(159,  2, "CREATE INDEX IX_ProviderMatchCandidate_MediaSeriesID ON ProviderMatchCandidate(MediaSeriesID);"),
+        new(159,  3, "CREATE INDEX IX_ProviderMatchCandidate_Status ON ProviderMatchCandidate(Status);"),
+        new(160,  1, "CREATE UNIQUE INDEX UIX_ProviderMatchCandidate ON ProviderMatchCandidate(MediaSeriesID, Provider, ProviderItemID, ProviderType);"),
     ];
 
     #endregion

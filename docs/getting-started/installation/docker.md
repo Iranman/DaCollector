@@ -197,6 +197,81 @@ docker compose -f compose.yaml up -d
 
 The named volume is preserved. Back up the volume before testing a branch that may run database migrations.
 
+## TrueNAS and ZFS
+
+### Slow first-boot (ownership repair stall)
+
+On a TrueNAS or ZFS-backed Docker volume, DaCollector may appear to stall after:
+
+```
+Creating user dacollector (uid=1000, gid=1000)...
+Ownership mismatch on /home/dacollector/.dacollector/DaCollector
+Starting ownership repair. This may be slow on large datasets or ZFS/TrueNAS volumes.
+```
+
+The container is not frozen — it is recursively `chown`-ing the data directory to match `PUID:PGID`. On a ZFS dataset with thousands of inodes, this can take minutes.
+
+**Option 1 — Set `PUID`/`PGID` to the dataset owner first (preferred)**
+
+Find the dataset owner on the TrueNAS host:
+
+```bash
+stat -c '%u:%g' /mnt/your-pool/dacollector-data
+```
+
+Then set `PUID` and `PGID` in `docker-compose.yml` to match. On the next start, the ownership check will pass immediately and `chown` is skipped.
+
+**Option 2 — Skip `chown` entirely (`SKIP_CHOWN=true`)**
+
+If you manage file permissions through TrueNAS ACLs or want to skip ownership repair entirely:
+
+```yaml
+environment:
+  SKIP_CHOWN: "true"
+```
+
+With `SKIP_CHOWN=true`, the container assumes the mounted volume already has correct ownership and skips the repair step. The startup log will confirm:
+
+```
+Ownership repair skipped (SKIP_CHOWN=true). Owner of /home/dacollector/.dacollector/DaCollector: 1000:1000
+```
+
+### Diagnosing a stalled container
+
+Check whether the container is actually doing `chown` work or is genuinely stuck:
+
+```bash
+# Check current ownership inside the container
+docker exec dacollector stat -c '%u:%g %n' /home/dacollector/.dacollector/DaCollector
+
+# Check the running user inside the container
+docker exec dacollector id dacollector
+
+# Check container logs for the ownership repair messages
+docker compose logs --tail 30 dacollector
+```
+
+If the container log shows `Starting ownership repair...` but nothing after it, the recursive `chown` is still running. Wait for it to finish, or stop the container and set `SKIP_CHOWN=true`.
+
+If ownership is wrong after the container is running:
+
+1. Stop the container: `docker compose down`
+2. Fix the host dataset owner, or update `PUID`/`PGID` to match the current dataset owner.
+3. Start the container: `docker compose up -d`
+
+### Media mounts on TrueNAS
+
+Mount media paths at `/media/movies`, `/media/tv`, etc., not under `/home/dacollector`. DaCollector's ownership repair targets only `/home/dacollector/.dacollector/DaCollector` — paths outside this scope are not affected.
+
+```yaml
+volumes:
+  - dacollector-data:/home/dacollector/.dacollector
+  - "/mnt/media/movies:/media/movies:ro"
+  - "/mnt/media/tv:/media/tv:ro"
+```
+
+Keep media mounts read-only unless you need DaCollector to delete duplicate files from that path.
+
 ## Back Up Docker Data
 
 Stop DaCollector before backing up the volume:

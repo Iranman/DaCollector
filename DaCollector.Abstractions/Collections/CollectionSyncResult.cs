@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using DaCollector.Abstractions.MediaServers.Plex;
 
 namespace DaCollector.Abstractions.Collections;
 
@@ -56,6 +57,11 @@ public sealed record CollectionSyncResult
     /// Number of target items removed during the apply run.
     /// </summary>
     public int RemovedItemCount { get; init; }
+
+    /// <summary>
+    /// Plex diff from the apply or dry-run, when a Plex target was evaluated.
+    /// </summary>
+    public PlexCollectionApplyResult? PlexDiff { get; init; }
 
     /// <summary>
     /// Non-fatal issues encountered while evaluating the collection.

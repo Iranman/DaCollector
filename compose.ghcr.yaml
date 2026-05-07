@@ -11,6 +11,8 @@ services:
       UMASK: "${UMASK:-002}"
       TZ: "${TZ:-Etc/UTC}"
       DACOLLECTOR_HOME: /home/dacollector/.dacollector/DaCollector
+      # Set SKIP_CHOWN=true on TrueNAS/ZFS or ACL-managed datasets to skip recursive chown on startup.
+      SKIP_CHOWN: "${SKIP_CHOWN:-false}"
       PLEX_TARGET_BASE_URL: "${PLEX_TARGET_BASE_URL:-http://host.docker.internal:32400}"
       PLEX_TARGET_SECTION_KEY: "${PLEX_TARGET_SECTION_KEY:-}"
       PLEX_TARGET_TOKEN: "${PLEX_TARGET_TOKEN:-}"
