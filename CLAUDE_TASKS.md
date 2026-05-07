@@ -2,7 +2,7 @@
 
 Context:
 - Branch: `daccollector-main`
-- Latest commits: `248bc99 Rename AnimeType enum to MediaType across all projects`
+- Latest commits: `c1a6de4 Add TvdbController with show/movie CRUD endpoints`
 - Follow `CLAUDE.md`: append database migrations; **never rewrite historical migration strings**.
 - Keep legacy API contract class names like `CL_AnimeSeries_User` unless intentionally versioning the public API.
 - `.NET SDK 10.0.203` may not be in PATH in the sandbox — use `& "C:\Program Files\dotnet\dotnet.exe"` if needed.
@@ -22,6 +22,9 @@ Context:
 - **P0**: Repair historical DB migrations — restored all three DB files to pre-rename state; added v145/163/158 rename blocks (20 entries each)
 - **P0**: Fix `DatabaseFixes.cs` stale type/property references (`AnimeSeries_User`→`MediaSeries_User`, `AnimeEpisodeID`→`MediaEpisodeID`, service renames)
 - **P1**: Rename `AnimeType` enum → `MediaType` in both Abstractions and Server API v3; rename physical files; preserve v1 JSON contract with `[JsonProperty("AnimeType")]`; NHibernate column mapping override so DB column stays as `AnimeType`
+- **P1**: Rename `MediaSeries.TVDB_ShowID/TVDB_MovieID` → `TvdbShowExternalID/TvdbMovieExternalID`; NHibernate Column() override keeps DB columns unchanged
+- **P1**: Rename `AnidbEventEmitter` → `AniDBConnectionEventEmitter`; update CLAUDE.md
+- **P1**: Add `TvdbController` at `/api/v3/Tvdb/` — show/movie GET, Refresh, Link/Unlink endpoints
 
 ---
 
@@ -48,29 +51,17 @@ File: `CLAUDE.md`
 
 ---
 
-## P1 — Stabilize TVDB Provider
+## ✅ P1 — Stabilize TVDB Provider — DONE
 
-- Decide whether `MediaSeries.TVDB_ShowID` / `TVDB_MovieID` store external TVDB IDs or internal DB row IDs
-  - Current code uses them as external IDs via `RepoFactory.TVDB_Show.GetByTvdbShowID`
-  - Consider renaming to `TvdbShowExternalID` / `TvdbMovieExternalID` to avoid confusion with `TVDB_Show.TVDB_ShowID` (internal PK)
-- Add v3 API endpoints in `TvdbController` (if not already present):
-  - Refresh TVDB show/movie by external ID
-  - Link/unlink TVDB show/movie to a `MediaSeries`
-  - Return cached TVDB show/movie/season/episode data
+- `MediaSeries.TvdbShowExternalID` / `TvdbMovieExternalID` store external TVDB IDs (DB columns still `TVDB_ShowID`/`TVDB_MovieID`)
+- `TvdbController` added at `/api/v3/Tvdb/` with show/movie GET, Refresh, Link/Unlink
 
 ---
 
-## P1 — Rename AniDB Connection Event Emitter
+## ✅ P1 — Rename AniDB Connection Event Emitter — DONE
 
-File: `DaCollector.Server/API/SignalR/Aggregate/AnidbEventEmitter.cs`
-
-> **Note:** A `MetadataEventEmitter` already exists as a separate class (handles series/episode/movie metadata events).
-> `AnidbEventEmitter` is for AniDB UDP/HTTP connection state events specifically.
-> The correct rename is: `AnidbEventEmitter` → `AniDBConnectionEventEmitter` (or `ProviderConnectionEventEmitter`)
-
-- Rename class `AnidbEventEmitter` → `AniDBConnectionEventEmitter`
-- Rename file `AnidbEventEmitter.cs` → `AniDBConnectionEventEmitter.cs`
-- Update registration in `APIExtensions.cs`
+`AnidbEventEmitter` → `AniDBConnectionEventEmitter` (file + class + registration).
+Note: `MetadataEventEmitter` already existed as a separate emitter for metadata domain events.
 
 ---
 
