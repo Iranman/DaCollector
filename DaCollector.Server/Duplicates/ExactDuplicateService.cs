@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using DaCollector.Abstractions.Duplicates;
+using DaCollector.Abstractions.Video.Services;
 using DaCollector.Server.Models.DaCollector;
 using DaCollector.Server.Repositories;
 
@@ -11,7 +13,7 @@ namespace DaCollector.Server.Duplicates;
 /// <summary>
 /// Finds exact duplicate video locations using stored hash and file size data.
 /// </summary>
-public class ExactDuplicateService
+public class ExactDuplicateService(IVideoService videoService)
 {
     public IReadOnlyList<ExactDuplicateSet> GetExactDuplicates(
         bool includeIgnored = false,
@@ -66,6 +68,57 @@ public class ExactDuplicateService
             AvailablePotentialReclaimBytes = plans.Sum(plan => plan.PotentialReclaimBytes),
             AvailableLocationCount = sets.Sum(set => set.AvailableLocationCount),
             UnavailableRemoveLocationCount = plans.Sum(plan => plan.RemoveCandidateCount - plan.AvailableRemoveCandidateCount),
+        };
+    }
+
+    public async Task<ExactDuplicateDeleteResult?> DeleteRemoveCandidate(
+        int locationID,
+        bool confirm = false,
+        bool deleteFile = true,
+        bool deleteEmptyFolders = true,
+        bool includeIgnored = false,
+        bool onlyAvailable = false,
+        int? preferredManagedFolderID = null,
+        string? preferredPathContains = null
+    )
+    {
+        var plan = GetCleanupPlans(includeIgnored, onlyAvailable, preferredManagedFolderID, preferredPathContains)
+            .FirstOrDefault(candidate => candidate.RemoveCandidates.Any(location => location.LocationID == locationID));
+        var location = plan?.RemoveCandidates.FirstOrDefault(candidate => candidate.LocationID == locationID);
+        if (plan is null || location is null)
+            return null;
+
+        var result = new ExactDuplicateDeleteResult
+        {
+            DryRun = !confirm,
+            Deleted = false,
+            DeleteFile = deleteFile,
+            DeleteEmptyFolders = deleteEmptyFolders,
+            Location = location,
+            Plan = plan,
+            PotentialReclaimBytes = deleteFile && location.IsAvailable ? plan.FileSize : 0,
+            Message = confirm
+                ? "Duplicate remove candidate is valid and will be deleted."
+                : "Dry run only. Add confirm=true to delete this duplicate remove candidate.",
+        };
+
+        if (!confirm)
+            return result;
+
+        if (RepoFactory.VideoLocalPlace.GetByID(locationID) is not { } place)
+            return result with
+            {
+                Message = "Duplicate remove candidate was valid, but the file location no longer exists.",
+            };
+
+        await videoService.DeleteVideoFile(place, deleteFile, deleteEmptyFolders).ConfigureAwait(false);
+        return result with
+        {
+            DryRun = false,
+            Deleted = true,
+            Message = deleteFile
+                ? "Duplicate remove candidate and physical file were deleted."
+                : "Duplicate remove candidate record was deleted. Physical file was left on disk.",
         };
     }
 

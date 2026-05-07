@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using DaCollector.Abstractions.Duplicates;
@@ -63,4 +64,36 @@ public class DuplicatesController(
         exactDuplicateService
             .GetCleanupPlans(includeIgnored, onlyAvailable, preferredManagedFolderID, preferredPathContains)
             .ToListResult(page, pageSize);
+
+    /// <summary>
+    /// Preview or delete one exact duplicate remove candidate.
+    /// </summary>
+    [Authorize("admin")]
+    [HttpDelete("Exact/Location/{locationID:int}")]
+    public async Task<ActionResult<ExactDuplicateDeleteResult>> DeleteExactDuplicateLocation(
+        [FromRoute, Range(1, int.MaxValue)] int locationID,
+        [FromQuery] bool confirm = false,
+        [FromQuery] bool deleteFile = true,
+        [FromQuery] bool deleteEmptyFolders = true,
+        [FromQuery] bool includeIgnored = false,
+        [FromQuery] bool onlyAvailable = false,
+        [FromQuery] int? preferredManagedFolderID = null,
+        [FromQuery] string? preferredPathContains = null
+    )
+    {
+        var result = await exactDuplicateService.DeleteRemoveCandidate(
+            locationID,
+            confirm,
+            deleteFile,
+            deleteEmptyFolders,
+            includeIgnored,
+            onlyAvailable,
+            preferredManagedFolderID,
+            preferredPathContains
+        ).ConfigureAwait(false);
+
+        return result is null
+            ? ValidationProblem($"Location {locationID} is not a current exact duplicate remove candidate.")
+            : result;
+    }
 }

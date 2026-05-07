@@ -49,6 +49,12 @@
             color: var(--text);
         }
 
+        button.danger {
+            background: #5b2024;
+            border-color: #91343b;
+            color: #ffe8e8;
+        }
+
         button:disabled {
             cursor: wait;
             opacity: 0.65;
@@ -267,12 +273,15 @@
             padding: 2rem 1rem;
         }
 
-        .actions {
+        .actions,
+        .row-actions {
             display: flex;
             gap: 0.5rem;
-            justify-content: flex-end;
             flex-wrap: wrap;
         }
+
+        .actions { justify-content: flex-end; }
+        .row-actions { justify-content: flex-start; }
 
         @media (max-width: 920px) {
             .shell {
@@ -478,6 +487,16 @@
         return query;
     }
 
+    function buildDeleteQuery(confirmDelete) {
+        const query = buildQuery();
+        query.delete('pageSize');
+        query.delete('page');
+        query.set('confirm', confirmDelete ? 'true' : 'false');
+        query.set('deleteFile', 'true');
+        query.set('deleteEmptyFolders', 'true');
+        return query;
+    }
+
     function renderSummary(summary) {
         const metrics = [
             ['Sets', prop(summary, 'SetCount', 'setCount')],
@@ -524,10 +543,16 @@
         const folderName = prop(location, 'ManagedFolderName', 'managedFolderName') ||
             String(prop(location, 'ManagedFolderID', 'managedFolderID') || '');
         const reason = prop(location, 'SelectionReason', 'selectionReason') || '';
+        const actionCell = isKeep
+            ? `<span class="pill keep">${action}</span>`
+            : `<div class="row-actions">
+                <span class="pill remove">${action}</span>
+                <button class="danger delete-candidate" type="button" data-location-id="${escapeHtml(String(locationID))}">Delete</button>
+            </div>`;
 
         return `
             <tr>
-                <td><span class="pill ${isKeep ? 'keep' : 'remove'}">${action}</span></td>
+                <td>${actionCell}</td>
                 <td>
                     <div class="path">${escapeHtml(fullPath)}</div>
                     <div class="sub">Location ${escapeHtml(String(locationID))} / Video ${escapeHtml(String(videoID))}</div>
@@ -578,6 +603,37 @@
         }
     }
 
+    async function deleteCandidate(locationID) {
+        if (!getToken()) {
+            setStatus('Sign in first.', true);
+            return;
+        }
+
+        setBusy(true);
+        setStatus(`Validating location ${locationID}...`);
+        try {
+            const dryRun = await apiFetch(`/api/v3/Duplicates/Exact/Location/${encodeURIComponent(locationID)}?${buildDeleteQuery(false)}`, {
+                method: 'DELETE'
+            });
+            const reclaim = formatBytes(prop(dryRun, 'PotentialReclaimBytes', 'potentialReclaimBytes'));
+            const confirmed = window.confirm(`${prop(dryRun, 'Message', 'message')}\n\nDelete location ${locationID} and reclaim up to ${reclaim}?`);
+            if (!confirmed) {
+                setStatus('Delete cancelled.');
+                return;
+            }
+
+            const result = await apiFetch(`/api/v3/Duplicates/Exact/Location/${encodeURIComponent(locationID)}?${buildDeleteQuery(true)}`, {
+                method: 'DELETE'
+            });
+            setStatus(prop(result, 'Message', 'message') || 'Duplicate candidate deleted.');
+            await refresh();
+        } catch (error) {
+            setStatus(error.message || String(error), true);
+        } finally {
+            setBusy(false);
+        }
+    }
+
     function prop(source, pascalName, camelName) {
         if (!source) return undefined;
         if (Object.prototype.hasOwnProperty.call(source, pascalName)) return source[pascalName];
@@ -612,6 +668,11 @@
     });
 
     els.refreshButton.addEventListener('click', refresh);
+    els.planRows.addEventListener('click', event => {
+        const button = event.target.closest('.delete-candidate');
+        if (!button) return;
+        deleteCandidate(button.dataset.locationId);
+    });
     els.clearTokenButton.addEventListener('click', () => {
         clearToken();
         setStatus('Signed out.');
