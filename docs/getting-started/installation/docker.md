@@ -49,7 +49,29 @@ Set `DACOLLECTOR_IMAGE_TAG` in `.env` if you want to run a different published t
 
 If GitHub returns an authentication or not found error when pulling the image, confirm that the package has been published and that the GHCR package visibility is public.
 
-`docker-compose.example.yml` is a commented template with Windows and Linux media mount examples. Copy it to your own deployment folder if you want a more guided starting point.
+## Compose Example
+
+Use `docker-compose.yml` when you want the standard prebuilt GHCR setup. Use [`docker-compose.example.yml`](https://github.com/Iranman/DaCollector/blob/main/docker-compose.example.yml) when you want a more guided starting point with comments and media mount examples.
+
+To start from the example:
+
+```powershell
+copy docker-compose.example.yml docker-compose.yml
+copy .env.example .env
+```
+
+Then edit `docker-compose.yml` and uncomment or add the media mounts for your machine. The example includes Windows and Linux patterns:
+
+```yaml
+volumes:
+  - dacollector-data:/home/dacollector/.dacollector
+  # - "D:/Media/Movies:/media/movies:ro"
+  # - "D:/Media/TV:/media/tv:ro"
+  # - "/mnt/media/movies:/media/movies:ro"
+  # - "/mnt/media/tv:/media/tv:ro"
+```
+
+Keep media mounts read-only until you intentionally want DaCollector to delete duplicate files from that path.
 
 ## Quick Start from Local Build
 
@@ -122,7 +144,7 @@ That path contains settings, SQLite databases, logs, provider cache, images, plu
 
 ## Media Folders
 
-Edit `docker-compose.yml`, `docker-compose.example.yml`, or `compose.yaml` and mount the folders DaCollector should scan. Keep read-only mounts unless you want DaCollector to delete duplicate files from that path.
+Edit `docker-compose.yml`, [`docker-compose.example.yml`](https://github.com/Iranman/DaCollector/blob/main/docker-compose.example.yml), or `compose.yaml` and mount the folders DaCollector should scan. Keep read-only mounts unless you want DaCollector to delete duplicate files from that path.
 
 ```yaml
 volumes:
