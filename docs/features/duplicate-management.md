@@ -19,7 +19,11 @@ Open the duplicate review page:
 http://127.0.0.1:38111/webui/dacollector-duplicates.html
 ```
 
-Use it to load the exact duplicate summary, inspect cleanup candidates, dry-run delete actions, and then confirm deletes when the candidate is correct.
+The page has two modes selected by tabs at the top:
+
+**Exact File Duplicates** — loads the cleanup plan for files tracked in the DaCollector database. Shows keep/remove candidates with folder, availability, and potential reclaim bytes. Supports dry-run and confirmed delete for individual remove candidates.
+
+**Plex Media Duplicates** — enter a Plex library section key and click Load. Renders duplicate sets grouped by score, with match type, scoring reasons, Plex rating keys, provider IDs, title/year, and file paths. Safe-delete candidates (entries where all files appear in another entry in the same set) are highlighted with an amber border. No delete actions are available from this view — review and clean up in Plex directly.
 
 ## Exact Duplicate API
 

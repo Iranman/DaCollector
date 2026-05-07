@@ -126,7 +126,7 @@ Acceptance criteria:
 - Running with the wrong port exits non-zero and explains the failed endpoint.
 - The docs still include manual commands for users who do not want to run scripts.
 
-### P3.3 — Surface Plex Media Duplicate Review in the Web UI
+### ✅ P3.3 — Surface Plex Media Duplicate Review in the Web UI — DONE
 
 Files:
 - `DaCollector.Server/webui/dacollector-duplicates.html`
@@ -273,6 +273,47 @@ Acceptance criteria:
 - Every install page links to verification.
 - Every feature page links to the related API page or endpoint table.
 - Docker docs keep direct environment values in `docker-compose.yml`, not a recommended `.env` file.
+
+### P3.9 — Fix Docker First-Boot Ownership Stall on TrueNAS
+
+Context:
+- A TrueNAS install can appear stuck after:
+  - `Started DaCollector bootstrapping process...`
+  - `Adding user dacollector and changing ownership of /home/dacollector and all its sub-directories...`
+- `dockerentry.sh` later runs `chown -R $PUID:$PGID /home/dacollector/` when `DACOLLECTOR_HOME` ownership does not match `PUID:PGID`.
+- Recursive `chown` can be extremely slow on TrueNAS/ZFS volumes, and the current log message does not say which path is being changed or how to skip it.
+
+Files:
+- `dockerentry.sh`
+- `docker-compose.yml`
+- `docker-compose.example.yml`
+- `compose.yaml`
+- `compose.ghcr.yaml`
+- `docs/getting-started/installation/docker.md`
+- `docs/getting-started/verify-install.md`
+- `scripts/verify-install.ps1`
+
+Tasks:
+- Make ownership repair more targeted:
+  - Prefer `chown` only on `$DACOLLECTOR_HOME`, not all of `/home/dacollector/`.
+  - Avoid recursive ownership changes when the top-level directory already matches `PUID:PGID`.
+  - Consider a `DACOLLECTOR_CHOWN=false` or `SKIP_CHOWN=true` escape hatch for TrueNAS/ACL-managed datasets.
+- Improve startup logging:
+  - Print `PUID`, `PGID`, `DACOLLECTOR_HOME`, current owner, desired owner, and whether recursive ownership will run.
+  - Print before and after any long-running ownership step.
+- Update Compose examples:
+  - Add comments telling TrueNAS users to set `PUID`/`PGID` to the dataset owner.
+  - Document that mounted media paths should stay read-only and should not be under `/home/dacollector`.
+- Update Docker docs with TrueNAS troubleshooting:
+  - Run `docker exec dacollector id dacollector`.
+  - Run `docker exec dacollector stat -c '%u:%g %n' /home/dacollector/.dacollector/DaCollector`.
+  - If ownership is wrong, stop the container and fix the host dataset owner or set the correct `PUID`/`PGID`.
+
+Acceptance criteria:
+- First boot on an empty Docker volume does not run a broad recursive `chown` over unrelated paths.
+- Startup logs clearly show when ownership repair is being skipped, started, and finished.
+- A TrueNAS user can tell whether the container is really hung or just changing ownership.
+- Docker install docs explain the slow-start symptom and the preferred fix.
 
 ---
 

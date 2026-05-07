@@ -17,6 +17,7 @@
             --accent-2: #62b6ff;
             --danger: #f16b6b;
             --ok: #6bd59a;
+            --warn: #f4d47a;
         }
 
         * { box-sizing: border-box; }
@@ -29,9 +30,7 @@
             font-family: Segoe UI, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
         }
 
-        button, input {
-            font: inherit;
-        }
+        button, input { font: inherit; }
 
         button {
             border: 1px solid transparent;
@@ -55,10 +54,7 @@
             color: #ffe8e8;
         }
 
-        button:disabled {
-            cursor: wait;
-            opacity: 0.65;
-        }
+        button:disabled { cursor: wait; opacity: 0.65; }
 
         input {
             width: 100%;
@@ -109,16 +105,9 @@
             font-weight: 800;
         }
 
-        .brand h1 {
-            margin: 0;
-            font-size: 1rem;
-            letter-spacing: 0;
-        }
+        .brand h1 { margin: 0; font-size: 1rem; }
 
-        .nav {
-            display: grid;
-            gap: 0.45rem;
-        }
+        .nav { display: grid; gap: 0.45rem; }
 
         .nav a {
             display: block;
@@ -128,10 +117,7 @@
             padding: 0.68rem 0.75rem;
         }
 
-        .nav a.active {
-            background: var(--panel);
-            color: var(--text);
-        }
+        .nav a.active { background: var(--panel); color: var(--text); }
 
         .main {
             padding: 1.5rem;
@@ -147,14 +133,30 @@
             gap: 1rem;
         }
 
-        .topbar h2 {
-            margin: 0 0 0.25rem;
-            font-size: 1.45rem;
+        .topbar h2 { margin: 0 0 0.25rem; font-size: 1.45rem; }
+        .topbar p { margin: 0; color: var(--muted); }
+
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            border-bottom: 1px solid var(--line);
+            padding-bottom: 0.5rem;
         }
 
-        .topbar p {
-            margin: 0;
+        .tab {
+            padding: 0.45rem 1rem;
+            border-radius: 6px 6px 0 0;
+            border: 1px solid transparent;
+            background: none;
             color: var(--muted);
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .tab.active {
+            background: var(--panel);
+            border-color: var(--line);
+            color: var(--text);
         }
 
         .panel {
@@ -165,16 +167,16 @@
         }
 
         .login-grid,
-        .filter-grid {
+        .filter-grid,
+        .plex-grid {
             display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
             gap: 0.8rem;
             align-items: end;
         }
 
-        .login-grid {
-            grid-template-columns: 1fr 1fr 1fr auto;
-        }
+        .login-grid { grid-template-columns: 1fr 1fr 1fr auto; }
+        .filter-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+        .plex-grid   { grid-template-columns: 1fr 1fr 1fr auto; }
 
         .summary {
             display: grid;
@@ -189,18 +191,8 @@
             padding: 0.8rem;
         }
 
-        .metric span {
-            display: block;
-            color: var(--muted);
-            font-size: 0.78rem;
-            font-weight: 700;
-        }
-
-        .metric strong {
-            display: block;
-            margin-top: 0.25rem;
-            font-size: 1.1rem;
-        }
+        .metric span { display: block; color: var(--muted); font-size: 0.78rem; font-weight: 700; }
+        .metric strong { display: block; margin-top: 0.25rem; font-size: 1.1rem; }
 
         .table-wrap {
             overflow-x: auto;
@@ -208,11 +200,7 @@
             border-radius: 8px;
         }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 58rem;
-        }
+        table { width: 100%; border-collapse: collapse; min-width: 58rem; }
 
         th, td {
             padding: 0.72rem;
@@ -221,27 +209,11 @@
             vertical-align: top;
         }
 
-        th {
-            color: var(--muted);
-            font-size: 0.78rem;
-            background: #151a22;
-        }
+        th { color: var(--muted); font-size: 0.78rem; background: #151a22; }
+        tr:last-child td { border-bottom: 0; }
 
-        tr:last-child td {
-            border-bottom: 0;
-        }
-
-        .path {
-            max-width: 32rem;
-            overflow-wrap: anywhere;
-            color: var(--text);
-        }
-
-        .sub {
-            color: var(--muted);
-            font-size: 0.82rem;
-            margin-top: 0.2rem;
-        }
+        .path { max-width: 32rem; overflow-wrap: anywhere; color: var(--text); }
+        .sub { color: var(--muted); font-size: 0.82rem; margin-top: 0.2rem; }
 
         .pill {
             display: inline-flex;
@@ -255,53 +227,101 @@
             border: 1px solid var(--line);
         }
 
-        .pill.keep { color: var(--ok); }
+        .pill.keep  { color: var(--ok); }
         .pill.remove { color: var(--danger); }
+        .pill.score-high { color: var(--ok);   border-color: #2d6b4a; background: #112b1e; }
+        .pill.score-mid  { color: var(--warn);  border-color: #7a6120; background: #1e1707; }
+        .pill.score-low  { color: var(--muted); }
+        .pill.match-provider { color: var(--accent-2); border-color: #2b4d6b; background: #0f1d2b; }
+        .pill.match-path     { color: var(--ok);       border-color: #2d6b4a; background: #112b1e; }
+        .pill.match-title    { color: var(--muted); }
+        .pill.safe-delete    { color: var(--warn); border-color: #7a6120; background: #1e1707; }
+        .pill.review-only    { color: var(--muted); }
 
-        .status {
-            min-height: 1.4rem;
-            color: var(--muted);
-        }
+        .status { min-height: 1.4rem; color: var(--muted); }
+        .status.error { color: var(--danger); }
 
-        .status.error {
-            color: var(--danger);
-        }
+        .empty { color: var(--muted); text-align: center; padding: 2rem 1rem; }
 
-        .empty {
-            color: var(--muted);
-            text-align: center;
-            padding: 2rem 1rem;
-        }
-
-        .actions,
-        .row-actions {
-            display: flex;
-            gap: 0.5rem;
-            flex-wrap: wrap;
-        }
-
+        .actions, .row-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
         .actions { justify-content: flex-end; }
         .row-actions { justify-content: flex-start; }
 
+        /* Media duplicate set cards */
+        .dup-sets { display: grid; gap: 0.75rem; }
+
+        .dup-set {
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .dup-set.safe-delete-candidate { border-color: #7a6120; }
+
+        .dup-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 0.75rem;
+            padding: 0.72rem 0.9rem;
+            background: var(--panel-2);
+            flex-wrap: wrap;
+        }
+
+        .dup-header-left { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+
+        .dup-action { color: var(--muted); font-size: 0.82rem; }
+
+        .dup-reasons {
+            font-size: 0.78rem;
+            color: var(--muted);
+            padding: 0.38rem 0.9rem;
+            background: #141b24;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .dup-items { display: grid; }
+
+        .dup-item {
+            display: grid;
+            grid-template-columns: minmax(12rem, 1fr) minmax(10rem, 0.8fr) minmax(16rem, 1.4fr);
+            gap: 0.5rem;
+            padding: 0.72rem 0.9rem;
+            border-bottom: 1px solid var(--line);
+            font-size: 0.88rem;
+        }
+
+        .dup-item:last-child { border-bottom: 0; }
+
+        .dup-item-title strong { display: block; }
+        .dup-item-title .sub  { font-size: 0.78rem; }
+
+        .dup-item-ids .sub { font-size: 0.78rem; overflow-wrap: anywhere; }
+
+        .dup-item-files { display: grid; gap: 0.25rem; }
+        .dup-item-files .path { font-size: 0.8rem; color: var(--muted); }
+
+        .dup-items-header {
+            display: grid;
+            grid-template-columns: minmax(12rem, 1fr) minmax(10rem, 0.8fr) minmax(16rem, 1.4fr);
+            gap: 0.5rem;
+            padding: 0.45rem 0.9rem;
+            background: #151a22;
+            color: var(--muted);
+            font-size: 0.76rem;
+            font-weight: 700;
+            border-bottom: 1px solid var(--line);
+        }
+
         @media (max-width: 920px) {
-            .shell {
-                grid-template-columns: 1fr;
-            }
+            .shell { grid-template-columns: 1fr; }
+            .side { border-right: 0; border-bottom: 1px solid var(--line); }
 
-            .side {
-                border-right: 0;
-                border-bottom: 1px solid var(--line);
-            }
+            .login-grid, .filter-grid, .plex-grid, .summary { grid-template-columns: 1fr; }
+            .topbar { display: grid; }
 
-            .login-grid,
-            .filter-grid,
-            .summary {
-                grid-template-columns: 1fr;
-            }
-
-            .topbar {
-                display: grid;
-            }
+            .dup-item { grid-template-columns: 1fr; }
+            .dup-items-header { display: none; }
         }
     </style>
 </head>
@@ -347,50 +367,85 @@
             </form>
         </section>
 
-        <section class="panel">
-            <form class="filter-grid" id="filterForm">
-                <label>Preferred folder ID
-                    <input id="preferredManagedFolderID" inputmode="numeric" placeholder="Any">
-                </label>
-                <label>Preferred path contains
-                    <input id="preferredPathContains" placeholder="Movies, TV, 4K">
-                </label>
-                <label>Page size
-                    <input id="pageSize" inputmode="numeric" value="50">
-                </label>
-                <label>Page
-                    <input id="page" inputmode="numeric" value="1">
-                </label>
-            </form>
-        </section>
+        <div class="tabs">
+            <button class="tab active" id="tabExact" type="button">Exact File Duplicates</button>
+            <button class="tab" id="tabMedia" type="button">Plex Media Duplicates</button>
+        </div>
 
-        <section class="summary" id="summary"></section>
+        <!-- Exact file duplicates mode -->
+        <div id="exactMode">
+            <section class="panel">
+                <form class="filter-grid" id="filterForm">
+                    <label>Preferred folder ID
+                        <input id="preferredManagedFolderID" inputmode="numeric" placeholder="Any">
+                    </label>
+                    <label>Preferred path contains
+                        <input id="preferredPathContains" placeholder="Movies, TV, 4K">
+                    </label>
+                    <label>Page size
+                        <input id="pageSize" inputmode="numeric" value="50">
+                    </label>
+                    <label>Page
+                        <input id="page" inputmode="numeric" value="1">
+                    </label>
+                </form>
+            </section>
 
-        <section class="panel">
-            <div class="status" id="status"></div>
-            <div class="table-wrap">
-                <table>
-                    <thead>
-                    <tr>
-                        <th>Action</th>
-                        <th>File</th>
-                        <th>Folder</th>
-                        <th>State</th>
-                        <th>Reason</th>
-                        <th>Reclaim</th>
-                    </tr>
-                    </thead>
-                    <tbody id="planRows">
-                    <tr><td class="empty" colspan="6">Sign in and refresh.</td></tr>
-                    </tbody>
-                </table>
+            <section class="summary" id="summary"></section>
+
+            <section class="panel">
+                <div class="status" id="status"></div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                        <tr>
+                            <th>Action</th>
+                            <th>File</th>
+                            <th>Folder</th>
+                            <th>State</th>
+                            <th>Reason</th>
+                            <th>Reclaim</th>
+                        </tr>
+                        </thead>
+                        <tbody id="planRows">
+                        <tr><td class="empty" colspan="6">Sign in and refresh.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+
+        <!-- Plex media duplicates mode -->
+        <div id="mediaMode" hidden>
+            <section class="panel">
+                <form class="plex-grid" id="plexForm">
+                    <label>Plex Library Section Key
+                        <input id="sectionKey" inputmode="numeric" placeholder="1">
+                    </label>
+                    <label>Page size
+                        <input id="mediaPageSize" inputmode="numeric" value="50">
+                    </label>
+                    <label>Page
+                        <input id="mediaPage" inputmode="numeric" value="1">
+                    </label>
+                    <button type="submit">Load</button>
+                </form>
+            </section>
+
+            <div class="status" id="mediaStatus">Enter a Plex section key and click Load.</div>
+
+            <div id="mediaSets">
+                <div class="empty">No Plex media duplicates loaded.</div>
             </div>
-        </section>
+        </div>
     </main>
 </div>
 
 <script>
     const tokenKey = 'daccollector.apikey';
+    const matchTypeNames = { 0: 'Path Hash', 1: 'Provider ID', 2: 'Title / Year' };
+    const matchTypePillClass = { 0: 'match-path', 1: 'match-provider', 2: 'match-title' };
+
     const els = {
         loginPanel: document.getElementById('loginPanel'),
         loginForm: document.getElementById('loginForm'),
@@ -406,8 +461,20 @@
         planRows: document.getElementById('planRows'),
         sessionLabel: document.getElementById('sessionLabel'),
         refreshButton: document.getElementById('refreshButton'),
-        clearTokenButton: document.getElementById('clearTokenButton')
+        clearTokenButton: document.getElementById('clearTokenButton'),
+        tabExact: document.getElementById('tabExact'),
+        tabMedia: document.getElementById('tabMedia'),
+        exactMode: document.getElementById('exactMode'),
+        mediaMode: document.getElementById('mediaMode'),
+        plexForm: document.getElementById('plexForm'),
+        sectionKey: document.getElementById('sectionKey'),
+        mediaPageSize: document.getElementById('mediaPageSize'),
+        mediaPage: document.getElementById('mediaPage'),
+        mediaStatus: document.getElementById('mediaStatus'),
+        mediaSets: document.getElementById('mediaSets')
     };
+
+    let activeTab = 'exact';
 
     function getToken() {
         return sessionStorage.getItem(tokenKey) || localStorage.getItem(tokenKey) || '';
@@ -440,17 +507,30 @@
         els.status.classList.toggle('error', isError);
     }
 
+    function setMediaStatus(message, isError = false) {
+        els.mediaStatus.textContent = message;
+        els.mediaStatus.classList.toggle('error', isError);
+    }
+
     function formatBytes(bytes) {
         const value = Number(bytes || 0);
         if (value < 1024) return `${value} B`;
         const units = ['KB', 'MB', 'GB', 'TB', 'PB'];
-        let size = value / 1024;
-        let unit = 0;
-        while (size >= 1024 && unit < units.length - 1) {
-            size /= 1024;
-            unit += 1;
-        }
+        let size = value / 1024, unit = 0;
+        while (size >= 1024 && unit < units.length - 1) { size /= 1024; unit += 1; }
         return `${size.toFixed(size >= 10 ? 1 : 2)} ${units[unit]}`;
+    }
+
+    function escapeHtml(value) {
+        return String(value ?? '')
+            .replaceAll('&', '&amp;').replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#039;');
+    }
+
+    function prop(source, pascalName, camelName) {
+        if (!source) return undefined;
+        if (Object.prototype.hasOwnProperty.call(source, pascalName)) return source[pascalName];
+        return source[camelName];
     }
 
     function apiHeaders() {
@@ -461,21 +541,25 @@
     async function apiFetch(path, options = {}) {
         const response = await fetch(path, {
             ...options,
-            headers: {
-                ...(options.headers || {}),
-                ...apiHeaders()
-            }
+            headers: { ...(options.headers || {}), ...apiHeaders() }
         });
-        if (response.status === 401) {
-            clearToken();
-            throw new Error('Authentication failed.');
-        }
+        if (response.status === 401) { clearToken(); throw new Error('Authentication failed.'); }
         if (!response.ok) {
             const text = await response.text();
             throw new Error(text || `Request failed with ${response.status}`);
         }
         return response.json();
     }
+
+    function switchTab(tab) {
+        activeTab = tab;
+        els.tabExact.classList.toggle('active', tab === 'exact');
+        els.tabMedia.classList.toggle('active', tab === 'media');
+        els.exactMode.hidden = tab !== 'exact';
+        els.mediaMode.hidden = tab !== 'media';
+    }
+
+    // ---- Exact duplicates ----
 
     function buildQuery() {
         const query = new URLSearchParams();
@@ -520,7 +604,6 @@
             els.planRows.innerHTML = '<tr><td class="empty" colspan="6">No exact duplicates found.</td></tr>';
             return;
         }
-
         els.planRows.innerHTML = plans.flatMap(plan => {
             const rows = [];
             const keepLocation = prop(plan, 'KeepLocation', 'keepLocation');
@@ -535,14 +618,10 @@
         const action = isKeep ? 'Keep' : 'Remove';
         const isAvailable = Boolean(prop(location, 'IsAvailable', 'isAvailable'));
         const reclaim = isKeep || !isAvailable ? '' : formatBytes(prop(plan, 'FileSize', 'fileSize'));
-        const fullPath = prop(location, 'Path', 'path') ||
-            prop(location, 'RelativePath', 'relativePath') ||
-            prop(location, 'FileName', 'fileName') ||
-            '';
+        const fullPath = prop(location, 'Path', 'path') || prop(location, 'RelativePath', 'relativePath') || prop(location, 'FileName', 'fileName') || '';
         const locationID = prop(location, 'LocationID', 'locationID');
         const videoID = prop(location, 'VideoID', 'videoID');
-        const folderName = prop(location, 'ManagedFolderName', 'managedFolderName') ||
-            String(prop(location, 'ManagedFolderID', 'managedFolderID') || '');
+        const folderName = prop(location, 'ManagedFolderName', 'managedFolderName') || String(prop(location, 'ManagedFolderID', 'managedFolderID') || '');
         const reason = prop(location, 'SelectionReason', 'selectionReason') || '';
         const actionCell = isKeep
             ? `<span class="pill keep">${action}</span>`
@@ -550,7 +629,6 @@
                 <span class="pill remove">${action}</span>
                 <button class="danger delete-candidate" type="button" data-location-id="${escapeHtml(String(locationID))}">Delete</button>
             </div>`;
-
         return `
             <tr>
                 <td>${actionCell}</td>
@@ -566,22 +644,8 @@
         `;
     }
 
-    function escapeHtml(value) {
-        return String(value)
-            .replaceAll('&', '&amp;')
-            .replaceAll('<', '&lt;')
-            .replaceAll('>', '&gt;')
-            .replaceAll('"', '&quot;')
-            .replaceAll("'", '&#039;');
-    }
-
-    async function refresh() {
-        if (!getToken()) {
-            updateSession();
-            setStatus('Sign in first.', true);
-            return;
-        }
-
+    async function refreshExact() {
+        if (!getToken()) { updateSession(); setStatus('Sign in first.', true); return; }
         setBusy(true);
         setStatus('Loading duplicate cleanup plan...');
         try {
@@ -605,29 +669,17 @@
     }
 
     async function deleteCandidate(locationID) {
-        if (!getToken()) {
-            setStatus('Sign in first.', true);
-            return;
-        }
-
+        if (!getToken()) { setStatus('Sign in first.', true); return; }
         setBusy(true);
         setStatus(`Validating location ${locationID}...`);
         try {
-            const dryRun = await apiFetch(`/api/v3/Duplicates/Exact/Location/${encodeURIComponent(locationID)}?${buildDeleteQuery(false)}`, {
-                method: 'DELETE'
-            });
+            const dryRun = await apiFetch(`/api/v3/Duplicates/Exact/Location/${encodeURIComponent(locationID)}?${buildDeleteQuery(false)}`, { method: 'DELETE' });
             const reclaim = formatBytes(prop(dryRun, 'PotentialReclaimBytes', 'potentialReclaimBytes'));
             const confirmed = window.confirm(`${prop(dryRun, 'Message', 'message')}\n\nDelete location ${locationID} and reclaim up to ${reclaim}?`);
-            if (!confirmed) {
-                setStatus('Delete cancelled.');
-                return;
-            }
-
-            const result = await apiFetch(`/api/v3/Duplicates/Exact/Location/${encodeURIComponent(locationID)}?${buildDeleteQuery(true)}`, {
-                method: 'DELETE'
-            });
+            if (!confirmed) { setStatus('Delete cancelled.'); return; }
+            const result = await apiFetch(`/api/v3/Duplicates/Exact/Location/${encodeURIComponent(locationID)}?${buildDeleteQuery(true)}`, { method: 'DELETE' });
             setStatus(prop(result, 'Message', 'message') || 'Duplicate candidate deleted.');
-            await refresh();
+            await refreshExact();
         } catch (error) {
             setStatus(error.message || String(error), true);
         } finally {
@@ -635,11 +687,131 @@
         }
     }
 
-    function prop(source, pascalName, camelName) {
-        if (!source) return undefined;
-        if (Object.prototype.hasOwnProperty.call(source, pascalName)) return source[pascalName];
-        return source[camelName];
+    // ---- Plex media duplicates ----
+
+    function scorePillClass(score) {
+        if (score >= 90) return 'score-high';
+        if (score >= 60) return 'score-mid';
+        return 'score-low';
     }
+
+    function renderMatchType(raw) {
+        const value = typeof raw === 'string' && Number.isNaN(Number(raw)) ? raw : Number(raw ?? 1);
+        const label = matchTypeNames[value] ?? String(value);
+        const cls = matchTypePillClass[value] ?? 'match-title';
+        return `<span class="pill ${cls}">${escapeHtml(label)}</span>`;
+    }
+
+    function renderMediaSets(result) {
+        const sets = prop(result, 'List', 'list') || [];
+        if (sets.length === 0) {
+            els.mediaSets.innerHTML = '<div class="empty">No Plex media duplicates found for this library section.</div>';
+            return;
+        }
+
+        els.mediaSets.innerHTML = sets.map(set => {
+            const score = prop(set, 'Score', 'score') ?? 0;
+            const matchType = prop(set, 'PrimaryMatchType', 'primaryMatchType') ?? 1;
+            const candidateCount = prop(set, 'CandidateCount', 'candidateCount') ?? 0;
+            const safeDelete = Boolean(prop(set, 'SafeDeleteCandidate', 'safeDeleteCandidate'));
+            const reviewAction = prop(set, 'ReviewAction', 'reviewAction') || '';
+            const reasons = prop(set, 'ScoringReasons', 'scoringReasons') || [];
+            const items = prop(set, 'Items', 'items') || [];
+
+            const safeDeleteBadge = safeDelete
+                ? `<span class="pill safe-delete">Safe Delete Candidate</span>`
+                : `<span class="pill review-only">Review Only</span>`;
+
+            const reasonsText = reasons.map(r => escapeHtml(r)).join(' &nbsp;·&nbsp; ');
+
+            const itemRows = items.map(item => {
+                const ratingKey = prop(item, 'RatingKey', 'ratingKey') || '';
+                const title = prop(item, 'Title', 'title') || '';
+                const year = prop(item, 'Year', 'year');
+                const type = prop(item, 'Type', 'type') || '';
+                const guidValues = prop(item, 'GuidValues', 'guidValues') || [];
+                const externalIDs = prop(item, 'ExternalIDs', 'externalIDs') || [];
+                const filePaths = prop(item, 'FilePaths', 'filePaths') || [];
+
+                const idStrings = [
+                    ...guidValues.map(g => escapeHtml(g)),
+                    ...externalIDs.filter(e => !guidValues.includes(String(e))).map(e => escapeHtml(String(e)))
+                ];
+
+                const fileHtml = filePaths.length > 0
+                    ? filePaths.map(fp => `<div class="path">${escapeHtml(fp)}</div>`).join('')
+                    : '<div class="sub">No file paths</div>';
+
+                return `
+                    <div class="dup-item">
+                        <div class="dup-item-title">
+                            <strong>${escapeHtml(title)}${year ? ` (${escapeHtml(String(year))})` : ''}</strong>
+                            <div class="sub">Rating key: ${escapeHtml(ratingKey)} &nbsp;·&nbsp; ${escapeHtml(type)}</div>
+                        </div>
+                        <div class="dup-item-ids">
+                            <div class="sub">${idStrings.length > 0 ? idStrings.join('<br>') : 'No provider IDs'}</div>
+                        </div>
+                        <div class="dup-item-files">${fileHtml}</div>
+                    </div>
+                `;
+            }).join('');
+
+            return `
+                <div class="dup-set${safeDelete ? ' safe-delete-candidate' : ''}">
+                    <div class="dup-header">
+                        <div class="dup-header-left">
+                            <span class="pill ${scorePillClass(score)}">Score ${escapeHtml(String(score))}</span>
+                            ${renderMatchType(matchType)}
+                            <span class="pill">${escapeHtml(String(candidateCount))} entries</span>
+                            ${safeDeleteBadge}
+                        </div>
+                        <div class="dup-action">${escapeHtml(reviewAction)}</div>
+                    </div>
+                    ${reasonsText ? `<div class="dup-reasons">${reasonsText}</div>` : ''}
+                    <div class="dup-items-header">
+                        <div>Title / Year / Type</div>
+                        <div>Provider IDs</div>
+                        <div>File Paths</div>
+                    </div>
+                    <div class="dup-items">${itemRows}</div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    async function loadMediaDuplicates() {
+        const sectionKey = els.sectionKey.value.trim();
+        if (!sectionKey) { setMediaStatus('Enter a Plex library section key.', true); return; }
+        if (!getToken()) { updateSession(); setMediaStatus('Sign in first.', true); return; }
+        setBusy(true);
+        setMediaStatus('Loading Plex media duplicates...');
+        try {
+            const query = new URLSearchParams();
+            query.set('pageSize', String(Math.max(1, Number(els.mediaPageSize.value || 50))));
+            query.set('page', String(Math.max(1, Number(els.mediaPage.value || 1))));
+            const result = await apiFetch(`/api/v3/Duplicates/Media/Plex/Library/${encodeURIComponent(sectionKey)}?${query}`);
+            renderMediaSets(result);
+            const total = prop(result, 'Total', 'total') ?? 0;
+            setMediaStatus(`Loaded ${total} media duplicate set${total === 1 ? '' : 's'} for section ${sectionKey}.`);
+        } catch (error) {
+            setMediaStatus(error.message || String(error), true);
+            els.mediaSets.innerHTML = '';
+        } finally {
+            setBusy(false);
+        }
+    }
+
+    // ---- Refresh dispatcher ----
+
+    function refresh() {
+        if (activeTab === 'exact') refreshExact();
+        else loadMediaDuplicates();
+    }
+
+    // ---- Event wiring ----
+
+    els.tabExact.addEventListener('click', () => switchTab('exact'));
+    els.tabMedia.addEventListener('click', () => switchTab('media'));
 
     els.loginForm.addEventListener('submit', async event => {
         event.preventDefault();
@@ -660,7 +832,7 @@
             if (!body.apikey) throw new Error('Sign in did not return an API key.');
             setToken(body.apikey);
             els.password.value = '';
-            await refresh();
+            await refreshExact();
         } catch (error) {
             setStatus(error.message || String(error), true);
         } finally {
@@ -669,26 +841,34 @@
     });
 
     els.refreshButton.addEventListener('click', refresh);
+
+    els.plexForm.addEventListener('submit', event => {
+        event.preventDefault();
+        loadMediaDuplicates();
+    });
+
     els.planRows.addEventListener('click', event => {
         const button = event.target.closest('.delete-candidate');
         if (!button) return;
         deleteCandidate(button.dataset.locationId);
     });
+
     els.clearTokenButton.addEventListener('click', () => {
         clearToken();
         setStatus('Signed out.');
+        setMediaStatus('Enter a Plex section key and click Load.');
         els.planRows.innerHTML = '<tr><td class="empty" colspan="6">Sign in and refresh.</td></tr>';
+        els.mediaSets.innerHTML = '<div class="empty">No Plex media duplicates loaded.</div>';
     });
+
     document.getElementById('filterForm').addEventListener('submit', event => event.preventDefault());
     for (const input of [els.preferredManagedFolderID, els.preferredPathContains, els.pageSize, els.page]) {
-        input.addEventListener('change', () => {
-            if (getToken()) refresh();
-        });
+        input.addEventListener('change', () => { if (getToken()) refreshExact(); });
     }
 
     updateSession();
     renderSummary({});
-    if (getToken()) refresh();
+    if (getToken()) refreshExact();
 </script>
 </body>
 </html>
