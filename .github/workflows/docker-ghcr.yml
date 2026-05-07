@@ -117,7 +117,7 @@ jobs:
             ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.image_tag }}-${{ matrix.arch }}
             ${{ env.IMAGE_NAME }}:sha-${{ steps.meta.outputs.short_sha }}-${{ matrix.arch }}
           build-args: |
-            version=0.0.0.0
+            version=0.0.1
             channel=${{ steps.meta.outputs.channel }}
             commit=${{ github.sha }}
             tag=${{ steps.meta.outputs.image_tag }}
