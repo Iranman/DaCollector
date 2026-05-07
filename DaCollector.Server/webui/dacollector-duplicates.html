@@ -1,0 +1,632 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>DaCollector Duplicate Review</title>
+    <style>
+        :root {
+            color-scheme: dark;
+            --bg: #12161d;
+            --panel: #1a2029;
+            --panel-2: #202834;
+            --line: #2d3746;
+            --text: #eef3f8;
+            --muted: #a8b4c4;
+            --accent: #d5a642;
+            --accent-2: #62b6ff;
+            --danger: #f16b6b;
+            --ok: #6bd59a;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: var(--bg);
+            color: var(--text);
+            font-family: Segoe UI, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        button, input {
+            font: inherit;
+        }
+
+        button {
+            border: 1px solid transparent;
+            border-radius: 6px;
+            padding: 0.62rem 0.82rem;
+            background: var(--accent);
+            color: #17140c;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        button.secondary {
+            background: var(--panel-2);
+            border-color: var(--line);
+            color: var(--text);
+        }
+
+        button:disabled {
+            cursor: wait;
+            opacity: 0.65;
+        }
+
+        input {
+            width: 100%;
+            min-width: 0;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            padding: 0.62rem 0.72rem;
+            background: #10141b;
+            color: var(--text);
+        }
+
+        label {
+            display: grid;
+            gap: 0.38rem;
+            color: var(--muted);
+            font-size: 0.82rem;
+            font-weight: 700;
+        }
+
+        .shell {
+            display: grid;
+            grid-template-columns: 16rem minmax(0, 1fr);
+            min-height: 100vh;
+        }
+
+        .side {
+            border-right: 1px solid var(--line);
+            background: #0e1218;
+            padding: 1.25rem;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.4rem;
+        }
+
+        .mark {
+            display: grid;
+            place-items: center;
+            width: 2.5rem;
+            height: 2.5rem;
+            border: 1px solid #7e642d;
+            border-radius: 50%;
+            background: #171207;
+            color: var(--accent);
+            font-weight: 800;
+        }
+
+        .brand h1 {
+            margin: 0;
+            font-size: 1rem;
+            letter-spacing: 0;
+        }
+
+        .nav {
+            display: grid;
+            gap: 0.45rem;
+        }
+
+        .nav a {
+            display: block;
+            color: var(--muted);
+            text-decoration: none;
+            border-radius: 6px;
+            padding: 0.68rem 0.75rem;
+        }
+
+        .nav a.active {
+            background: var(--panel);
+            color: var(--text);
+        }
+
+        .main {
+            padding: 1.5rem;
+            display: grid;
+            gap: 1rem;
+            align-content: start;
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .topbar h2 {
+            margin: 0 0 0.25rem;
+            font-size: 1.45rem;
+        }
+
+        .topbar p {
+            margin: 0;
+            color: var(--muted);
+        }
+
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 1rem;
+        }
+
+        .login-grid,
+        .filter-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 0.8rem;
+            align-items: end;
+        }
+
+        .login-grid {
+            grid-template-columns: 1fr 1fr 1fr auto;
+        }
+
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 0.75rem;
+        }
+
+        .metric {
+            background: var(--panel-2);
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            padding: 0.8rem;
+        }
+
+        .metric span {
+            display: block;
+            color: var(--muted);
+            font-size: 0.78rem;
+            font-weight: 700;
+        }
+
+        .metric strong {
+            display: block;
+            margin-top: 0.25rem;
+            font-size: 1.1rem;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 58rem;
+        }
+
+        th, td {
+            padding: 0.72rem;
+            border-bottom: 1px solid var(--line);
+            text-align: left;
+            vertical-align: top;
+        }
+
+        th {
+            color: var(--muted);
+            font-size: 0.78rem;
+            background: #151a22;
+        }
+
+        tr:last-child td {
+            border-bottom: 0;
+        }
+
+        .path {
+            max-width: 32rem;
+            overflow-wrap: anywhere;
+            color: var(--text);
+        }
+
+        .sub {
+            color: var(--muted);
+            font-size: 0.82rem;
+            margin-top: 0.2rem;
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            border-radius: 999px;
+            padding: 0.18rem 0.5rem;
+            font-size: 0.76rem;
+            font-weight: 800;
+            background: #111821;
+            border: 1px solid var(--line);
+        }
+
+        .pill.keep { color: var(--ok); }
+        .pill.remove { color: var(--danger); }
+
+        .status {
+            min-height: 1.4rem;
+            color: var(--muted);
+        }
+
+        .status.error {
+            color: var(--danger);
+        }
+
+        .empty {
+            color: var(--muted);
+            text-align: center;
+            padding: 2rem 1rem;
+        }
+
+        .actions {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+        }
+
+        @media (max-width: 920px) {
+            .shell {
+                grid-template-columns: 1fr;
+            }
+
+            .side {
+                border-right: 0;
+                border-bottom: 1px solid var(--line);
+            }
+
+            .login-grid,
+            .filter-grid,
+            .summary {
+                grid-template-columns: 1fr;
+            }
+
+            .topbar {
+                display: grid;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="shell">
+    <aside class="side">
+        <div class="brand">
+            <div class="mark" aria-hidden="true">DC</div>
+            <h1>DaCollector</h1>
+        </div>
+        <nav class="nav" aria-label="DaCollector admin">
+            <a href="/webui">Web UI</a>
+            <a class="active" href="/webui/dacollector-duplicates.html">Duplicates</a>
+            <a href="/swagger">API</a>
+        </nav>
+    </aside>
+
+    <main class="main">
+        <div class="topbar">
+            <div>
+                <h2>Duplicate Review</h2>
+                <p id="sessionLabel">Not signed in</p>
+            </div>
+            <div class="actions">
+                <button class="secondary" id="clearTokenButton" type="button">Sign Out</button>
+                <button id="refreshButton" type="button">Refresh</button>
+            </div>
+        </div>
+
+        <section class="panel" id="loginPanel">
+            <form class="login-grid" id="loginForm">
+                <label>Username
+                    <input id="username" autocomplete="username" value="Default">
+                </label>
+                <label>Password
+                    <input id="password" type="password" autocomplete="current-password">
+                </label>
+                <label>Device
+                    <input id="device" value="duplicate-review">
+                </label>
+                <button type="submit">Sign In</button>
+            </form>
+        </section>
+
+        <section class="panel">
+            <form class="filter-grid" id="filterForm">
+                <label>Preferred folder ID
+                    <input id="preferredManagedFolderID" inputmode="numeric" placeholder="Any">
+                </label>
+                <label>Preferred path contains
+                    <input id="preferredPathContains" placeholder="Movies, TV, 4K">
+                </label>
+                <label>Page size
+                    <input id="pageSize" inputmode="numeric" value="50">
+                </label>
+                <label>Page
+                    <input id="page" inputmode="numeric" value="1">
+                </label>
+            </form>
+        </section>
+
+        <section class="summary" id="summary"></section>
+
+        <section class="panel">
+            <div class="status" id="status"></div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Action</th>
+                        <th>File</th>
+                        <th>Folder</th>
+                        <th>State</th>
+                        <th>Reason</th>
+                        <th>Reclaim</th>
+                    </tr>
+                    </thead>
+                    <tbody id="planRows">
+                    <tr><td class="empty" colspan="6">Sign in and refresh.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</div>
+
+<script>
+    const tokenKey = 'daccollector.apikey';
+    const els = {
+        loginPanel: document.getElementById('loginPanel'),
+        loginForm: document.getElementById('loginForm'),
+        username: document.getElementById('username'),
+        password: document.getElementById('password'),
+        device: document.getElementById('device'),
+        preferredManagedFolderID: document.getElementById('preferredManagedFolderID'),
+        preferredPathContains: document.getElementById('preferredPathContains'),
+        pageSize: document.getElementById('pageSize'),
+        page: document.getElementById('page'),
+        summary: document.getElementById('summary'),
+        status: document.getElementById('status'),
+        planRows: document.getElementById('planRows'),
+        sessionLabel: document.getElementById('sessionLabel'),
+        refreshButton: document.getElementById('refreshButton'),
+        clearTokenButton: document.getElementById('clearTokenButton')
+    };
+
+    function getToken() {
+        return sessionStorage.getItem(tokenKey) || localStorage.getItem(tokenKey) || '';
+    }
+
+    function setToken(token) {
+        sessionStorage.setItem(tokenKey, token);
+        updateSession();
+    }
+
+    function clearToken() {
+        sessionStorage.removeItem(tokenKey);
+        localStorage.removeItem(tokenKey);
+        updateSession();
+    }
+
+    function updateSession() {
+        const signedIn = Boolean(getToken());
+        els.loginPanel.hidden = signedIn;
+        els.sessionLabel.textContent = signedIn ? 'Signed in for API access' : 'Not signed in';
+    }
+
+    function setBusy(isBusy) {
+        els.refreshButton.disabled = isBusy;
+        els.clearTokenButton.disabled = isBusy;
+    }
+
+    function setStatus(message, isError = false) {
+        els.status.textContent = message;
+        els.status.classList.toggle('error', isError);
+    }
+
+    function formatBytes(bytes) {
+        const value = Number(bytes || 0);
+        if (value < 1024) return `${value} B`;
+        const units = ['KB', 'MB', 'GB', 'TB', 'PB'];
+        let size = value / 1024;
+        let unit = 0;
+        while (size >= 1024 && unit < units.length - 1) {
+            size /= 1024;
+            unit += 1;
+        }
+        return `${size.toFixed(size >= 10 ? 1 : 2)} ${units[unit]}`;
+    }
+
+    function apiHeaders() {
+        const token = getToken();
+        return token ? { apikey: token } : {};
+    }
+
+    async function apiFetch(path, options = {}) {
+        const response = await fetch(path, {
+            ...options,
+            headers: {
+                ...(options.headers || {}),
+                ...apiHeaders()
+            }
+        });
+        if (response.status === 401) {
+            clearToken();
+            throw new Error('Authentication failed.');
+        }
+        if (!response.ok) {
+            const text = await response.text();
+            throw new Error(text || `Request failed with ${response.status}`);
+        }
+        return response.json();
+    }
+
+    function buildQuery() {
+        const query = new URLSearchParams();
+        const preferredManagedFolderID = els.preferredManagedFolderID.value.trim();
+        const preferredPathContains = els.preferredPathContains.value.trim();
+        query.set('pageSize', String(Math.max(1, Number(els.pageSize.value || 50))));
+        query.set('page', String(Math.max(1, Number(els.page.value || 1))));
+        if (preferredManagedFolderID) query.set('preferredManagedFolderID', preferredManagedFolderID);
+        if (preferredPathContains) query.set('preferredPathContains', preferredPathContains);
+        return query;
+    }
+
+    function renderSummary(summary) {
+        const metrics = [
+            ['Sets', prop(summary, 'SetCount', 'setCount')],
+            ['Locations', prop(summary, 'LocationCount', 'locationCount')],
+            ['Remove candidates', prop(summary, 'SuggestedRemoveLocationCount', 'suggestedRemoveLocationCount')],
+            ['Available reclaim', formatBytes(prop(summary, 'AvailablePotentialReclaimBytes', 'availablePotentialReclaimBytes'))],
+            ['Unavailable removes', prop(summary, 'UnavailableRemoveLocationCount', 'unavailableRemoveLocationCount')]
+        ];
+        els.summary.innerHTML = metrics.map(([label, value]) => `
+            <div class="metric">
+                <span>${escapeHtml(label)}</span>
+                <strong>${escapeHtml(String(value ?? 0))}</strong>
+            </div>
+        `).join('');
+    }
+
+    function renderPlans(result) {
+        const plans = prop(result, 'List', 'list') || [];
+        if (plans.length === 0) {
+            els.planRows.innerHTML = '<tr><td class="empty" colspan="6">No exact duplicates found.</td></tr>';
+            return;
+        }
+
+        els.planRows.innerHTML = plans.flatMap(plan => {
+            const rows = [];
+            const keepLocation = prop(plan, 'KeepLocation', 'keepLocation');
+            const removeCandidates = prop(plan, 'RemoveCandidates', 'removeCandidates') || [];
+            if (keepLocation) rows.push(renderLocationRow(plan, keepLocation, true));
+            for (const location of removeCandidates) rows.push(renderLocationRow(plan, location, false));
+            return rows;
+        }).join('');
+    }
+
+    function renderLocationRow(plan, location, isKeep) {
+        const action = isKeep ? 'Keep' : 'Remove';
+        const isAvailable = Boolean(prop(location, 'IsAvailable', 'isAvailable'));
+        const reclaim = isKeep || !isAvailable ? '' : formatBytes(prop(plan, 'FileSize', 'fileSize'));
+        const fullPath = prop(location, 'Path', 'path') ||
+            prop(location, 'RelativePath', 'relativePath') ||
+            prop(location, 'FileName', 'fileName') ||
+            '';
+        const locationID = prop(location, 'LocationID', 'locationID');
+        const videoID = prop(location, 'VideoID', 'videoID');
+        const folderName = prop(location, 'ManagedFolderName', 'managedFolderName') ||
+            String(prop(location, 'ManagedFolderID', 'managedFolderID') || '');
+        const reason = prop(location, 'SelectionReason', 'selectionReason') || '';
+
+        return `
+            <tr>
+                <td><span class="pill ${isKeep ? 'keep' : 'remove'}">${action}</span></td>
+                <td>
+                    <div class="path">${escapeHtml(fullPath)}</div>
+                    <div class="sub">Location ${escapeHtml(String(locationID))} / Video ${escapeHtml(String(videoID))}</div>
+                </td>
+                <td>${escapeHtml(folderName)}</td>
+                <td>${isAvailable ? 'Available' : 'Unavailable'}</td>
+                <td>${escapeHtml(reason)}</td>
+                <td>${escapeHtml(reclaim)}</td>
+            </tr>
+        `;
+    }
+
+    function escapeHtml(value) {
+        return String(value)
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#039;');
+    }
+
+    async function refresh() {
+        if (!getToken()) {
+            updateSession();
+            setStatus('Sign in first.', true);
+            return;
+        }
+
+        setBusy(true);
+        setStatus('Loading duplicate cleanup plan...');
+        try {
+            const query = buildQuery();
+            const summaryQuery = new URLSearchParams(query);
+            summaryQuery.delete('pageSize');
+            summaryQuery.delete('page');
+            const [summary, plans] = await Promise.all([
+                apiFetch(`/api/v3/Duplicates/Exact/Summary?${summaryQuery}`),
+                apiFetch(`/api/v3/Duplicates/Exact/CleanupPlan?${query}`)
+            ]);
+            renderSummary(summary);
+            renderPlans(plans);
+            const total = prop(plans, 'Total', 'total') ?? 0;
+            setStatus(`Loaded ${total} duplicate cleanup plan${total === 1 ? '' : 's'}.`);
+        } catch (error) {
+            setStatus(error.message || String(error), true);
+        } finally {
+            setBusy(false);
+        }
+    }
+
+    function prop(source, pascalName, camelName) {
+        if (!source) return undefined;
+        if (Object.prototype.hasOwnProperty.call(source, pascalName)) return source[pascalName];
+        return source[camelName];
+    }
+
+    els.loginForm.addEventListener('submit', async event => {
+        event.preventDefault();
+        setBusy(true);
+        setStatus('Signing in...');
+        try {
+            const response = await fetch('/api/auth', {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({
+                    user: els.username.value.trim(),
+                    pass: els.password.value,
+                    device: els.device.value.trim() || 'duplicate-review'
+                })
+            });
+            if (!response.ok) throw new Error('Unable to sign in.');
+            const body = await response.json();
+            if (!body.apikey) throw new Error('Sign in did not return an API key.');
+            setToken(body.apikey);
+            els.password.value = '';
+            await refresh();
+        } catch (error) {
+            setStatus(error.message || String(error), true);
+        } finally {
+            setBusy(false);
+        }
+    });
+
+    els.refreshButton.addEventListener('click', refresh);
+    els.clearTokenButton.addEventListener('click', () => {
+        clearToken();
+        setStatus('Signed out.');
+        els.planRows.innerHTML = '<tr><td class="empty" colspan="6">Sign in and refresh.</td></tr>';
+    });
+    document.getElementById('filterForm').addEventListener('submit', event => event.preventDefault());
+    for (const input of [els.preferredManagedFolderID, els.preferredPathContains, els.pageSize, els.page]) {
+        input.addEventListener('change', () => {
+            if (getToken()) refresh();
+        });
+    }
+
+    updateSession();
+    renderSummary({});
+    if (getToken()) refresh();
+</script>
+</body>
+</html>
