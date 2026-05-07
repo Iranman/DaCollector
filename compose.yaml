@@ -5,7 +5,7 @@ services:
       context: .
       dockerfile: "${DACOLLECTOR_DOCKERFILE:-Dockerfile}"
       args:
-        version: "${DACOLLECTOR_BUILD_VERSION:-0.0.0-local}"
+        version: "${DACOLLECTOR_BUILD_VERSION:-0.0.1-local}"
         channel: "${DACOLLECTOR_BUILD_CHANNEL:-local}"
         commit: "${DACOLLECTOR_BUILD_COMMIT:-local}"
         tag: "${DACOLLECTOR_BUILD_TAG:-local}"

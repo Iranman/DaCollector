@@ -799,18 +799,30 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         var newRef = referencedAssemblies.FirstOrDefault(r => r.Name is "DaCollector.Abstractions");
         isLegacyNamespace = legacyRef is not null && newRef is null;
         metadataAttributeDict = [];
+        var allowCoreFallback = assembly == typeof(PluginManager).Assembly;
         var abstractionVersion = (isLegacyNamespace ? legacyRef : newRef)?.Version is { Major: var abiMajor, Minor: var abiMinor, Build: var abiBuild }
             ? new Version(abiMajor, abiMinor, abiBuild)
             : new(0, 0, 0);
-        // Silently skip DLLs which doesn't reference the abstraction.
         if (abstractionVersion <= _invalidVersion)
-            return null;
+        {
+            // Silently skip plugin DLLs which do not reference the abstraction, but keep
+            // local server builds bootable even when build metadata is incomplete.
+            if (!allowCoreFallback)
+                return null;
+
+            abstractionVersion = GetLoadedAbstractionVersion();
+        }
 
         var version = assembly.GetName().Version is { Major: var assMajor, Minor: var assMinor, Build: var assBuild, Revision: var assRevision }
             ? assRevision is <= 0 ? new(assMajor, assMinor, assBuild) : new(assMajor, assMinor, assBuild, assRevision)
             : new Version(0, 0, 0, 0);
         if (version <= _invalidVersion)
-            return null;
+        {
+            if (!allowCoreFallback)
+                return null;
+
+            version = new(0, 0, 1);
+        }
 
         metadataAttributeDict = assembly.GetCustomAttributes<AssemblyMetadataAttribute>()
             .Select(a => KeyValuePair.Create(a.Key, a.Value))
@@ -877,6 +889,14 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                 .Select(raw => raw.Split("="))
                 .Where(pair => pair.Length == 2 && !string.IsNullOrEmpty(pair[1]))
                 .ToDictionary(pair => pair[0], pair => pair[1]);
+    }
+
+    private static Version GetLoadedAbstractionVersion()
+    {
+        var version = typeof(IPlugin).Assembly.GetName().Version is { Major: var major, Minor: var minor, Build: var build }
+            ? new Version(major, minor, build)
+            : new Version(0, 0, 1);
+        return version > _invalidVersion ? version : new(0, 0, 1);
     }
 
     #endregion

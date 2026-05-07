@@ -1,10 +1,10 @@
 FROM --platform=linux/amd64 mcr.microsoft.com/dotnet/sdk:10.0 AS build
 
-ARG version
-ARG channel
-ARG commit
-ARG tag
-ARG date
+ARG version=0.0.1-local
+ARG channel=local
+ARG commit=local
+ARG tag=local
+ARG date=local
 
 #MAINTAINER Cayde Dixon <me@cazzar.net>
 
@@ -37,8 +37,8 @@ COPY ./dockerentry.sh /dockerentry.sh
 
 VOLUME /home/dacollector/.dacollector/
 
-HEALTHCHECK --start-period=5m CMD curl -s -H "Content-Type: application/json" -H 'Accept: application/json' 'http://localhost:8111/api/v3/Init/Status' || exit 1
+HEALTHCHECK --start-period=5m CMD curl -s -H "Content-Type: application/json" -H 'Accept: application/json' 'http://localhost:38111/api/v3/Init/Status' || exit 1
 
-EXPOSE 8111
+EXPOSE 38111
 
 ENTRYPOINT ["/bin/bash", "/dockerentry.sh"]

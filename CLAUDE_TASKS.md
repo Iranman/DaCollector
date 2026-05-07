@@ -315,6 +315,33 @@ Acceptance criteria:
 - A TrueNAS user can tell whether the container is really hung or just changing ownership.
 - Docker install docs explain the slow-start symptom and the preferred fix.
 
+### ✅ P3.10 — Fix Local Docker Build Version Crash — DONE
+
+Context:
+- TrueNAS local Docker build continued past ownership repair, then crashed before server startup:
+  - `System.NullReferenceException`
+  - `DaCollector.Server.Plugin.PluginManager..ctor(...)`
+  - `PluginManager.cs:line 50`
+- The local Compose build used `DACOLLECTOR_BUILD_VERSION:-0.0.0-local`, producing invalid `0.0.0.0` assembly metadata.
+- `PluginManager.GetVersionInformation()` returned `null` for the core server assembly, then `systemService.Version.AbstractionVersion` was dereferenced during startup.
+
+Files:
+- `DaCollector.Server/Plugin/PluginManager.cs`
+- `compose.yaml`
+- `Dockerfile`
+- `Dockerfile.aarch64`
+
+Fix:
+- Core server version detection now falls back to a valid local version when assembly metadata is incomplete.
+- Local Docker build defaults now use `0.0.1-local` instead of `0.0.0-local`.
+- Dockerfile build args now have non-empty local defaults.
+- `Dockerfile.aarch64` healthcheck/expose port was corrected to `38111`.
+
+Acceptance criteria:
+- A local Docker build no longer crashes at `PluginManager.cs:line 50`.
+- `docker compose up -d --build` reaches server startup after the entrypoint finishes.
+- `/api/v3/Init/Status` becomes reachable on port `38111`, unless a later startup error appears.
+
 ---
 
 ## Verification Commands

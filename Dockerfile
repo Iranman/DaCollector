@@ -1,10 +1,10 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 
-ARG version
-ARG channel
-ARG commit
-ARG tag
-ARG date
+ARG version=0.0.1-local
+ARG channel=local
+ARG commit=local
+ARG tag=local
+ARG date=local
 
 #MAINTAINER Cayde Dixon <me@cazzar.net>
 
