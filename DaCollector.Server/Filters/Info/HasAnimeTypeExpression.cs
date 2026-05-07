@@ -16,17 +16,17 @@ public class HasAnimeTypeExpression : FilterExpression<bool>, IWithStringParamet
 
     public string Parameter { get; set; }
 
-    public AnimeType AnimeType => Enum.TryParse<AnimeType>(Parameter, true, out var animeType) ? animeType : AnimeType.Unknown;
+    public MediaType MediaType => Enum.TryParse<MediaType>(Parameter, true, out var MediaType) ? MediaType : MediaType.Unknown;
 
     public override string HelpDescription => "This condition passes if any of the anime are of the specified type";
 
-    private static string[] HelpParameters => Enum.GetValues<AnimeType>().Select(x => x.ToString()).ToArray();
+    private static string[] HelpParameters => Enum.GetValues<MediaType>().Select(x => x.ToString()).ToArray();
 
     public override string[] HelpPossibleParameters => HelpParameters;
 
     public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo userInfo, DateTime? time)
     {
-        return filterable.AnimeTypes.Contains(AnimeType);
+        return filterable.AnimeTypes.Contains(MediaType);
     }
 
     protected bool Equals(HasAnimeTypeExpression other)

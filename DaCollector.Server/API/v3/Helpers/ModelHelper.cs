@@ -411,27 +411,27 @@ public static class ModelHelper
         foreach (var series in seriesList)
         {
             var anime = series.AniDB_Anime;
-            switch (anime?.AnimeType)
+            switch (anime?.MediaType)
             {
-                case AnimeType.Other:
+                case MediaType.Other:
                     sizes.SeriesTypes.Other++;
                     break;
-                case AnimeType.TVSeries:
+                case MediaType.TVSeries:
                     sizes.SeriesTypes.TV++;
                     break;
-                case AnimeType.TVSpecial:
+                case MediaType.TVSpecial:
                     sizes.SeriesTypes.TVSpecial++;
                     break;
-                case AnimeType.Web:
+                case MediaType.Web:
                     sizes.SeriesTypes.Web++;
                     break;
-                case AnimeType.Movie:
+                case MediaType.Movie:
                     sizes.SeriesTypes.Movie++;
                     break;
-                case AnimeType.OVA:
+                case MediaType.OVA:
                     sizes.SeriesTypes.OVA++;
                     break;
-                case AnimeType.MusicVideo:
+                case MediaType.MusicVideo:
                     sizes.SeriesTypes.MusicVideo++;
                     break;
                 default:

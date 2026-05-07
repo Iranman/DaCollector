@@ -8,7 +8,7 @@ namespace DaCollector.Server.API.v3.Models.AniDB;
 /// show this is.
 /// </summary>
 [JsonConverter(typeof(StringEnumConverter))]
-public enum AnimeType
+public enum MediaType
 {
     /// <summary>
     /// The series type is unknown.

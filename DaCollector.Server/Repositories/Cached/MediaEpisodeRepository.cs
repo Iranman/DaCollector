@@ -225,9 +225,9 @@ GROUP BY
             : RepoFactory.MediaSeries.GetWithMissingEpisodes(collecting);
         foreach (var series in allSeries)
         {
-            var animeType = series.AniDB_Anime!.AnimeType;
-            var episodeReleasedList = new MediaSeriesService.EpisodeList(animeType);
-            var episodeReleasedGroupList = new MediaSeriesService.EpisodeList(animeType);
+            var MediaType = series.AniDB_Anime!.MediaType;
+            var episodeReleasedList = new MediaSeriesService.EpisodeList(MediaType);
+            var episodeReleasedGroupList = new MediaSeriesService.EpisodeList(MediaType);
             var animeGroupStatuses = RepoFactory.AniDB_GroupStatus.GetByAnimeID(series.AniDB_ID);
             var allEpisodes = series.AllAnimeEpisodes
                 .Select(episode => (episode, MetadataEpisode: episode.AniDB_Episode!, videos: episode.VideoLocals))

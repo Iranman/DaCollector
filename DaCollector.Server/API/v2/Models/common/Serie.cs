@@ -66,7 +66,7 @@ public class Serie : BaseDirectory, IComparable
                 .ToString(CultureInfo.InvariantCulture),
             votes = anime.VoteCount.ToString(),
             name = anime.MainTitle,
-            ismovie = anime.AnimeType is AnimeType.Movie ? 1 : 0
+            ismovie = anime.MediaType is MediaType.Movie ? 1 : 0
         };
 
         if (anime.AirDate.HasValue)

@@ -44,7 +44,7 @@ public class MetadataAnime
     /// Series type. Series, OVA, Movie, etc
     /// </summary>
     [Required, JsonConverter(typeof(StringEnumConverter))]
-    public AnimeType Type { get; set; }
+    public MediaType Type { get; set; }
 
     /// <summary>
     /// Preferred title.
@@ -116,7 +116,7 @@ public class MetadataAnime
             ArgumentNullException.ThrowIfNull(anime);
             series ??= RepoFactory.MediaSeries.GetByAnimeID(animeId);
             DaCollectorID = series?.MediaSeriesID;
-            Type = anime.AnimeType.ToV3Dto();
+            Type = anime.MediaType.ToV3Dto();
             Title = series?.Title ?? anime.Title;
             Titles = includeTitles
                 ? anime.Titles.Select(title => new Title(title, anime.MainTitle, Title)).ToList()
@@ -139,7 +139,7 @@ public class MetadataAnime
         }
         else if ((result ??= TitleHelper.SearchAnimeID(animeId)) is not null)
         {
-            Type = AnimeType.Unknown;
+            Type = MediaType.Unknown;
             Title = result.Title;
             Titles = includeTitles
                 ? result.Titles.Select(
@@ -158,7 +158,7 @@ public class MetadataAnime
         }
         else
         {
-            Type = AnimeType.Unknown;
+            Type = MediaType.Unknown;
             Title = string.Empty;
             Titles = includeTitles ? [] : null;
             Poster = new Image(animeId, ImageEntityType.Poster, DataSource.AniDB);
@@ -176,7 +176,7 @@ public class MetadataAnime
     {
         Relation = relation.RelationType;
         // If the other anime is present we assume they're of the same kind. Be it restricted or unrestricted.
-        if (Type == AnimeType.Unknown && TitleHelper.SearchAnimeID(relation.RelatedID) is not null)
+        if (Type == MediaType.Unknown && TitleHelper.SearchAnimeID(relation.RelatedID) is not null)
             Restricted = RepoFactory.AniDB_Anime.GetByAnimeID(relation.BaseID) is { IsRestricted: true };
     }
 

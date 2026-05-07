@@ -885,7 +885,7 @@ public class MediaSeries : IDaCollectorSeries
 
     #region ISeries Implementation
 
-    AnimeType ISeries.Type => AniDB_Anime?.AnimeType ?? AnimeType.Unknown;
+    MediaType ISeries.Type => AniDB_Anime?.MediaType ?? MediaType.Unknown;
 
     IReadOnlyList<int> ISeries.DaCollectorSeriesIDs => [MediaSeriesID];
 

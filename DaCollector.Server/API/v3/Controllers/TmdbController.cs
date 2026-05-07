@@ -29,7 +29,7 @@ using DaCollector.Server.Repositories;
 using DaCollector.Server.Settings;
 using DaCollector.Server.Utilities;
 
-using AnimeType = DaCollector.Abstractions.Metadata.Enums.AnimeType;
+using MediaType = DaCollector.Abstractions.Metadata.Enums.MediaType;
 using EpisodeType = DaCollector.Abstractions.Metadata.Enums.EpisodeType;
 using MatchRating = DaCollector.Abstractions.Metadata.Enums.MatchRating;
 using TitleLanguage = DaCollector.Abstractions.Metadata.Enums.TitleLanguage;
@@ -2837,15 +2837,15 @@ public partial class TmdbController : BaseController
 
     private const string EpisodeCrossReferenceWithIdHeader = "AnidbAnimeId,AnidbEpisodeId,TmdbShowId,TmdbEpisodeId,Rating";
 
-    private string MapAnimeType(AnimeType? type) =>
+    private string MapAnimeType(MediaType? type) =>
         type switch
         {
-            AnimeType.Movie => "MV",
-            AnimeType.OVA => "VA",
-            AnimeType.TVSeries => "TV",
-            AnimeType.TVSpecial => "SP",
-            AnimeType.Web => "WB",
-            AnimeType.Other => "OT",
+            MediaType.Movie => "MV",
+            MediaType.OVA => "VA",
+            MediaType.TVSeries => "TV",
+            MediaType.TVSpecial => "SP",
+            MediaType.Web => "WB",
+            MediaType.Other => "OT",
             _ => "??",
         };
 
@@ -2904,7 +2904,7 @@ public partial class TmdbController : BaseController
                     return
                     [
                         "",
-                        $"# AniDB: {MapAnimeType(anime?.AnimeType)} ``{animeTitle}`` (a{xref.AnidbAnimeID}) {episodeNumber} ``{episodeTitle}`` (e{xref.AnidbEpisodeID}) → TMDB: ``{movieTitle}`` (m{xref.TmdbMovieID})",
+                        $"# AniDB: {MapAnimeType(anime?.MediaType)} ``{animeTitle}`` (a{xref.AnidbAnimeID}) {episodeNumber} ``{episodeTitle}`` (e{xref.AnidbEpisodeID}) → TMDB: ``{movieTitle}`` (m{xref.TmdbMovieID})",
                         entry,
                     ];
                 })
@@ -2967,7 +2967,7 @@ public partial class TmdbController : BaseController
                     return
                     [
                         "",
-                        $"# AniDB: {MapAnimeType(MetadataAnime?.AnimeType)} ``{anidbAnimeTitle}`` (a{xref.AnidbAnimeID}) → TMDB: ``{tmdbShowTitle}`` (s{xref.TmdbShowID})",
+                        $"# AniDB: {MapAnimeType(MetadataAnime?.MediaType)} ``{anidbAnimeTitle}`` (a{xref.AnidbAnimeID}) → TMDB: ``{tmdbShowTitle}`` (s{xref.TmdbShowID})",
                         entry,
                     ];
                 })
@@ -3040,7 +3040,7 @@ public partial class TmdbController : BaseController
                     return
                     [
                         "",
-                        $"# AniDB: {MapAnimeType(MetadataAnime?.AnimeType)} ``{anidbAnimeTitle}`` (a{xref.AnidbAnimeID}) {anidbEpisodeNumber} ``{anidbEpisodeTitle}`` (e{xref.AnidbEpisodeID}) → TMDB: ``{tmdbShowTitle}`` (s{xref.TmdbShowID}) {tmdbEpisodeNumber} ``{tmdbEpisodeTitle}`` (e{xref.TmdbEpisodeID})",
+                        $"# AniDB: {MapAnimeType(MetadataAnime?.MediaType)} ``{anidbAnimeTitle}`` (a{xref.AnidbAnimeID}) {anidbEpisodeNumber} ``{anidbEpisodeTitle}`` (e{xref.AnidbEpisodeID}) → TMDB: ``{tmdbShowTitle}`` (s{xref.TmdbShowID}) {tmdbEpisodeNumber} ``{tmdbEpisodeTitle}`` (e{xref.TmdbEpisodeID})",
                         entry,
                     ];
                 })

@@ -21,7 +21,7 @@ using DaCollector.Server.Scheduling;
 using DaCollector.Server.Scheduling.Jobs.Actions;
 using DaCollector.Server.Utilities;
 
-using AnimeType = DaCollector.Abstractions.Metadata.Enums.AnimeType;
+using MediaType = DaCollector.Abstractions.Metadata.Enums.MediaType;
 using EpisodeType = DaCollector.Abstractions.Metadata.Enums.EpisodeType;
 
 #nullable enable
@@ -246,7 +246,7 @@ public class MediaSeriesService
 
     private void UpdateMissingEpisodeStats(MediaSeries series, IReadOnlyList<MediaEpisode> eps, string name, ref DateTime start)
     {
-        var animeType = series.AniDB_Anime?.AnimeType ?? AnimeType.TVSeries;
+        var MediaType = series.AniDB_Anime?.MediaType ?? MediaType.TVSeries;
 
         series.MissingEpisodeCount = 0;
         series.MissingEpisodeCountGroups = 0;
@@ -262,8 +262,8 @@ public class MediaSeriesService
 
         var latestLocalEpNumber = 0;
         DateTime? lastEpAirDate = null;
-        var epReleasedList = new EpisodeList(animeType);
-        var epGroupReleasedList = new EpisodeList(animeType);
+        var epReleasedList = new EpisodeList(MediaType);
+        var epGroupReleasedList = new EpisodeList(MediaType);
         var daysofweekcounter = new Dictionary<DayOfWeek, int>();
 
         var userReleaseGroups = eps
@@ -796,12 +796,12 @@ public class MediaSeriesService
 
     internal class EpisodeList : List<EpisodeList.StatEpisodes>
     {
-        public EpisodeList(AnimeType ept)
+        public EpisodeList(MediaType ept)
         {
-            AnimeType = ept;
+            MediaType = ept;
         }
 
-        private AnimeType AnimeType { get; set; }
+        private MediaType MediaType { get; set; }
 
         private readonly Regex partmatch = new("part (\\d.*?) of (\\d.*)");
 
@@ -811,7 +811,7 @@ public class MediaSeriesService
 
         public void Add(MediaEpisode ep, bool available)
         {
-            if (AnimeType == AnimeType.OVA || AnimeType == AnimeType.Movie)
+            if (MediaType == MediaType.OVA || MediaType == MediaType.Movie)
             {
                 var ename = ep.Title;
                 var empty = string.IsNullOrEmpty(ename);

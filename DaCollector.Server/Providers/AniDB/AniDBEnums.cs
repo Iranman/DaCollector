@@ -256,7 +256,7 @@ public enum EpisodeType
     Other = 6,
 }
 
-public enum AnimeType
+public enum MediaType
 {
     Unknown = -1, // Not on AniDB or not yet assigned a type.
     Movie = 0,

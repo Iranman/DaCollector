@@ -73,8 +73,8 @@ public class Series : BaseModel
     /// The inferred days of the week this series airs on.
     /// </summary>
     /// <remarks>
-    /// Will only be set for series of type <see cref="AnimeType.TV"/> and
-    /// <see cref="AnimeType.Web"/>.
+    /// Will only be set for series of type <see cref="MediaType.TV"/> and
+    /// <see cref="MediaType.Web"/>.
     /// </remarks>
     /// <value>Each weekday</value>
     [Required, JsonProperty(ItemConverterType = typeof(StringEnumConverter))]
@@ -128,7 +128,7 @@ public class Series : BaseModel
     {
         var anime = ser.AniDB_Anime ??
             throw new NullReferenceException($"Unable to get AniDB Anime {ser.AniDB_ID} for MediaSeries {ser.MediaSeriesID}");
-        var animeType = anime.AnimeType.ToV3Dto();
+        var MediaType = anime.MediaType.ToV3Dto();
         var allEpisodes = ser.AllAnimeEpisodes;
         var userData = RepoFactory.MediaSeries_User.GetByUserAndSeriesID(userId, ser.MediaSeriesID);
         var tmdbMovieXRefs = ser.TmdbMovieCrossReferences;
@@ -161,7 +161,7 @@ public class Series : BaseModel
         Description = ser.PreferredOverview?.Value ?? string.Empty;
         IsFavorite = userData?.IsFavorite ?? false;
         Images = ser.GetImages().ToDto(preferredImages: true, randomizeImages: randomizeImages);
-        AirsOn = animeType == AnimeType.TV || animeType == AnimeType.Web ? GetAirsOnDaysOfWeek(allEpisodes) : [];
+        AirsOn = MediaType == MediaType.TV || MediaType == MediaType.Web ? GetAirsOnDaysOfWeek(allEpisodes) : [];
         YearlySeasons = anime.YearlySeasons
             .Select(x => new SeasonWithYear(x.Year, x.Season))
             .ToList();

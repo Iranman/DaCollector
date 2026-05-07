@@ -54,7 +54,7 @@ public class TestFilterable : IFilterableInfo
     public double HighestAniDBRating { get; init; }
     public IReadOnlySet<string> VideoSources { get; init; }
     public IReadOnlySet<string> SharedVideoSources { get; init; }
-    public IReadOnlySet<AnimeType> AnimeTypes { get; init; }
+    public IReadOnlySet<MediaType> AnimeTypes { get; init; }
     public IReadOnlySet<string> AudioLanguages { get; init; }
     public IReadOnlySet<string> SharedAudioLanguages { get; init; }
     public IReadOnlySet<string> SubtitleLanguages { get; init; }

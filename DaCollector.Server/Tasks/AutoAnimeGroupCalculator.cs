@@ -104,8 +104,8 @@ public class AutoAnimeGroupCalculator
         var relationshipList = BaseRepository.Lock(session, s => s.CreateSQLQuery(@"
                 SELECT    fromAnime.AnimeID AS fromAnimeId
                         , toAnime.AnimeID AS toAnimeId
-                        , fromAnime.AnimeType AS fromAnimeType
-                        , toAnime.AnimeType AS toAnimeType
+                        , fromAnime.MediaType AS fromAnimeType
+                        , toAnime.MediaType AS toAnimeType
                         , fromAnime.MainTitle AS fromMainTitle
                         , toAnime.MainTitle AS toMainTitle
                         , fromAnime.AirDate AS fromAirDate
@@ -133,8 +133,8 @@ public class AutoAnimeGroupCalculator
                 {
                     FromId = (int)r[0],
                     ToId = (int)r[1],
-                    FromType = (AnimeType)r[2],
-                    ToType = (AnimeType)r[3],
+                    FromType = (MediaType)r[2],
+                    ToType = (MediaType)r[3],
                     FromMainTitle = (string)r[4],
                     ToMainTitle = (string)r[5],
                     FromAirDate = (DateTime?)r[6],
@@ -395,9 +395,9 @@ public class AutoAnimeGroupCalculator
 
         // Check if we are excluding Movies or OVAs
         if (((_exclusions & AutoGroupExclude.Movie) == AutoGroupExclude.Movie &&
-             (rel.FromType == AnimeType.Movie || rel.ToType == AnimeType.Movie))
+             (rel.FromType == MediaType.Movie || rel.ToType == MediaType.Movie))
             || ((_exclusions & AutoGroupExclude.Ova) == AutoGroupExclude.Ova &&
-                (rel.FromType == AnimeType.OVA || rel.ToType == AnimeType.OVA)))
+                (rel.FromType == MediaType.OVA || rel.ToType == MediaType.OVA)))
         {
             return false;
         }
@@ -474,13 +474,13 @@ public class AutoAnimeGroupCalculator
 
                 switch (AnimeNode.Type)
                 {
-                    case AnimeType.TVSeries:
+                    case MediaType.TVSeries:
                         score += 3;
                         break;
-                    case AnimeType.Web:
+                    case MediaType.Web:
                         score += 2;
                         break;
-                    case AnimeType.OVA:
+                    case MediaType.OVA:
                         score += 1;
                         break;
                 }
@@ -496,7 +496,7 @@ public class AutoAnimeGroupCalculator
     [DebuggerDisplay("{AnimeId} ({Type})")]
     private sealed class RelationNode
     {
-        public RelationNode(int animeId, AnimeType type, DateTime? airDate)
+        public RelationNode(int animeId, MediaType type, DateTime? airDate)
         {
             AnimeId = animeId;
             Type = type;
@@ -505,7 +505,7 @@ public class AutoAnimeGroupCalculator
 
         public int AnimeId { get; }
 
-        public AnimeType Type { get; }
+        public MediaType Type { get; }
 
         public DateTime? AirDate { get; }
     }
@@ -613,11 +613,11 @@ public class AutoAnimeGroupCalculator
     public class AnimeRelation
     {
         public int FromId;
-        public AnimeType FromType;
+        public MediaType FromType;
         public string FromMainTitle;
         public DateTime? FromAirDate;
         public int ToId;
-        public AnimeType ToType;
+        public MediaType ToType;
         public string ToMainTitle;
         public DateTime? ToAirDate;
         public AnimeRelationType RelationType;

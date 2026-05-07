@@ -651,7 +651,7 @@ public class DaCollectorServiceImplementationService(
             // we will consider the group as not having a tmdb link
             var foundTMDBShowLink = tmdbShowXrefByAnime.TryGetValue(anime.AnimeID, out var _);
             var foundTMDBMovieLink = tmdbMovieXrefByAnime.TryGetValue(anime.AnimeID, out var _);
-            var isMovie = anime.AnimeType is AnimeType.Movie;
+            var isMovie = anime.MediaType is MediaType.Movie;
 
             if (!foundTMDBShowLink && !foundTMDBMovieLink)
             {
@@ -704,7 +704,7 @@ public class DaCollectorServiceImplementationService(
         contract.Stat_AllTags = MediaGroup.Tags.Select(a => a.TagName.Trim()).ToHashSet(StringComparer.InvariantCultureIgnoreCase);
         contract.Stat_AllCustomTags = MediaGroup.CustomTags.Select(a => a.TagName).ToHashSet(StringComparer.InvariantCultureIgnoreCase);
         contract.Stat_AllTitles = MediaGroup.Titles.Select(a => a.Title).ToHashSet(StringComparer.InvariantCultureIgnoreCase);
-        contract.Stat_AnimeTypes = allSeriesForGroup.Select(a => a.AniDB_Anime!.AnimeType.ToString().Replace('_', ' ')).WhereNotNull().ToHashSet(StringComparer.InvariantCultureIgnoreCase);
+        contract.Stat_AnimeTypes = allSeriesForGroup.Select(a => a.AniDB_Anime!.MediaType.ToString().Replace('_', ' ')).WhereNotNull().ToHashSet(StringComparer.InvariantCultureIgnoreCase);
         contract.Stat_AllVideoQuality = allVidQualByGroup;
         contract.Stat_IsComplete = isComplete;
         contract.Stat_HasFinishedAiring = hasFinishedAiring;

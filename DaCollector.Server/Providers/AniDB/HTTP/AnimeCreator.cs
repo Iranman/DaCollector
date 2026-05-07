@@ -26,7 +26,7 @@ using DaCollector.Server.Server;
 using DaCollector.Server.Settings;
 using DaCollector.Server.Utilities;
 
-using AbstractAnimeType = DaCollector.Abstractions.Metadata.Enums.AnimeType;
+using AbstractAnimeType = DaCollector.Abstractions.Metadata.Enums.MediaType;
 using AbstractEpisodeType = DaCollector.Abstractions.Metadata.Enums.EpisodeType;
 
 namespace DaCollector.Server.Providers.AniDB.HTTP;
@@ -189,9 +189,9 @@ public class AnimeCreator
             shouldUpdateFiles = true;
         }
 
-        if (anime.AnimeType != (AbstractAnimeType)animeInfo.AnimeType)
+        if (anime.MediaType != (AbstractAnimeType)animeInfo.MediaType)
         {
-            anime.AnimeType = (AbstractAnimeType)animeInfo.AnimeType;
+            anime.MediaType = (AbstractAnimeType)animeInfo.MediaType;
             isUpdated = true;
             shouldUpdateFiles = true;
         }

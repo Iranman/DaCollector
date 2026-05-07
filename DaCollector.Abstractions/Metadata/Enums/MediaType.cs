@@ -4,7 +4,7 @@ namespace DaCollector.Abstractions.Metadata.Enums;
 /// <summary>
 /// Type of series.
 /// </summary>
-public enum AnimeType : int
+public enum MediaType : int
 {
     /// <summary>
     /// The entry have not yet been assigned a type.

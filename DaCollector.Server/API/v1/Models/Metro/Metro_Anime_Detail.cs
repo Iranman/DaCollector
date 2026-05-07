@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Newtonsoft.Json;
 
 namespace DaCollector.Server.API.v1.Models.Metro;
 
@@ -9,7 +10,8 @@ public class Metro_Anime_Detail
     public int AnimeID { get; set; }
     public int MediaSeriesID { get; set; }
     public string AnimeName { get; set; }
-    public string AnimeType { get; set; }
+    [JsonProperty("AnimeType")]
+    public string MediaType { get; set; }
     public int BeginYear { get; set; }
     public int EndYear { get; set; }
     public int PosterImageType { get; set; }

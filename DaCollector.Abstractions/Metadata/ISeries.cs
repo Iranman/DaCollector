@@ -20,7 +20,7 @@ public interface ISeries : IWithTitles, IWithDescriptions, IWithImages, IWithCas
     /// <summary>
     /// The Anime Type.
     /// </summary>
-    AnimeType Type { get; }
+    MediaType Type { get; }
 
     /// <summary>
     /// The first aired date, if known.

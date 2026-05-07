@@ -17,7 +17,7 @@ public class AniDB_AnimeMap : ClassMap<AniDB_Anime>
         Map(x => x.AllTitles);
         Map(x => x.AllTags);
         Map(x => x.AnimeID).Not.Nullable();
-        Map(x => x.AnimeType).Not.Nullable().CustomType<AnimeType>();
+        Map(x => x.MediaType).Column("AnimeType").Not.Nullable().CustomType<MediaType>();
         Map(x => x.ANNID);
         Map(x => x.AnisonID);
         Map(x => x.SyoboiID);

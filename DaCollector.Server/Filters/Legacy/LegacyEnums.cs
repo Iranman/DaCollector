@@ -18,7 +18,7 @@ public enum CL_GroupFilterConditionType
     //Studio = 8,
     AssignedTvDBInfo = 9,
     //ReleaseGroup = 11,
-    AnimeType = 12,
+    MediaType = 12,
     VideoQuality = 13,
     Favourite = 14,
     MediaGroup = 15,

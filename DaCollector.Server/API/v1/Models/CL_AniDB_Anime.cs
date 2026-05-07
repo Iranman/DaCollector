@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Newtonsoft.Json;
 
 namespace DaCollector.Server.API.v1.Models;
 
@@ -14,7 +15,8 @@ public class CL_AniDB_Anime
     public string Picname { get; set; }
     public int BeginYear { get; set; }
     public int EndYear { get; set; }
-    public int AnimeType { get; set; }
+    [JsonProperty("AnimeType")]
+    public int MediaType { get; set; }
     public string MainTitle { get; set; }
     public string AllTitles { get; set; }
     public string AllTags { get; set; }

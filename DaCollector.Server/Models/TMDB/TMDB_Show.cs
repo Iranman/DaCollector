@@ -649,7 +649,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries, ITmdbShow, IT
 
     IReadOnlyList<int> ISeries.DaCollectorSeriesIDs => CrossReferences.Select(xref => xref.MediaSeries?.MediaSeriesID).WhereNotNull().Distinct().ToList();
 
-    AnimeType ISeries.Type => AnimeType.TVSeries;
+    MediaType ISeries.Type => MediaType.TVSeries;
 
     DateTime? ISeries.AirDate => FirstAiredAt?.ToDateTime();
 

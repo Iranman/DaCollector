@@ -96,9 +96,10 @@ Three distinct model layers; **do not mix them**.
 
 **1. Persistence models** (`DaCollector.Server/Models/`)
 NHibernate-mapped entities. Organized by source:
-- `DaCollector.Server.Models.DaCollector` — core domain: `AnimeSeries`, `AnimeGroup`, `AnimeEpisode`, `VideoLocal`, `JMMUser`, `FilterPreset`, etc.
+- `DaCollector.Server.Models.DaCollector` — core domain: `MediaSeries`, `MediaGroup`, `MediaEpisode`, `VideoLocal`, `JMMUser`, `FilterPreset`, etc.
 - `DaCollector.Server.Models.AniDB` — AniDB metadata cache: `AniDB_Anime`, `AniDB_Episode`, `AniDB_Character`, `AniDB_Creator`, `AniDB_Tag`, etc.
 - `DaCollector.Server.Models.TMDB` — TMDB metadata cache: `TMDB_Show`, `TMDB_Movie`, `TMDB_Episode`, `TMDB_Image`, etc.
+- `DaCollector.Server.Models.TVDB` — TVDB metadata cache: `TVDB_Show`, `TVDB_Movie`, `TVDB_Season`, `TVDB_Episode`, etc.
 - `DaCollector.Server.Models.CrossReference` — cross-reference tables linking providers (AniDB↔TMDB, AniDB↔MAL, AniDB↔Trakt)
 - `DaCollector.Server.Models.Release` — release/video file associations
 - `DaCollector.Server.Models.Trakt` — Trakt metadata cache
@@ -112,7 +113,7 @@ NHibernate mappings live in `DaCollector.Server/Mappings/` as `*Map.cs` files. S
 Never persisted; built from persistence models in controllers/services.
 - `v1/Models/` — legacy `CL_*` contract classes (50+ files), kept for backward compatibility
 - `v3/Models/DaCollector/` — modern response models (`Series`, `Episode`, `Group`, `File`, `User`, …) extending `BaseModel`
-- `v3/Models/AniDB/` and `v3/Models/TMDB/` — provider-specific response shapes
+- provider-specific v3 model folders — metadata response shapes for AniDB, TMDB, and newer provider surfaces
 - `v3/Models/Common/` — shared types (`Images`, `Rating`, `Tag`, `Title`, etc.)
 
 **3. Abstractions interfaces** (`DaCollector.Abstractions/`)
@@ -127,7 +128,7 @@ Two variants in `DaCollector.Server/Repositories/`:
 
 Always prefer a cached repository over a direct one when both exist for the same entity.
 
-**Access pattern**: Repositories are accessed via the `RepoFactory` static class (e.g., `RepoFactory.AnimeSeries.GetByID(id)`). `RepoFactory` is DI-registered but exposes static fields for convenience — this is a legacy pattern similar to `Utils.ServiceContainer`. This exists for compatibility where DI is unavailable, but DI should be used if possible.
+**Access pattern**: Repositories are accessed via the `RepoFactory` static class (e.g., `RepoFactory.MediaSeries.GetByID(id)`). `RepoFactory` is DI-registered but exposes static fields for convenience — this is a legacy pattern similar to `Utils.ServiceContainer`. This exists for compatibility where DI is unavailable, but DI should be used if possible.
 
 ### Scheduling
 
@@ -209,30 +210,32 @@ VideoLocal (hash+size) ──< CrossRef_File_Episode >── AniDB_Episode
 
 **`AniDB_Episode`** is the raw AniDB cache (episode number, type, air date, synopsis, rating). It has no DaCollector-specific data.
 
-**`AnimeEpisode`** wraps one `AniDB_Episode` and adds DaCollector state: hidden flag, title override, and the FK to `AnimeSeries`. All user watch data is stored in `AnimeEpisode_User`.
+**`MediaEpisode`** wraps one `AniDB_Episode` and adds DaCollector state: hidden flag, title override, and the FK to `MediaSeries`. All user watch data is stored in `MediaEpisode_User`.
 
-**`AniDB_Anime`** is the raw AniDB cache for a series (titles, synopsis, ratings, episode counts, external IDs for streaming services). One `AnimeSeries` maps to exactly one `AniDB_Anime` via `AniDB_ID`.
+**`AniDB_Anime`** is the raw AniDB cache for a series (titles, synopsis, ratings, episode counts, external IDs for streaming services). One `MediaSeries` may map to exactly one `AniDB_Anime` via `AniDB_ID` while the movie/TV conversion is still in progress.
 
-**`AnimeSeries`** is DaCollector's local wrapper around an AniDB anime. Adds name/description overrides, language preferences, TMDB auto-match flags, and missing episode counts. All user ratings live in `AnimeSeries_User`.
+**`MediaSeries`** is DaCollector's local wrapper for a scanned title or series. It keeps the inherited AniDB link where present, direct TMDB/TVDB IDs for movie and TV metadata, name/description overrides, language preferences, provider auto-match flags, and missing episode counts. All user ratings live in `MediaSeries_User`.
 
-**`AnimeGroup`** is a container for series, supporting arbitrary nesting (groups within groups via `AnimeGroupParentID`). Groups can be auto-named from their main series or manually named. `AllSeries` and `AllChildren` are recursive traversals.
+**`MediaGroup`** is a container for series, supporting arbitrary nesting (groups within groups via `MediaGroupParentID`). Groups can be auto-named from their main series or manually named. `AllSeries` and `AllChildren` are recursive traversals.
 
 ```
-AnimeGroup (self-referential parent ──< children)
-  └──< AnimeSeries (1:1 AniDB_Anime)
-         └──< AnimeEpisode (1:1 AniDB_Episode)
+MediaGroup (self-referential parent ──< children)
+  └──< MediaSeries (optional 1:1 AniDB_Anime, direct TMDB/TVDB IDs)
+         └──< MediaEpisode (1:1 AniDB_Episode where inherited release matching applies)
                 └──< CrossRef_File_Episode >── VideoLocal
 ```
 
-### Series/Episode → TMDB
+### Series/Episode → Provider Metadata
 
-AniDB and TMDB entities are connected through cross-reference tables, not direct FKs:
+Inherited AniDB and TMDB entities are connected through cross-reference tables, not direct FKs:
 
-- `CrossRef_AniDB_TMDB_Show` — `AnimeSeries` ↔ `TMDB_Show`
-- `CrossRef_AniDB_TMDB_Movie` — `AnimeSeries` or `AnimeEpisode` ↔ `TMDB_Movie` (OVAs/movies often link at episode level)
-- `CrossRef_AniDB_TMDB_Episode` — `AnimeEpisode` ↔ `TMDB_Episode`
+- `CrossRef_AniDB_TMDB_Show` — `MediaSeries` ↔ `TMDB_Show`
+- `CrossRef_AniDB_TMDB_Movie` — `MediaSeries` or `MediaEpisode` ↔ `TMDB_Movie` (OVAs/movies often link at episode level)
+- `CrossRef_AniDB_TMDB_Episode` — `MediaEpisode` ↔ `TMDB_Episode`
 
-One anime can match multiple TMDB shows (e.g., split-cour series on TMDB) and one TMDB show can match multiple anime. TMDB models (`TMDB_Show`, `TMDB_Movie`, `TMDB_Episode`, `TMDB_Season`, `TMDB_Image`) are read-only caches of TMDB API data, structured identically to the TMDB response schema.
+One inherited AniDB title can match multiple TMDB shows (e.g., split-cour series on TMDB) and one TMDB show can match multiple inherited titles. TMDB models (`TMDB_Show`, `TMDB_Movie`, `TMDB_Episode`, `TMDB_Season`, `TMDB_Image`) are read-only caches of TMDB API data, structured identically to the TMDB response schema.
+
+TVDB support is newer and uses cached `TVDB_Show`, `TVDB_Movie`, `TVDB_Season`, and `TVDB_Episode` records. `MediaSeries.TVDB_ShowID` and `MediaSeries.TVDB_MovieID` currently represent external TVDB IDs, not the internal `TVDB_*ID` primary keys.
 
 ## Import Pipeline
 
@@ -261,7 +264,7 @@ ProcessFileJob  (DaCollector.Server/Scheduling/Jobs/DaCollector/ProcessFileJob.c
         ▼
 GetAniDBAnimeJob  (DaCollector.Server/Scheduling/Jobs/AniDB/GetAniDBAnimeJob.cs)
   Fetches full AniDB_Anime + all AniDB_Episode records via AniDB HTTP API
-  Creates AnimeSeries + AnimeGroup if they don't exist (CreateSeriesEntry=true)
+  Creates MediaSeries + MediaGroup if they don't exist (CreateSeriesEntry=true)
         │  [unless SkipTmdbUpdate]
         ▼
 SearchTmdbJob  (DaCollector.Server/Scheduling/Jobs/TMDB/SearchTmdbJob.cs)
@@ -280,7 +283,7 @@ Image download jobs  (DownloadAniDBImageJob, DownloadTmdbImageJob)
 
 ### Orchestration Pattern
 
-Jobs do not use a central orchestrator. Each job enqueues its successor directly via `IJobFactory` / `IScheduler`. `ProcessFileJob` is the pivot: it reads the `AnimeID` from the AniDB response and checks whether `AniDB_Anime` already exists before deciding to enqueue `GetAniDBAnimeJob`.
+Jobs do not use a central orchestrator. Each job enqueues its successor directly via `IJobFactory` / `IScheduler`. `ProcessFileJob` is the inherited AniDB pivot: it reads the `AnimeID` from the AniDB response and checks whether `AniDB_Anime` already exists before deciding to enqueue `GetAniDBAnimeJob`.
 
 **`ImportJob`** (`DaCollector.Server/Scheduling/Jobs/Actions/ImportJob.cs`) is a periodic sweep that catches anything the live pipeline missed: it calls `ActionService.ScheduleMissingAnidbAnimeForFiles()` to queue `GetAniDBAnimeJob` for any file whose anime was never fetched, and `IVideoService.ScheduleScanForManagedFolders()` to rescan all watched folders.
 

@@ -740,7 +740,7 @@ public class DaCollectorServiceImplementationMetro : IHttpContextAccessor
             ret.FanartImageType = 0;
             ret.FanartImageID = 0;
 
-            ret.AnimeType = anime.AnimeType.ToString();
+            ret.MediaType = anime.MediaType.ToString();
             ret.Description = anime.Description;
             ret.EpisodeCountNormal = anime.EpisodeCountNormal;
             ret.EpisodeCountSpecial = anime.EpisodeCountSpecial;

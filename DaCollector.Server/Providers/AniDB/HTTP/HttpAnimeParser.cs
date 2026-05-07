@@ -82,16 +82,16 @@ public class HttpAnimeParser
 
         anime.Description = TryGetProperty(docAnime, "anime", "description")?.Replace('`', '\'');
         var type = TryGetProperty(docAnime, "anime", "type");
-        anime.AnimeType = type.ToLowerInvariant() switch
+        anime.MediaType = type.ToLowerInvariant() switch
         {
-            "movie" => AnimeType.Movie,
-            "ova" => AnimeType.OVA,
-            "tv series" => AnimeType.TVSeries,
-            "tv special" => AnimeType.TVSpecial,
-            "web" => AnimeType.Web,
-            "music video" => AnimeType.MusicVideo,
-            "other" => AnimeType.Other,
-            _ => AnimeType.Unknown,
+            "movie" => MediaType.Movie,
+            "ova" => MediaType.OVA,
+            "tv series" => MediaType.TVSeries,
+            "tv special" => MediaType.TVSpecial,
+            "web" => MediaType.Web,
+            "music video" => MediaType.MusicVideo,
+            "other" => MediaType.Other,
+            _ => MediaType.Unknown,
         };
 
         var episodeCount = TryGetProperty(docAnime, "anime", "episodecount");

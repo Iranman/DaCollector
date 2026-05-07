@@ -16,7 +16,7 @@ using DaCollector.Server.Providers.AniDB.Release;
 using DaCollector.Server.Repositories;
 using DaCollector.Server.Services;
 
-using AnimeType = DaCollector.Server.API.v3.Models.AniDB.AnimeType;
+using MediaType = DaCollector.Server.API.v3.Models.AniDB.MediaType;
 using EpisodeType = DaCollector.Server.API.v3.Models.AniDB.EpisodeType;
 
 #nullable enable
@@ -95,7 +95,7 @@ public class WebUI
         /// </summary>
         [Required]
         [JsonConverter(typeof(StringEnumConverter))]
-        public AnimeType Type { get; set; }
+        public MediaType Type { get; set; }
 
         /// <summary>
         /// The overall rating from AniDB.

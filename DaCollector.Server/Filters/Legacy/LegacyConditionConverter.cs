@@ -294,13 +294,13 @@ public static class LegacyConditionConverter
             return true;
         }
 
-        if (IsInAnimeType(expression, out var animeType))
+        if (IsInAnimeType(expression, out var MediaType))
         {
             condition = new CL_GroupFilterCondition
             {
                 ConditionOperator = (int)conditionOperator,
-                ConditionType = (int)CL_GroupFilterConditionType.AnimeType,
-                ConditionParameter = string.Join(",", animeType)
+                ConditionType = (int)CL_GroupFilterConditionType.MediaType,
+                ConditionParameter = string.Join(",", MediaType)
             };
             return true;
         }
@@ -868,7 +868,7 @@ public static class LegacyConditionConverter
                 return LegacyMappings.GetLastAddedDateExpression(op, parameter, suppressErrors);
             case CL_GroupFilterConditionType.EpisodeWatchedDate:
                 return LegacyMappings.GetWatchedDateExpression(op, parameter, suppressErrors);
-            case CL_GroupFilterConditionType.AnimeType:
+            case CL_GroupFilterConditionType.MediaType:
                 return LegacyMappings.GetAnimeTypeExpression(op, parameter, suppressErrors);
             case CL_GroupFilterConditionType.VideoQuality:
                 return LegacyMappings.GetVideoQualityExpression(op, parameter, suppressErrors);

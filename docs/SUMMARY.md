@@ -17,5 +17,6 @@
   - [Project Blueprint](dacollector-blueprint.md)
   - [Plex Relay Compatibility](plex-relay-compatibility.md)
 - Development
+  - [Current Work](development/current-work.md)
   - [Building DaCollector](development/building.md)
   - [Publishing Docs](development/publishing-docs.md)

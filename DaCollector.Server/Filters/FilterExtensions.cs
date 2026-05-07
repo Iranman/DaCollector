@@ -131,7 +131,7 @@ public static class FilterExtensions
                 double.Round(Convert.ToDouble(series.AniDB_Anime?.Rating ?? 0) / 100, 1, MidpointRounding.AwayFromZero),
             AnimeTypesDelegate = () =>
                 series.AniDB_Anime is { } anime
-                    ? new HashSet<AnimeType> { anime.AnimeType }
+                    ? new HashSet<MediaType> { anime.MediaType }
                     : [],
             VideoSourcesDelegate = () =>
                 series.VideoLocals.Select(a => a.ReleaseInfo).WhereNotNull().Select(a => a.LegacySource).ToHashSet(),
@@ -346,7 +346,7 @@ public static class FilterExtensions
             AverageAniDBRatingDelegate = () =>
                 anime.Select(a => double.Round(Convert.ToDouble(a?.Rating ?? 0) / 100, 1, MidpointRounding.AwayFromZero)).DefaultIfEmpty().Average(),
             AnimeTypesDelegate = () =>
-                new HashSet<AnimeType>(anime.Select(a => a.AnimeType)),
+                new HashSet<MediaType>(anime.Select(a => a.MediaType)),
             VideoSourcesDelegate = () =>
                 series.SelectMany(a => a.VideoLocals).Select(a => a.ReleaseInfo).WhereNotNull().Select(a => a.LegacySource).ToHashSet(),
             SharedVideoSourcesDelegate = () =>

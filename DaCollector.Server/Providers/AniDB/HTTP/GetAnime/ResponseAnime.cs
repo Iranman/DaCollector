@@ -26,5 +26,5 @@ public class ResponseAnime
     public int ANNID { get; set; }
     public int AllCinemaID { get; set; }
 
-    public AnimeType AnimeType { get; set; }
+    public MediaType MediaType { get; set; }
 }

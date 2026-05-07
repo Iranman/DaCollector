@@ -125,7 +125,7 @@ public static class ModelClients
             Picname = anime.Picname,
             BeginYear = anime.BeginYear,
             EndYear = anime.EndYear,
-            AnimeType = (int)anime.AnimeType,
+            MediaType = (int)anime.MediaType,
             MainTitle = anime.MainTitle,
             AllTitles = anime.AllTitles,
             AllTags = anime.AllTags,

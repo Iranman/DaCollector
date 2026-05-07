@@ -34,7 +34,7 @@ public class WebUIFactory
 
     private static string GetFirstAiringSeason(AniDB_Anime anime)
     {
-        if (anime.AnimeType is not AnimeType.TVSeries and not AnimeType.Web)
+        if (anime.MediaType is not MediaType.TVSeries and not MediaType.Web)
             return null;
 
         var (year, season) = anime.YearlySeasons.FirstOrDefault();
@@ -69,7 +69,7 @@ public class WebUIFactory
         var result = new WebUI.WebUIGroupExtra
         {
             ID = group.MediaGroupID,
-            Type = anime.AnimeType.ToV3Dto(),
+            Type = anime.MediaType.ToV3Dto(),
             Rating = new Rating { Source = "AniDB", Value = anime.Rating, MaxValue = 1000, Votes = anime.VoteCount }
         };
         if (anime.AirDate is { } airDate && airDate != DateTime.MinValue)

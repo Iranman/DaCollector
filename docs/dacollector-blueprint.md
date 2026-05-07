@@ -21,6 +21,20 @@ Build DaCollector as a self-hosted movie and TV show collection manager with:
 - Exact and near-duplicate detection with safe review before deletion.
 - API-first design so a Web UI, Plex/Jellyfin integrations, and automation jobs can all use the same backend.
 
+## Current Conversion State
+
+DaCollector is no longer just a rename of the inherited server. The repository now has:
+
+- DaCollector project branding, docs, Docker files, and Windows install guidance.
+- Default Web UI/API port `38111`.
+- Hosted Web UI pages for managed collections and exact duplicate review.
+- Managed collection APIs, collection-builder preview support, and Plex target APIs.
+- TMDB, IMDb dataset, and TVDB settings surfaces.
+- Cached TVDB show/movie/season/episode models, repositories, jobs, and metadata service work in progress.
+- Internal domain rename work from `AnimeSeries`/`AnimeGroup`/`AnimeEpisode` toward `MediaSeries`/`MediaGroup`/`MediaEpisode`.
+
+The conversion is still active. Treat migration correctness and compile stability as higher priority than adding new product features.
+
 ## Base System Decision
 
 Use the inherited server as DaCollector's main codebase.
@@ -38,7 +52,7 @@ Keep:
 
 Replace or generalize:
 
-- Anime/AniDB-centric domain names in new code paths.
+- Remaining Anime/AniDB-centric domain names in new code paths.
 - AniDB-only release identification as the primary matching model.
 - Anime group/series/episode assumptions in collection and duplicate APIs.
 - Anime-specific filters where collection rules should operate on movies and TV shows.
@@ -83,7 +97,17 @@ Target Relay replacement:
 
 ## Target Domain Model
 
-New generic media concepts should sit beside the inherited anime models until migration is safe.
+The active transition model uses `MediaSeries`, `MediaGroup`, and `MediaEpisode` for the local DaCollector domain while inherited AniDB provider models remain under `Models/AniDB`.
+
+Current local model names:
+
+- `MediaSeries`: local title/series wrapper with inherited AniDB identity where present plus direct TMDB/TVDB IDs for movie and TV metadata.
+- `MediaGroup`: local grouping container for series and collection-style hierarchy.
+- `MediaEpisode`: local episode wrapper used by inherited release matching and watch-state flows.
+- `VideoLocal`: unique local file identity by hash and file size.
+- `VideoLocal_Place`: one physical location for a local file.
+
+Longer-term generic media concepts should be introduced without breaking the existing migration path:
 
 - `MediaTitle`: base identity for a movie or show.
 - `Movie`: one playable title.
@@ -115,8 +139,10 @@ IMDb:
 TVDB:
 
 - Support TVDB IDs as external IDs on movies and shows.
-- Start with lookup and collection/list builders modeled after the upstream `modules/tvdb.py`.
-- Prefer the TVDB API when credentials are available; reserve web parsing as an optional fallback.
+- Use the cached `TVDB_Show`, `TVDB_Movie`, `TVDB_Season`, and `TVDB_Episode` tables for provider data.
+- Use TVDB API credentials from `TVDB_API_KEY` and `TVDB_PIN` when calling TVDB APIs.
+- Keep collection/list builders modeled after the upstream `modules/tvdb.py`.
+- Reserve web parsing as an optional fallback only after API and structured-data paths are exhausted.
 
 ## Collection Engine
 
@@ -243,16 +269,15 @@ Proposed v3 endpoints:
 
 ## Immediate Next Slice
 
-The safest first code slice is the generic media identity foundation:
+The safest next code slice is stabilizing the current conversion:
 
-- Add `MediaKind`, `ExternalProvider`, and `ExternalMediaId` abstractions.
-- Add settings stubs for IMDb and TVDB credentials.
-- Add collection rule DTOs without wiring destructive actions.
-- Add tests for ID parsing and rule validation.
+- Make the current branch compile after the `Anime*` to `Media*` rename.
+- Repair database migrations so historical commands are not rewritten and new renames are append-only.
+- Add SQLite migration smoke tests for fresh and upgraded databases.
+- Add tests around TVDB login caching, retry behavior, missing credentials, show refresh, and movie refresh.
+- Update API documentation after the renamed metadata controller and TVDB endpoints are stable.
 
-That slice is small enough to review and does not disturb inherited anime behavior.
-
-The next adapter slice after that is a Relay compatibility API review:
+The next adapter slice after compile and migration stability is a Relay compatibility API review:
 
 - List every inherited v3 endpoint used by the Plex relay reference.
 - Mark which endpoints already support movies and TV shows.

@@ -473,7 +473,7 @@ public class TmdbLinkingService : ITmdbLinkingService
         _logger.LogTrace("Mapping AniDB Anime {AnidbAnimeId} to TMDB Show {TmdbShowId} (Season: {TmdbSeasonId}, Use Existing: {UseExisting}, Save To Database: {SaveToDatabase})", anidbAnimeId, tmdbShowId, tmdbSeasonId, useExisting, saveToDatabase);
 
         // Mapping logic
-        var isOVA = anime.AnimeType is AnimeType.OVA;
+        var isOVA = anime.MediaType is MediaType.OVA;
         var toSkip = new HashSet<int>();
         var toAdd = new List<CrossRef_AniDB_TMDB_Episode>();
         var crossReferences = new List<CrossRef_AniDB_TMDB_Episode>();
@@ -588,7 +588,7 @@ public class TmdbLinkingService : ITmdbLinkingService
 
                 // Else try find a match.
                 _logger.LogTrace("Linking episode. (AniDB ID: {AnidbEpisodeID}, Pass: 1/4)", episode.EpisodeID);
-                var isSpecial = episode.EpisodeType is EpisodeType.Special || anime.AnimeType is not AnimeType.TVSeries and not AnimeType.Web;
+                var isSpecial = episode.EpisodeType is EpisodeType.Special || anime.MediaType is not MediaType.TVSeries and not MediaType.Web;
                 var episodeList = isSpecial ? tmdbSpecialEpisodes : tmdbNormalEpisodes;
                 var crossRef = TryFindAnidbAndTmdbMatch(anime, episode, episodeList, isSpecial && !isOVA);
                 if (crossRef.MatchRating is MatchRating.DateAndTitleMatches)
@@ -642,7 +642,7 @@ public class TmdbLinkingService : ITmdbLinkingService
                 // Try find a match.
                 current++;
                 _logger.LogTrace("Linking episode {EpisodeType} {EpisodeNumber}. (AniDB ID: {EpisodeID}, Progress: {Current}/{Total}, Pass: 2/4)", episode.EpisodeType, episode.EpisodeNumber, episode.EpisodeID, current, secondPass.Count);
-                var isSpecial = episode.EpisodeType is EpisodeType.Special || anime.AnimeType is not AnimeType.TVSeries and not AnimeType.Web;
+                var isSpecial = episode.EpisodeType is EpisodeType.Special || anime.MediaType is not MediaType.TVSeries and not MediaType.Web;
                 var episodeList = isSpecial ? tmdbSpecialEpisodes : tmdbNormalEpisodes;
                 var crossRef = TryFindAnidbAndTmdbMatch(anime, episode, episodeList, isSpecial && !isOVA);
                 if (crossRef.MatchRating is MatchRating.TitleMatches)
@@ -696,7 +696,7 @@ public class TmdbLinkingService : ITmdbLinkingService
                 // Try find a match.
                 current++;
                 _logger.LogTrace("Linking episode {EpisodeType} {EpisodeNumber}. (AniDB ID: {EpisodeID}, Progress: {Current}/{Total}, Pass: 3/4)", episode.EpisodeType, episode.EpisodeNumber, episode.EpisodeID, current, thirdPass.Count);
-                var isSpecial = episode.EpisodeType is EpisodeType.Special || anime.AnimeType is not AnimeType.TVSeries and not AnimeType.Web;
+                var isSpecial = episode.EpisodeType is EpisodeType.Special || anime.MediaType is not MediaType.TVSeries and not MediaType.Web;
                 var episodeList = isSpecial ? tmdbSpecialEpisodes : tmdbNormalEpisodes;
                 var crossRef = TryFindAnidbAndTmdbMatch(anime, episode, episodeList, isSpecial && !isOVA);
                 if (crossRef.MatchRating is not MatchRating.FirstAvailable and not MatchRating.None)
@@ -750,7 +750,7 @@ public class TmdbLinkingService : ITmdbLinkingService
                 // Try find a match.
                 current++;
                 _logger.LogTrace("Linking episode {EpisodeType} {EpisodeNumber}. (AniDB ID: {EpisodeID}, Progress: {Current}/{Total}, Pass: 4/4)", episode.EpisodeType, episode.EpisodeNumber, episode.EpisodeID, current, fourthPass.Count);
-                var isSpecial = episode.EpisodeType is EpisodeType.Special || anime.AnimeType is not AnimeType.TVSeries and not AnimeType.Web;
+                var isSpecial = episode.EpisodeType is EpisodeType.Special || anime.MediaType is not MediaType.TVSeries and not MediaType.Web;
                 var episodeList = isSpecial ? tmdbSpecialEpisodes : tmdbNormalEpisodes;
                 var crossRef = TryFindAnidbAndTmdbMatch(anime, episode, episodeList, isSpecial && !isOVA);
                 if (crossRef.TmdbEpisodeID != 0)

@@ -9,7 +9,7 @@ public class Filterable : IFilterableInfo
 {
     private readonly Lazy<DateTime> _addedDate;
     private readonly Lazy<DateTime?> _airDate;
-    private readonly Lazy<IReadOnlySet<AnimeType>> _animeTypes;
+    private readonly Lazy<IReadOnlySet<MediaType>> _animeTypes;
     private readonly Lazy<IReadOnlySet<string>> _audioLanguages;
     private readonly Lazy<double> _averageAniDBRating;
     private readonly Lazy<IReadOnlySet<string>> _customTagIDs;
@@ -395,11 +395,11 @@ public class Filterable : IFilterableInfo
         init => _sharedVideoSources = new Lazy<IReadOnlySet<string>>(value);
     }
 
-    public IReadOnlySet<AnimeType> AnimeTypes => _animeTypes.Value;
+    public IReadOnlySet<MediaType> AnimeTypes => _animeTypes.Value;
 
-    public required Func<IReadOnlySet<AnimeType>> AnimeTypesDelegate
+    public required Func<IReadOnlySet<MediaType>> AnimeTypesDelegate
     {
-        init => _animeTypes = new Lazy<IReadOnlySet<AnimeType>>(value);
+        init => _animeTypes = new Lazy<IReadOnlySet<MediaType>>(value);
     }
 
     public IReadOnlySet<string> AudioLanguages => _audioLanguages.Value;

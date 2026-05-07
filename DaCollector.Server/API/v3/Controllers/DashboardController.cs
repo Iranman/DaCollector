@@ -134,7 +134,7 @@ public class DashboardController : BaseController
 
     private static bool MissingTMDBLink(MediaSeries ser)
     {
-        if (MissingTmdbLinkExpression.AnimeTypes.Contains(ser.AniDB_Anime?.AnimeType ?? AnimeType.Unknown))
+        if (MissingTmdbLinkExpression.AnimeTypes.Contains(ser.AniDB_Anime?.MediaType ?? MediaType.Unknown))
             return false;
 
         if (ser.IsTMDBAutoMatchingDisabled)
@@ -190,20 +190,20 @@ public class DashboardController : BaseController
     {
         var series = RepoFactory.MediaSeries.GetAll()
             .Where(User.AllowedSeries)
-            .GroupBy(a => a.AniDB_Anime?.AnimeType ?? ((AnimeType)0x42))
+            .GroupBy(a => a.AniDB_Anime?.MediaType ?? ((MediaType)0x42))
             .ToDictionary(a => a.Key, a => a.Count());
 
         return new Dashboard.SeriesSummary
         {
-            Series = series.GetValueOrDefault(AnimeType.TVSeries, 0),
-            Special = series.GetValueOrDefault(AnimeType.TVSpecial, 0),
-            Movie = series.GetValueOrDefault(AnimeType.Movie, 0),
-            OVA = series.GetValueOrDefault(AnimeType.OVA, 0),
-            Web = series.GetValueOrDefault(AnimeType.Web, 0),
-            Other = series.GetValueOrDefault(AnimeType.Other, 0),
-            MusicVideo = series.GetValueOrDefault(AnimeType.MusicVideo, 0),
-            Unknown = series.GetValueOrDefault(AnimeType.Unknown, 0),
-            None = series.GetValueOrDefault((AnimeType)0x42, 0),
+            Series = series.GetValueOrDefault(MediaType.TVSeries, 0),
+            Special = series.GetValueOrDefault(MediaType.TVSpecial, 0),
+            Movie = series.GetValueOrDefault(MediaType.Movie, 0),
+            OVA = series.GetValueOrDefault(MediaType.OVA, 0),
+            Web = series.GetValueOrDefault(MediaType.Web, 0),
+            Other = series.GetValueOrDefault(MediaType.Other, 0),
+            MusicVideo = series.GetValueOrDefault(MediaType.MusicVideo, 0),
+            Unknown = series.GetValueOrDefault(MediaType.Unknown, 0),
+            None = series.GetValueOrDefault((MediaType)0x42, 0),
         };
     }
 

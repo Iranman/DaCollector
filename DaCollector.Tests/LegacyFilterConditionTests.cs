@@ -85,7 +85,7 @@ public class LegacyFilterConditionTests
             new()
             {
                 ConditionOperator = (int)CL_GroupFilterOperator.In,
-                ConditionType = (int)CL_GroupFilterConditionType.AnimeType,
+                ConditionType = (int)CL_GroupFilterConditionType.MediaType,
                 ConditionParameter = "TVSeries"
             }
         };
@@ -106,7 +106,7 @@ public class LegacyFilterConditionTests
             new()
             {
                 ConditionOperator = (int)CL_GroupFilterOperator.NotIn,
-                ConditionType = (int)CL_GroupFilterConditionType.AnimeType,
+                ConditionType = (int)CL_GroupFilterConditionType.MediaType,
                 ConditionParameter = "TVSeries"
             }
         };
@@ -127,7 +127,7 @@ public class LegacyFilterConditionTests
             new()
             {
                 ConditionOperator = (int)CL_GroupFilterOperator.In,
-                ConditionType = (int)CL_GroupFilterConditionType.AnimeType,
+                ConditionType = (int)CL_GroupFilterConditionType.MediaType,
                 ConditionParameter = "TVSeries,Movie,OVA"
             }
         };
@@ -148,7 +148,7 @@ public class LegacyFilterConditionTests
             new()
             {
                 ConditionOperator = (int)CL_GroupFilterOperator.NotIn,
-                ConditionType = (int)CL_GroupFilterConditionType.AnimeType,
+                ConditionType = (int)CL_GroupFilterConditionType.MediaType,
                 ConditionParameter = "TVSeries,Movie,OVA"
             }
         };

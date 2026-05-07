@@ -42,7 +42,7 @@ public static class Models
 
             // implied startDate.Month == 12, unless the calendar changes...
             // if it's a movie or short series, count it
-            if (anime.AnimeType is AnimeType.Movie || anime.EpisodeCountNormal <= 6) return true;
+            if (anime.MediaType is MediaType.Movie || anime.EpisodeCountNormal <= 6) return true;
         }
 
         // starts before the year, but continues through it

@@ -12,7 +12,7 @@ using DaCollector.Server.API.v3.Models.Common;
 using DaCollector.Server.Repositories;
 using DaCollector.Server.Settings;
 
-using AnimeType = DaCollector.Server.API.v3.Models.AniDB.AnimeType;
+using MediaType = DaCollector.Server.API.v3.Models.AniDB.MediaType;
 
 #nullable enable
 namespace DaCollector.Server.API.v3.Controllers;
@@ -162,7 +162,7 @@ public class ImageController(IImageManager imageManager, ISettingsProvider setti
     public ActionResult<Image> GetRandomImageMetadataForType(
         [FromRoute] Image.ImageType imageType,
         [FromQuery] IncludeOnlyFilter includeRestricted = IncludeOnlyFilter.False,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AnimeType>? seriesType = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<MediaType>? seriesType = null,
         [FromQuery, Range(0, 100)] int maxAttempts = 5
     )
     {

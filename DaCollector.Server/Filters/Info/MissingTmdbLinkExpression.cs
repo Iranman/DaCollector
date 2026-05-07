@@ -14,11 +14,11 @@ public class MissingTmdbLinkExpression : FilterExpression<bool>
 
     public override string HelpDescription => "This condition passes if any of the anime should have a TMDB link but does not have one";
 
-    internal static readonly AnimeType[] AnimeTypes =
+    internal static readonly MediaType[] AnimeTypes =
     [
-        AnimeType.Unknown,
-        AnimeType.MusicVideo,
-        AnimeType.Other,
+        MediaType.Unknown,
+        MediaType.MusicVideo,
+        MediaType.Other,
     ];
 
     public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo userInfo, DateTime? time)

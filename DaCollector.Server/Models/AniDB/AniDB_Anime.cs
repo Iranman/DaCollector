@@ -45,7 +45,7 @@ public class AniDB_Anime : IAnidbAnime
 
     public int EndYear { get; set; }
 
-    public AnimeType AnimeType { get; set; }
+    public MediaType MediaType { get; set; }
 
     public string MainTitle { get; set; } = string.Empty;
 
@@ -128,15 +128,15 @@ public class AniDB_Anime : IAnidbAnime
         set => Restricted = value ? 1 : 0;
     }
 
-    public string? RawAnimeType => AnimeType switch
+    public string? RawAnimeType => MediaType switch
     {
-        AnimeType.Movie => "movie",
-        AnimeType.OVA => "ova",
-        AnimeType.TVSeries => "tv series",
-        AnimeType.TVSpecial => "tv special",
-        AnimeType.Web => "web",
-        AnimeType.Other => "other",
-        AnimeType.MusicVideo => "music video",
+        MediaType.Movie => "movie",
+        MediaType.OVA => "ova",
+        MediaType.TVSeries => "tv series",
+        MediaType.TVSpecial => "tv special",
+        MediaType.Web => "web",
+        MediaType.Other => "other",
+        MediaType.MusicVideo => "music video",
         _ => null,
     };
 
@@ -628,7 +628,7 @@ public class AniDB_Anime : IAnidbAnime
 
     #region ISeries Implementation
 
-    AnimeType ISeries.Type => AnimeType;
+    MediaType ISeries.Type => MediaType;
 
     IReadOnlyList<int> ISeries.DaCollectorSeriesIDs => RepoFactory.MediaSeries.GetByAnimeID(AnimeID) is { } series ? [series.MediaSeriesID] : [];
 

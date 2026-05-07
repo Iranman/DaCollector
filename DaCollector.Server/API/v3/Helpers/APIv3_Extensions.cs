@@ -9,10 +9,10 @@ using DaCollector.Server.Models.TMDB;
 using DaCollector.Server.Providers.TMDB;
 using DaCollector.Server.Server;
 
-using AbstractAnimeType = DaCollector.Abstractions.Metadata.Enums.AnimeType;
+using AbstractAnimeType = DaCollector.Abstractions.Metadata.Enums.MediaType;
 using AbstractEpisodeType = DaCollector.Abstractions.Metadata.Enums.EpisodeType;
 using AbstractYearlySeason = DaCollector.Abstractions.Metadata.Enums.YearlySeason;
-using AnimeType = DaCollector.Server.API.v3.Models.AniDB.AnimeType;
+using MediaType = DaCollector.Server.API.v3.Models.AniDB.MediaType;
 using EpisodeType = DaCollector.Server.API.v3.Models.AniDB.EpisodeType;
 using ImageEntityType = DaCollector.Abstractions.Metadata.Enums.ImageEntityType;
 using TitleLanguage = DaCollector.Abstractions.Metadata.Enums.TitleLanguage;
@@ -41,17 +41,17 @@ public static class APIv3_Extensions
             _ => CreatorRoleType.Staff,
         };
 
-    public static AnimeType ToV3Dto(this AbstractAnimeType animeType)
-        => animeType switch
+    public static MediaType ToV3Dto(this AbstractAnimeType MediaType)
+        => MediaType switch
         {
-            AbstractAnimeType.TVSeries => AnimeType.TV,
-            AbstractAnimeType.Movie => AnimeType.Movie,
-            AbstractAnimeType.OVA => AnimeType.OVA,
-            AbstractAnimeType.TVSpecial => AnimeType.TVSpecial,
-            AbstractAnimeType.Web => AnimeType.Web,
-            AbstractAnimeType.Other => AnimeType.Other,
-            AbstractAnimeType.MusicVideo => AnimeType.MusicVideo,
-            _ => AnimeType.Unknown,
+            AbstractAnimeType.TVSeries => MediaType.TV,
+            AbstractAnimeType.Movie => MediaType.Movie,
+            AbstractAnimeType.OVA => MediaType.OVA,
+            AbstractAnimeType.TVSpecial => MediaType.TVSpecial,
+            AbstractAnimeType.Web => MediaType.Web,
+            AbstractAnimeType.Other => MediaType.Other,
+            AbstractAnimeType.MusicVideo => MediaType.MusicVideo,
+            _ => MediaType.Unknown,
         };
 
 

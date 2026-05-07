@@ -50,11 +50,11 @@ public partial class TmdbSearchService : ITmdbSearchService
     }
 
     public async Task<IReadOnlyList<TmdbAutoSearchResult>> SearchForAutoMatch(AniDB_Anime anime)
-        => anime.AnimeType switch
+        => anime.MediaType switch
         {
             // Music videos are not allowed on TMDB, and the other and unknown types are hard to auto-map, so just don't.
-            AnimeType.MusicVideo or AnimeType.Other or AnimeType.Unknown => [],
-            AnimeType.Movie => await AutoSearchForMovies(anime).ConfigureAwait(false),
+            MediaType.MusicVideo or MediaType.Other or MediaType.Unknown => [],
+            MediaType.Movie => await AutoSearchForMovies(anime).ConfigureAwait(false),
             _ => await AutoSearchForShow(anime).ConfigureAwait(false)
         };
 

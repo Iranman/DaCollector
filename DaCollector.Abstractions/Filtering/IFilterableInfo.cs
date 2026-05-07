@@ -233,7 +233,7 @@ public interface IFilterableInfo
     /// <summary>
     /// The anime types (movie, series, ova, etc)
     /// </summary>
-    IReadOnlySet<AnimeType> AnimeTypes { get; }
+    IReadOnlySet<MediaType> AnimeTypes { get; }
 
     /// <summary>
     /// Audio Languages
