@@ -4,6 +4,7 @@ using DaCollector.Server.Databases;
 using DaCollector.Server.Repositories.Cached;
 using DaCollector.Server.Repositories.Cached.AniDB;
 using DaCollector.Server.Repositories.Cached.TMDB;
+using DaCollector.Server.Repositories.Cached.TVDB;
 using DaCollector.Server.Repositories.Direct;
 using DaCollector.Server.Repositories.Direct.TMDB;
 using DaCollector.Server.Repositories.Direct.TMDB.Optional;
@@ -86,6 +87,10 @@ public static class RepositoryStartup
         services.AddCachedRepository<TMDB_MovieRepository>();
         services.AddCachedRepository<TMDB_SeasonRepository>();
         services.AddCachedRepository<TMDB_ShowRepository>();
+        services.AddCachedRepository<TVDB_ShowRepository>();
+        services.AddCachedRepository<TVDB_MovieRepository>();
+        services.AddCachedRepository<TVDB_SeasonRepository>();
+        services.AddCachedRepository<TVDB_EpisodeRepository>();
         services.AddCachedRepository<VideoLocalRepository>();
         services.AddCachedRepository<VideoLocal_PlaceRepository>();
         services.AddCachedRepository<VideoLocal_UserRepository>();

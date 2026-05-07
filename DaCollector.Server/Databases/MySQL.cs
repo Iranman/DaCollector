@@ -1032,6 +1032,20 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(161,  4, "ALTER TABLE `CrossRef_AniDB_MAL` DROP COLUMN `CrossRefSource`;"),
         new(161,  5, "ALTER TABLE `AnimeGroup_User` DROP COLUMN `IsFave`;"),
         new(161,  6, DatabaseFixes.EnsureNoOrphanedGroupsOrSeries),
+        new(162,  1, "ALTER TABLE `AnimeSeries` ADD COLUMN `TVDB_ShowID` INT NULL;"),
+        new(162,  2, "ALTER TABLE `AnimeSeries` ADD COLUMN `TVDB_MovieID` INT NULL;"),
+        new(162,  3, "ALTER TABLE `AnimeSeries` ADD COLUMN `TMDB_ShowID` INT NULL;"),
+        new(162,  4, "ALTER TABLE `AnimeSeries` ADD COLUMN `TMDB_MovieID` INT NULL;"),
+        new(162,  5, "CREATE TABLE `TVDB_Show` ( `TVDB_ShowID` INT NOT NULL AUTO_INCREMENT, `TvdbShowID` INT NOT NULL, `Name` TEXT NOT NULL, `Overview` TEXT NOT NULL, `FirstAiredAt` DATE NULL, `LastAiredAt` DATE NULL, `Status` VARCHAR(64) NOT NULL, `OriginalLanguage` VARCHAR(8) NOT NULL, `OriginalCountry` VARCHAR(8) NOT NULL, `SeasonCount` INT NOT NULL, `EpisodeCount` INT NOT NULL, `Network` VARCHAR(255) NOT NULL, `Genres` TEXT NOT NULL, `UserRating` DOUBLE NOT NULL, `Year` INT NULL, `PosterPath` VARCHAR(255) NULL, `CreatedAt` DATETIME NOT NULL, `LastUpdatedAt` DATETIME NOT NULL, PRIMARY KEY (`TVDB_ShowID`) );"),
+        new(162,  6, "CREATE UNIQUE INDEX UIX_TVDB_Show_TvdbShowID ON TVDB_Show(TvdbShowID);"),
+        new(162,  7, "CREATE TABLE `TVDB_Movie` ( `TVDB_MovieID` INT NOT NULL AUTO_INCREMENT, `TvdbMovieID` INT NOT NULL, `Name` TEXT NOT NULL, `Overview` TEXT NOT NULL, `ReleasedAt` DATE NULL, `RuntimeMinutes` INT NULL, `Status` VARCHAR(64) NOT NULL, `OriginalLanguage` VARCHAR(8) NOT NULL, `OriginalCountry` VARCHAR(8) NOT NULL, `Genres` TEXT NOT NULL, `UserRating` DOUBLE NOT NULL, `Year` INT NULL, `PosterPath` VARCHAR(255) NULL, `CreatedAt` DATETIME NOT NULL, `LastUpdatedAt` DATETIME NOT NULL, PRIMARY KEY (`TVDB_MovieID`) );"),
+        new(162,  8, "CREATE UNIQUE INDEX UIX_TVDB_Movie_TvdbMovieID ON TVDB_Movie(TvdbMovieID);"),
+        new(162,  9, "CREATE TABLE `TVDB_Season` ( `TVDB_SeasonID` INT NOT NULL AUTO_INCREMENT, `TvdbSeasonID` INT NOT NULL, `TvdbShowID` INT NOT NULL, `SeasonNumber` INT NOT NULL, `SeasonType` VARCHAR(64) NOT NULL, `Name` TEXT NOT NULL, `Overview` TEXT NOT NULL, `EpisodeCount` INT NOT NULL, `Year` INT NULL, `PosterPath` VARCHAR(255) NULL, `CreatedAt` DATETIME NOT NULL, `LastUpdatedAt` DATETIME NOT NULL, PRIMARY KEY (`TVDB_SeasonID`) );"),
+        new(162, 10, "CREATE UNIQUE INDEX UIX_TVDB_Season_TvdbSeasonID ON TVDB_Season(TvdbSeasonID);"),
+        new(162, 11, "CREATE INDEX IX_TVDB_Season_TvdbShowID ON TVDB_Season(TvdbShowID);"),
+        new(162, 12, "CREATE TABLE `TVDB_Episode` ( `TVDB_EpisodeID` INT NOT NULL AUTO_INCREMENT, `TvdbEpisodeID` INT NOT NULL, `TvdbShowID` INT NOT NULL, `TvdbSeasonID` INT NULL, `SeasonNumber` INT NOT NULL, `EpisodeNumber` INT NOT NULL, `Name` TEXT NOT NULL, `Overview` TEXT NOT NULL, `RuntimeMinutes` INT NULL, `AiredAt` DATE NULL, `CreatedAt` DATETIME NOT NULL, `LastUpdatedAt` DATETIME NOT NULL, PRIMARY KEY (`TVDB_EpisodeID`) );"),
+        new(162, 13, "CREATE UNIQUE INDEX UIX_TVDB_Episode_TvdbEpisodeID ON TVDB_Episode(TvdbEpisodeID);"),
+        new(162, 14, "CREATE INDEX IX_TVDB_Episode_TvdbShowID ON TVDB_Episode(TvdbShowID);"),
     ];
 
     #endregion

@@ -933,6 +933,20 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(156,  2, "UPDATE StoredRelocationPipe SET temp = CAST(Configuration AS VARBINARY(MAX));"),
         new(156,  3, "ALTER TABLE StoredRelocationPipe DROP COLUMN Configuration;"),
         new(156,  4, "EXEC sp_rename 'StoredRelocationPipe.temp', 'Configuration', 'COLUMN';"),
+        new(157,  1, "ALTER TABLE AnimeSeries ADD TVDB_ShowID INT NULL;"),
+        new(157,  2, "ALTER TABLE AnimeSeries ADD TVDB_MovieID INT NULL;"),
+        new(157,  3, "ALTER TABLE AnimeSeries ADD TMDB_ShowID INT NULL;"),
+        new(157,  4, "ALTER TABLE AnimeSeries ADD TMDB_MovieID INT NULL;"),
+        new(157,  5, "CREATE TABLE TVDB_Show ( TVDB_ShowID INT IDENTITY(1,1) NOT NULL, TvdbShowID INT NOT NULL, Name NVARCHAR(MAX) NOT NULL, Overview NVARCHAR(MAX) NOT NULL, FirstAiredAt DATE NULL, LastAiredAt DATE NULL, Status NVARCHAR(64) NOT NULL, OriginalLanguage NVARCHAR(8) NOT NULL, OriginalCountry NVARCHAR(8) NOT NULL, SeasonCount INT NOT NULL, EpisodeCount INT NOT NULL, Network NVARCHAR(255) NOT NULL, Genres NVARCHAR(MAX) NOT NULL, UserRating FLOAT NOT NULL, Year INT NULL, PosterPath NVARCHAR(255) NULL, CreatedAt DATETIME2 NOT NULL, LastUpdatedAt DATETIME2 NOT NULL, CONSTRAINT PK_TVDB_Show PRIMARY KEY (TVDB_ShowID) );"),
+        new(157,  6, "CREATE UNIQUE INDEX UIX_TVDB_Show_TvdbShowID ON TVDB_Show(TvdbShowID);"),
+        new(157,  7, "CREATE TABLE TVDB_Movie ( TVDB_MovieID INT IDENTITY(1,1) NOT NULL, TvdbMovieID INT NOT NULL, Name NVARCHAR(MAX) NOT NULL, Overview NVARCHAR(MAX) NOT NULL, ReleasedAt DATE NULL, RuntimeMinutes INT NULL, Status NVARCHAR(64) NOT NULL, OriginalLanguage NVARCHAR(8) NOT NULL, OriginalCountry NVARCHAR(8) NOT NULL, Genres NVARCHAR(MAX) NOT NULL, UserRating FLOAT NOT NULL, Year INT NULL, PosterPath NVARCHAR(255) NULL, CreatedAt DATETIME2 NOT NULL, LastUpdatedAt DATETIME2 NOT NULL, CONSTRAINT PK_TVDB_Movie PRIMARY KEY (TVDB_MovieID) );"),
+        new(157,  8, "CREATE UNIQUE INDEX UIX_TVDB_Movie_TvdbMovieID ON TVDB_Movie(TvdbMovieID);"),
+        new(157,  9, "CREATE TABLE TVDB_Season ( TVDB_SeasonID INT IDENTITY(1,1) NOT NULL, TvdbSeasonID INT NOT NULL, TvdbShowID INT NOT NULL, SeasonNumber INT NOT NULL, SeasonType NVARCHAR(64) NOT NULL, Name NVARCHAR(MAX) NOT NULL, Overview NVARCHAR(MAX) NOT NULL, EpisodeCount INT NOT NULL, Year INT NULL, PosterPath NVARCHAR(255) NULL, CreatedAt DATETIME2 NOT NULL, LastUpdatedAt DATETIME2 NOT NULL, CONSTRAINT PK_TVDB_Season PRIMARY KEY (TVDB_SeasonID) );"),
+        new(157, 10, "CREATE UNIQUE INDEX UIX_TVDB_Season_TvdbSeasonID ON TVDB_Season(TvdbSeasonID);"),
+        new(157, 11, "CREATE INDEX IX_TVDB_Season_TvdbShowID ON TVDB_Season(TvdbShowID);"),
+        new(157, 12, "CREATE TABLE TVDB_Episode ( TVDB_EpisodeID INT IDENTITY(1,1) NOT NULL, TvdbEpisodeID INT NOT NULL, TvdbShowID INT NOT NULL, TvdbSeasonID INT NULL, SeasonNumber INT NOT NULL, EpisodeNumber INT NOT NULL, Name NVARCHAR(MAX) NOT NULL, Overview NVARCHAR(MAX) NOT NULL, RuntimeMinutes INT NULL, AiredAt DATE NULL, CreatedAt DATETIME2 NOT NULL, LastUpdatedAt DATETIME2 NOT NULL, CONSTRAINT PK_TVDB_Episode PRIMARY KEY (TVDB_EpisodeID) );"),
+        new(157, 13, "CREATE UNIQUE INDEX UIX_TVDB_Episode_TvdbEpisodeID ON TVDB_Episode(TvdbEpisodeID);"),
+        new(157, 14, "CREATE INDEX IX_TVDB_Episode_TvdbShowID ON TVDB_Episode(TvdbShowID);"),
     ];
 
     #endregion

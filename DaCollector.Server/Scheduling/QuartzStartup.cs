@@ -42,7 +42,7 @@ public static class QuartzStartup
         if (collectionSettings.ScheduledSyncEnabled)
         {
             await ScheduleRecurringJob<SyncManagedCollectionsJob>(
-                triggerConfig: t => t.WithSimpleSchedule(tr => tr.WithIntervalInMinutes(collectionSettings.SyncIntervalMinutes).RepeatForever()),
+                triggerConfig: t => t.WithSimpleSchedule(tr => tr.WithIntervalInMinutes(collectionSettings.SyncIntervalMinutes).RepeatForever()).StartNow(),
                 replace: true
             );
         }

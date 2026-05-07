@@ -20,6 +20,7 @@ using DaCollector.Server.Models.AniDB;
 using DaCollector.Server.Models.CrossReference;
 using DaCollector.Server.Models.DaCollector.Embedded;
 using DaCollector.Server.Models.TMDB;
+using DaCollector.Server.Models.TVDB;
 using DaCollector.Server.Providers.AniDB.Titles;
 using DaCollector.Server.Providers.TMDB;
 using DaCollector.Server.Repositories;
@@ -38,6 +39,14 @@ public class AnimeSeries : IDaCollectorSeries
     public int AnimeGroupID { get; set; }
 
     public int AniDB_ID { get; set; }
+
+    public int? TVDB_ShowID { get; set; }
+
+    public int? TVDB_MovieID { get; set; }
+
+    public int? TMDB_ShowID { get; set; }
+
+    public int? TMDB_MovieID { get; set; }
 
     public DateTime DateTimeUpdated { get; set; }
 
@@ -182,15 +191,34 @@ public class AnimeSeries : IDaCollectorSeries
                 if (AniDB_Anime is { } anime)
                     return _defaultTitle = anime.DefaultTitle;
 
-                var titleHelper = Utils.ServiceContainer.GetRequiredService<AniDBTitleHelper>();
-                if (titleHelper.SearchAnimeID(AniDB_ID) is { } titleResponse && titleResponse.Titles.FirstOrDefault(title => title.TitleType == TitleType.Main) is { } defaultTitle)
-                    return _defaultTitle = defaultTitle;
+                if (TVDB_ShowID.HasValue && RepoFactory.TVDB_Show.GetByTvdbShowID(TVDB_ShowID.Value) is { } tvdbShow && !string.IsNullOrEmpty(tvdbShow.Name))
+                    return _defaultTitle = new TitleStub { Language = TitleLanguage.English, LanguageCode = "en", Value = tvdbShow.Name, Source = DataSource.TvDB };
+
+                if (TVDB_MovieID.HasValue && RepoFactory.TVDB_Movie.GetByTvdbMovieID(TVDB_MovieID.Value) is { } tvdbMovie && !string.IsNullOrEmpty(tvdbMovie.Name))
+                    return _defaultTitle = new TitleStub { Language = TitleLanguage.English, LanguageCode = "en", Value = tvdbMovie.Name, Source = DataSource.TvDB };
+
+                if (TMDB_ShowID.HasValue && RepoFactory.TMDB_Show.GetByTmdbShowID(TMDB_ShowID.Value) is { } tmdbShow && !string.IsNullOrEmpty(tmdbShow.EnglishTitle))
+                    return _defaultTitle = new TitleStub { Language = TitleLanguage.English, LanguageCode = "en", Value = tmdbShow.EnglishTitle, Source = DataSource.TMDB };
+
+                if (TMDB_MovieID.HasValue && RepoFactory.TMDB_Movie.GetByTmdbMovieID(TMDB_MovieID.Value) is { } tmdbMovie && !string.IsNullOrEmpty(tmdbMovie.EnglishTitle))
+                    return _defaultTitle = new TitleStub { Language = TitleLanguage.English, LanguageCode = "en", Value = tmdbMovie.EnglishTitle, Source = DataSource.TMDB };
+
+                if (AniDB_ID != 0)
+                {
+                    var titleHelper = Utils.ServiceContainer.GetRequiredService<AniDBTitleHelper>();
+                    if (titleHelper.SearchAnimeID(AniDB_ID) is { } titleResponse && titleResponse.Titles.FirstOrDefault(title => title.TitleType == TitleType.Main) is { } defaultTitle)
+                        return _defaultTitle = defaultTitle;
+                }
 
                 return _defaultTitle = new TitleStub()
                 {
                     Language = TitleLanguage.Unknown,
                     LanguageCode = "unk",
-                    Value = $"<AniDB Anime {AniDB_ID}>",
+                    Value = TVDB_ShowID.HasValue ? $"<TVDB Show {TVDB_ShowID}>"
+                        : TVDB_MovieID.HasValue ? $"<TVDB Movie {TVDB_MovieID}>"
+                        : TMDB_ShowID.HasValue ? $"<TMDB Show {TMDB_ShowID}>"
+                        : TMDB_MovieID.HasValue ? $"<TMDB Movie {TMDB_MovieID}>"
+                        : $"<Series {AnimeSeriesID}>",
                     Source = DataSource.None,
                 };
             }
@@ -263,6 +291,10 @@ public class AnimeSeries : IDaCollectorSeries
                                     ?? (settings.Language.UseSynonyms ? GetAnidbTitles().FirstOrDefault(x => x.Language == language.Language) : null),
                         DataSource.TMDB =>
                             (tmdbTitles ??= GetTmdbTitles()).GetByLanguage(language.Language),
+                        DataSource.TvDB =>
+                            language.Language is TitleLanguage.Main or TitleLanguage.English or TitleLanguage.EnglishAmerican
+                                ? GetTvdbTitle()
+                                : null,
                         _ => null,
                     };
                     if (title is not null)
@@ -272,6 +304,27 @@ public class AnimeSeries : IDaCollectorSeries
             // The most "default" title we have, even if AniDB isn't a preferred source.
             return _preferredTitle = DefaultTitle;
         }
+    }
+
+    private ITitle? GetTvdbTitle()
+    {
+        if (TVDB_ShowID.HasValue && RepoFactory.TVDB_Show.GetByTvdbShowID(TVDB_ShowID.Value) is { } tvdbShow && !string.IsNullOrEmpty(tvdbShow.Name))
+            return new TitleStub { Language = TitleLanguage.English, LanguageCode = "en", Value = tvdbShow.Name, Source = DataSource.TvDB };
+        if (TVDB_MovieID.HasValue && RepoFactory.TVDB_Movie.GetByTvdbMovieID(TVDB_MovieID.Value) is { } tvdbMovie && !string.IsNullOrEmpty(tvdbMovie.Name))
+            return new TitleStub { Language = TitleLanguage.English, LanguageCode = "en", Value = tvdbMovie.Name, Source = DataSource.TvDB };
+        return null;
+    }
+
+    private IText? GetTvdbOverview()
+    {
+        string? overview = null;
+        if (TVDB_ShowID.HasValue && RepoFactory.TVDB_Show.GetByTvdbShowID(TVDB_ShowID.Value) is { } tvdbShow && !string.IsNullOrEmpty(tvdbShow.Overview))
+            overview = tvdbShow.Overview;
+        else if (TVDB_MovieID.HasValue && RepoFactory.TVDB_Movie.GetByTvdbMovieID(TVDB_MovieID.Value) is { } tvdbMovie && !string.IsNullOrEmpty(tvdbMovie.Overview))
+            overview = tvdbMovie.Overview;
+        if (overview is null)
+            return null;
+        return new TextStub { Language = TitleLanguage.English, LanguageCode = "en", Value = overview, Source = DataSource.TvDB };
     }
 
     private IReadOnlyList<TMDB_Title> GetTmdbTitles()
@@ -403,6 +456,10 @@ public class AnimeSeries : IDaCollectorSeries
                                 : null,
                         DataSource.TMDB =>
                             (tmdbOverviews ??= GetTmdbOverviews()).GetByLanguage(language.Language),
+                        DataSource.TvDB =>
+                            language.Language is TitleLanguage.English or TitleLanguage.EnglishAmerican or TitleLanguage.Main
+                                ? GetTvdbOverview()
+                                : null,
                         _ => null,
                     };
                     if (overview is not null)

@@ -49,6 +49,7 @@ using DaCollector.Server.Plugin;
 using DaCollector.Server.Providers.AniDB;
 using DaCollector.Server.Providers.AniDB.Interfaces;
 using DaCollector.Server.Providers.TMDB;
+using DaCollector.Server.Providers.TVDB;
 using DaCollector.Server.Providers.TraktTV;
 using DaCollector.Server.Repositories;
 using DaCollector.Server.Scheduling;
@@ -389,6 +390,7 @@ public class SystemService : ISystemService
             services.AddSingleton<ITmdbCollectionBuilderClient, TmdbCollectionBuilderClient>();
             services.AddSingleton<IImdbCollectionBuilderClient, ImdbDatasetCollectionBuilderClient>();
             services.AddSingleton<ITvdbCollectionBuilderClient, TvdbCollectionBuilderClient>();
+            services.AddSingleton<TvdbMetadataService>();
             services.AddSingleton<CollectionBuilderPreviewService>();
             services.AddSingleton<ManagedCollectionService>();
             services.AddSingleton<ManagedCollectionSyncService>();

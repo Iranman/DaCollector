@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using DaCollector.Server.Repositories.Cached;
 using DaCollector.Server.Repositories.Cached.AniDB;
 using DaCollector.Server.Repositories.Cached.TMDB;
+using DaCollector.Server.Repositories.Cached.TVDB;
 using DaCollector.Server.Repositories.Direct;
 using DaCollector.Server.Repositories.Direct.TMDB;
 using DaCollector.Server.Repositories.Direct.TMDB.Optional;
@@ -89,6 +90,10 @@ public class RepoFactory
     public static TMDB_Show_NetworkRepository TMDB_Show_Network;
     public static TMDB_ShowRepository TMDB_Show;
     public static TMDB_TitleRepository TMDB_Title;
+    public static TVDB_ShowRepository TVDB_Show;
+    public static TVDB_MovieRepository TVDB_Movie;
+    public static TVDB_SeasonRepository TVDB_Season;
+    public static TVDB_EpisodeRepository TVDB_Episode;
     public static VersionsRepository Versions;
     public static VideoLocalRepository VideoLocal;
     public static VideoLocal_HashDigestRepository VideoLocalHashDigest;
@@ -165,6 +170,10 @@ public class RepoFactory
         TMDB_Show_NetworkRepository tmdbShowNetwork,
         TMDB_ShowRepository tmdbShow,
         TMDB_TitleRepository tmdbTitle,
+        TVDB_ShowRepository tvdbShow,
+        TVDB_MovieRepository tvdbMovie,
+        TVDB_SeasonRepository tvdbSeason,
+        TVDB_EpisodeRepository tvdbEpisode,
         VersionsRepository versions,
         VideoLocal_HashDigestRepository videoLocalHashDigest,
         VideoLocal_PlaceRepository videoLocalPlace,
@@ -241,6 +250,10 @@ public class RepoFactory
         TMDB_Show = tmdbShow;
         TMDB_Show_Network = tmdbShowNetwork;
         TMDB_Title = tmdbTitle;
+        TVDB_Show = tvdbShow;
+        TVDB_Movie = tvdbMovie;
+        TVDB_Season = tvdbSeason;
+        TVDB_Episode = tvdbEpisode;
         Versions = versions;
         VideoLocal = videoLocal;
         VideoLocalHashDigest = videoLocalHashDigest;

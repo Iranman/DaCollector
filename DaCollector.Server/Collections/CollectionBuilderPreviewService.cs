@@ -624,7 +624,7 @@ public class CollectionBuilderPreviewService(
             return kind;
 
         warnings.Add($"TVDB previews support Movie or Show kinds. Ignoring unsupported kind '{kind}'.");
-        return kind;
+        return MediaKind.Unknown;
     }
 
     private static string? GetImdbSearchText(CollectionRule rule) =>

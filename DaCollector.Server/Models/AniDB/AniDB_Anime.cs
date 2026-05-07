@@ -478,14 +478,10 @@ public class AniDB_Anime : IAnidbAnime
             .ToList();
 
     IImage? IWithImages.GetPreferredImageForType(ImageEntityType entityType)
-    {
-        throw new NotImplementedException();
-    }
+        => GetPreferredImageForType(entityType);
 
     IReadOnlyList<IImage> IWithImages.GetImages(ImageEntityType? entityType)
-    {
-        throw new NotImplementedException();
-    }
+        => GetImages(entityType);
 
     public IReadOnlyList<CrossRef_AniDB_TMDB_Movie> TmdbMovieCrossReferences
         => RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbAnimeID(AnimeID);

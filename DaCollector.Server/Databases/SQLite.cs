@@ -850,6 +850,20 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         new(143,  4, "ALTER TABLE CrossRef_AniDB_MAL DROP COLUMN CrossRefSource;"),
         new(143,  5, "ALTER TABLE AnimeGroup_User DROP COLUMN IsFave;"),
         new(143,  6, DatabaseFixes.EnsureNoOrphanedGroupsOrSeries),
+        new(144,  1, "ALTER TABLE AnimeSeries ADD COLUMN TVDB_ShowID INTEGER NULL;"),
+        new(144,  2, "ALTER TABLE AnimeSeries ADD COLUMN TVDB_MovieID INTEGER NULL;"),
+        new(144,  3, "ALTER TABLE AnimeSeries ADD COLUMN TMDB_ShowID INTEGER NULL;"),
+        new(144,  4, "ALTER TABLE AnimeSeries ADD COLUMN TMDB_MovieID INTEGER NULL;"),
+        new(144,  5, "CREATE TABLE TVDB_Show ( TVDB_ShowID INTEGER PRIMARY KEY AUTOINCREMENT, TvdbShowID INTEGER NOT NULL, Name TEXT NOT NULL, Overview TEXT NOT NULL, FirstAiredAt DATE NULL, LastAiredAt DATE NULL, Status TEXT NOT NULL, OriginalLanguage TEXT NOT NULL, OriginalCountry TEXT NOT NULL, SeasonCount INTEGER NOT NULL, EpisodeCount INTEGER NOT NULL, Network TEXT NOT NULL, Genres TEXT NOT NULL, UserRating REAL NOT NULL, Year INTEGER NULL, PosterPath TEXT NULL, CreatedAt DATETIME NOT NULL, LastUpdatedAt DATETIME NOT NULL );"),
+        new(144,  6, "CREATE UNIQUE INDEX UIX_TVDB_Show_TvdbShowID ON TVDB_Show(TvdbShowID);"),
+        new(144,  7, "CREATE TABLE TVDB_Movie ( TVDB_MovieID INTEGER PRIMARY KEY AUTOINCREMENT, TvdbMovieID INTEGER NOT NULL, Name TEXT NOT NULL, Overview TEXT NOT NULL, ReleasedAt DATE NULL, RuntimeMinutes INTEGER NULL, Status TEXT NOT NULL, OriginalLanguage TEXT NOT NULL, OriginalCountry TEXT NOT NULL, Genres TEXT NOT NULL, UserRating REAL NOT NULL, Year INTEGER NULL, PosterPath TEXT NULL, CreatedAt DATETIME NOT NULL, LastUpdatedAt DATETIME NOT NULL );"),
+        new(144,  8, "CREATE UNIQUE INDEX UIX_TVDB_Movie_TvdbMovieID ON TVDB_Movie(TvdbMovieID);"),
+        new(144,  9, "CREATE TABLE TVDB_Season ( TVDB_SeasonID INTEGER PRIMARY KEY AUTOINCREMENT, TvdbSeasonID INTEGER NOT NULL, TvdbShowID INTEGER NOT NULL, SeasonNumber INTEGER NOT NULL, SeasonType TEXT NOT NULL, Name TEXT NOT NULL, Overview TEXT NOT NULL, EpisodeCount INTEGER NOT NULL, Year INTEGER NULL, PosterPath TEXT NULL, CreatedAt DATETIME NOT NULL, LastUpdatedAt DATETIME NOT NULL );"),
+        new(144, 10, "CREATE UNIQUE INDEX UIX_TVDB_Season_TvdbSeasonID ON TVDB_Season(TvdbSeasonID);"),
+        new(144, 11, "CREATE INDEX IX_TVDB_Season_TvdbShowID ON TVDB_Season(TvdbShowID);"),
+        new(144, 12, "CREATE TABLE TVDB_Episode ( TVDB_EpisodeID INTEGER PRIMARY KEY AUTOINCREMENT, TvdbEpisodeID INTEGER NOT NULL, TvdbShowID INTEGER NOT NULL, TvdbSeasonID INTEGER NULL, SeasonNumber INTEGER NOT NULL, EpisodeNumber INTEGER NOT NULL, Name TEXT NOT NULL, Overview TEXT NOT NULL, RuntimeMinutes INTEGER NULL, AiredAt DATE NULL, CreatedAt DATETIME NOT NULL, LastUpdatedAt DATETIME NOT NULL );"),
+        new(144, 13, "CREATE UNIQUE INDEX UIX_TVDB_Episode_TvdbEpisodeID ON TVDB_Episode(TvdbEpisodeID);"),
+        new(144, 14, "CREATE INDEX IX_TVDB_Episode_TvdbShowID ON TVDB_Episode(TvdbShowID);"),
     ];
 
     #endregion

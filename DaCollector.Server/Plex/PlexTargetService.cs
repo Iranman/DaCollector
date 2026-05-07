@@ -315,6 +315,8 @@ public class PlexTargetService(ISettingsProvider settingsProvider, IHttpClientFa
         CancellationToken cancellationToken
     )
     {
+        const int BatchSize = 100;
+
         foreach (var group in items.GroupBy(item => ToPlexSearchType(item.Type)))
         {
             if (group.Key is null)
@@ -328,26 +330,30 @@ public class PlexTargetService(ISettingsProvider settingsProvider, IHttpClientFa
             if (ratingKeys.Count == 0)
                 continue;
 
-            var query = add
-                ? new List<KeyValuePair<string, string>>
-                {
-                    new("collection.locked", "1"),
-                    new("collection[0].tag.tag", collectionName),
-                    new("id", string.Join(",", ratingKeys)),
-                    new("type", group.Key),
-                }
-                : [
-                    new("collection.locked", "1"),
-                    new("collection[].tag.tag-", collectionName),
-                    new("id", string.Join(",", ratingKeys)),
-                    new("type", group.Key),
-                ];
-            var path = BuildPath($"/library/sections/{Uri.EscapeDataString(sectionKey)}/all", query);
-            using var response = await Send(baseUrl, path, token, cancellationToken, method: HttpMethod.Put).ConfigureAwait(false);
-            if (!response.IsSuccessStatusCode)
+            for (var offset = 0; offset < ratingKeys.Count; offset += BatchSize)
             {
-                var action = add ? "adding items to" : "removing items from";
-                throw new InvalidOperationException($"Plex returned {(int)response.StatusCode} {response.StatusCode} when {action} collection '{collectionName}'.");
+                var batch = ratingKeys.Skip(offset).Take(BatchSize).ToList();
+                var query = add
+                    ? new List<KeyValuePair<string, string>>
+                    {
+                        new("collection.locked", "1"),
+                        new("collection[0].tag.tag", collectionName),
+                        new("id", string.Join(",", batch)),
+                        new("type", group.Key),
+                    }
+                    : [
+                        new("collection.locked", "1"),
+                        new("collection[].tag.tag-", collectionName),
+                        new("id", string.Join(",", batch)),
+                        new("type", group.Key),
+                    ];
+                var path = BuildPath($"/library/sections/{Uri.EscapeDataString(sectionKey)}/all", query);
+                using var response = await Send(baseUrl, path, token, cancellationToken, method: HttpMethod.Put).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    var action = add ? "adding items to" : "removing items from";
+                    throw new InvalidOperationException($"Plex returned {(int)response.StatusCode} {response.StatusCode} when {action} collection '{collectionName}'.");
+                }
             }
         }
     }

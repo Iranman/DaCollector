@@ -13,6 +13,10 @@ public class AnimeSeriesMap : ClassMap<AnimeSeries>
         Id(x => x.AnimeSeriesID);
 
         Map(x => x.AniDB_ID).Not.Nullable();
+        Map(x => x.TVDB_ShowID).Nullable();
+        Map(x => x.TVDB_MovieID).Nullable();
+        Map(x => x.TMDB_ShowID).Nullable();
+        Map(x => x.TMDB_MovieID).Nullable();
         Map(x => x.AnimeGroupID).Not.Nullable();
         Map(x => x.DateTimeCreated).Not.Nullable();
         Map(x => x.DateTimeUpdated).Not.Nullable();
