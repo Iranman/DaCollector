@@ -1,5 +1,4 @@
 /.dockerignore text eol=lf
-/.env.example text eol=lf
 /.gitattributes text eol=lf
 /.gitignore text eol=lf
 *.md text eol=lf

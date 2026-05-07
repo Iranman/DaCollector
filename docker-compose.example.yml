@@ -1,34 +1,35 @@
 # Copy this file to your deployment folder and edit it for your server.
-# Keep secrets in .env instead of hard-coding them here.
 
 services:
   dacollector:
-    image: "ghcr.io/iranman/dacollector:${DACOLLECTOR_IMAGE_TAG:-latest}"
+    image: ghcr.io/iranman/dacollector:latest
+    shm_size: 256m
     container_name: dacollector
     restart: unless-stopped
 
     ports:
-      - "${DACOLLECTOR_PORT:-8111}:8111"
+      - "8111:8111"
 
     environment:
-      PUID: "${PUID:-1000}"
-      PGID: "${PGID:-1000}"
-      UMASK: "${UMASK:-002}"
-      TZ: "${TZ:-Etc/UTC}"
+      # Replace PUID and PGID with the user and group that should own DaCollector files.
+      PUID: "1000"
+      PGID: "1000"
+      UMASK: "002"
+      TZ: Etc/UTC
       DACOLLECTOR_HOME: /home/dacollector/.dacollector/DaCollector
 
       # Plex target. Use host.docker.internal when Plex runs on the Docker host.
-      PLEX_TARGET_BASE_URL: "${PLEX_TARGET_BASE_URL:-http://host.docker.internal:32400}"
-      PLEX_TARGET_SECTION_KEY: "${PLEX_TARGET_SECTION_KEY:-}"
-      PLEX_TARGET_TOKEN: "${PLEX_TARGET_TOKEN:-}"
+      PLEX_TARGET_BASE_URL: http://host.docker.internal:32400
+      PLEX_TARGET_SECTION_KEY: ""
+      PLEX_TARGET_TOKEN: ""
 
       # Metadata providers.
-      TMDB_API_KEY: "${TMDB_API_KEY:-}"
-      IMDB_DATASET_PATH: "${IMDB_DATASET_PATH:-}"
-      IMDB_CACHE_EXPIRATION_DAYS: "${IMDB_CACHE_EXPIRATION_DAYS:-7}"
-      TVDB_API_KEY: "${TVDB_API_KEY:-}"
-      TVDB_PIN: "${TVDB_PIN:-}"
-      TVDB_CACHE_EXPIRATION_DAYS: "${TVDB_CACHE_EXPIRATION_DAYS:-7}"
+      TMDB_API_KEY: ""
+      IMDB_DATASET_PATH: ""
+      IMDB_CACHE_EXPIRATION_DAYS: "7"
+      TVDB_API_KEY: ""
+      TVDB_PIN: ""
+      TVDB_CACHE_EXPIRATION_DAYS: "7"
 
     volumes:
       # Persistent DaCollector settings, SQLite databases, logs, Web UI data, and provider cache.
