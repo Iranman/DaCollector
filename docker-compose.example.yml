@@ -1,57 +1,91 @@
-# Copy this file to your deployment folder and edit it for your server.
+# DaCollector — annotated reference compose file
+#
+# This file documents every option.  For a working install, use docker-compose.yml
+# with a .env file (see .env.example) instead of editing this file directly.
+#
+# To use this file as your install base:
+#   cp docker-compose.example.yml docker-compose.yml
+#   cp .env.example .env
+#   nano .env   # fill in your values
+#   docker compose up -d
 
 services:
   dacollector:
-    image: ghcr.io/iranman/dacollector:latest
-    shm_size: 256m
+    image: "ghcr.io/iranman/dacollector:latest"
     container_name: dacollector
     restart: unless-stopped
 
     ports:
-      - "38111:38111"
+      # HOST_PORT:CONTAINER_PORT — change the left side only if 38111 is taken.
+      - "${DACOLLECTOR_PORT:-38111}:38111"
 
     environment:
-      # Replace PUID and PGID with the user and group that should own DaCollector files.
-      # On TrueNAS, set these to the UID and GID of the ZFS dataset owner.
-      PUID: "1000"
-      PGID: "1000"
-      UMASK: "002"
-      TZ: Etc/UTC
+      # ── Container identity ──────────────────────────────────────────────────
+      # UID / GID the server process runs as. Set to the owner of your media folders.
+      # Run: id <your-media-user>  on the host to find the right values.
+      # On TrueNAS, set these to the UID/GID of the ZFS dataset owner.
+      PUID: "${PUID:-1000}"
+      PGID: "${PGID:-1000}"
+      UMASK: "${UMASK:-002}"
+
+      # Full timezone name — see https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+      TZ: "${TZ:-Etc/UTC}"
+
+      # Internal data directory.  Do not change unless you understand the implications.
       DACOLLECTOR_HOME: /home/dacollector/.dacollector/DaCollector
-      # Set SKIP_CHOWN=true on TrueNAS/ZFS or ACL-managed datasets to skip recursive chown on startup.
-      # Without this, a first-boot ownership repair can appear to stall on ZFS pools with many files.
-      SKIP_CHOWN: "false"
 
-      # Plex target. Use host.docker.internal when Plex runs on the Docker host.
-      PLEX_TARGET_BASE_URL: http://host.docker.internal:32400
-      PLEX_TARGET_SECTION_KEY: ""
-      PLEX_TARGET_TOKEN: ""
+      # Set to "true" on TrueNAS/ZFS or ACL-managed datasets to skip recursive chown on startup.
+      # Without this a first-boot ownership repair can stall on large ZFS pools for several minutes.
+      SKIP_CHOWN: "${SKIP_CHOWN:-false}"
 
-      # Metadata providers.
-      TMDB_API_KEY: ""
-      IMDB_DATASET_PATH: ""
-      IMDB_CACHE_EXPIRATION_DAYS: "7"
-      TVDB_API_KEY: ""
-      TVDB_PIN: ""
-      TVDB_CACHE_EXPIRATION_DAYS: "7"
+      # ── Plex ────────────────────────────────────────────────────────────────
+      # URL of your Plex Media Server.
+      # Same machine as Docker:   http://host.docker.internal:32400
+      # Different machine on LAN: http://192.168.1.50:32400
+      PLEX_TARGET_BASE_URL: "${PLEX_TARGET_BASE_URL:-http://host.docker.internal:32400}"
+
+      # Plex library section key (numeric). Get it from:
+      # http://<plex-host>:32400/library/sections?X-Plex-Token=<token>
+      PLEX_TARGET_SECTION_KEY: "${PLEX_TARGET_SECTION_KEY:-}"
+
+      # Plex API token. Find it in Plex Web: open any item → three-dot → Get Info → URL bar.
+      PLEX_TARGET_TOKEN: "${PLEX_TARGET_TOKEN:-}"
+
+      # ── Metadata providers ──────────────────────────────────────────────────
+      # TMDB — free key from https://www.themoviedb.org/settings/api
+      TMDB_API_KEY: "${TMDB_API_KEY:-}"
+
+      # TVDB — key from https://thetvdb.com/dashboard/account/apikeys
+      TVDB_API_KEY: "${TVDB_API_KEY:-}"
+      TVDB_PIN: "${TVDB_PIN:-}"
+      TVDB_CACHE_EXPIRATION_DAYS: "${TVDB_CACHE_EXPIRATION_DAYS:-7}"
+
+      # IMDb — no API key; set to the container path of the dataset folder.
+      # Download title.basics.tsv.gz from https://datasets.imdbws.com/ and unpack it,
+      # then mount the folder below and set this to the container path (/metadata/imdb).
+      IMDB_DATASET_PATH: "${IMDB_DATASET_PATH:-}"
+      IMDB_CACHE_EXPIRATION_DAYS: "${IMDB_CACHE_EXPIRATION_DAYS:-7}"
 
     volumes:
-      # Persistent DaCollector settings, SQLite databases, logs, Web UI data, and provider cache.
+      # Application data: settings, SQLite databases, provider cache, Web UI files.
       - dacollector-data:/home/dacollector/.dacollector
 
-      # Windows examples.
-      # - "D:/Media/Movies:/media/movies:ro"
-      # - "D:/Media/TV:/media/tv:ro"
-      # - "D:/Media/IMDb:/metadata/imdb:ro"
+      # Logs: bind-mounted to ./logs/ on the host so you can tail them directly.
+      - ./logs:/home/dacollector/.dacollector/DaCollector/logs
 
-      # Linux examples.
-      # - "/mnt/media/movies:/media/movies:ro"
-      # - "/mnt/media/tv:/media/tv:ro"
-      # - "/mnt/media/imdb:/metadata/imdb:ro"
+      # ── Media libraries ────────────────────────────────────────────────────
+      # Add your library paths here, then add the container paths as Managed Folders
+      # inside DaCollector (Settings → Managed Folders).
+      # Keep :ro unless you want DaCollector to delete duplicate files in that folder.
+      #- "${MEDIA_MOVIES:-/mnt/media/movies}:/media/movies:ro"
+      #- "${MEDIA_TV:-/mnt/media/tv}:/media/tv:ro"
 
-      # If you want DaCollector duplicate deletion to remove files, change only the
-      # reviewed target mount from :ro to :rw after checking the cleanup plan.
+      # ── IMDb dataset ─────────────────────────────────────────────────────────
+      # Needed only for IMDb builders. Set IMDB_DATASET_PATH in .env to the
+      # container path (/metadata/imdb), then uncomment this line.
+      #- "${IMDB_DATASET_PATH:-/mnt/media/imdb}:/metadata/imdb:ro"
 
+    # Required for host.docker.internal to resolve on Linux Docker hosts.
     extra_hosts:
       - "host.docker.internal:host-gateway"
 

@@ -1,236 +1,225 @@
 # Docker Installation
 
-DaCollector includes Dockerfiles and Docker Compose files for running the headless server container. Use Docker when you want the server, database, and Web UI hosted as a long-running service without the Windows tray app.
+DaCollector ships a Docker image on GHCR and a `docker-compose.yml` that is the recommended way to run it as a long-running server service.
 
 ## Requirements
 
-- Docker Engine or Docker Desktop with Docker Compose v2.
-- A persistent volume for `/home/dacollector/.dacollector`.
-- Media folders mounted into the container so DaCollector can scan them.
+- Docker Engine 24+ or Docker Desktop with Compose v2.
+- A Linux or Windows host with Docker and at least 512 MB free RAM.
+- Your media libraries mounted or accessible to the host.
 
-## Docker Compose (Recommended)
+---
 
-Docker Compose is the recommended Docker install method because it keeps the container, ports, persistent data, and media mounts in one file.
+## Step 1 — Get the files
 
-Start with the included [`docker-compose.example.yml`](https://github.com/Iranman/DaCollector/blob/main/docker-compose.example.yml) if you want comments while editing:
+Download `docker-compose.yml` and `.env.example` from the repository to a permanent folder on your server:
 
-```powershell
-copy docker-compose.example.yml docker-compose.yml
+```bash
+mkdir ~/dacollector && cd ~/dacollector
+
+curl -O https://raw.githubusercontent.com/Iranman/DaCollector/main/docker-compose.yml
+curl -O https://raw.githubusercontent.com/Iranman/DaCollector/main/.env.example
 ```
 
-Then edit `docker-compose.yml` for your machine. At minimum, review:
+Or clone the repo and copy only the two files you need:
 
-- `PUID` and `PGID`: the user and group that should own DaCollector files.
-- `TZ`: your timezone.
-- `ports`: the host port for the Web UI.
-- `volumes`: the host media folders DaCollector should scan.
-- `PLEX_TARGET_BASE_URL`, `PLEX_TARGET_SECTION_KEY`, and `PLEX_TARGET_TOKEN` if you want Plex collection sync.
-- `TMDB_API_KEY`, `TVDB_API_KEY`, and `IMDB_DATASET_PATH` if you use those providers.
+```bash
+cp docker-compose.yml .env.example ~/dacollector/
+cd ~/dacollector
+```
 
-### docker-compose.yml
+---
+
+## Step 2 — Create your `.env` file
+
+```bash
+cp .env.example .env
+nano .env      # or any editor
+```
+
+Fill in at minimum:
+
+| Variable | What to set |
+| --- | --- |
+| `PUID` / `PGID` | Owner of your media folders (`id <user>` to find them) |
+| `TZ` | Your timezone, e.g. `America/New_York` |
+| `PLEX_TARGET_BASE_URL` | `http://host.docker.internal:32400` if Plex is on the same machine, or `http://192.168.1.50:32400` for another machine on your LAN |
+| `PLEX_TARGET_TOKEN` | Your Plex token (see [Finding your Plex token](../../getting-started/troubleshooting.md#how-to-find-your-plex-token)) |
+| `PLEX_TARGET_SECTION_KEY` | Numeric library section key (see below) |
+| `TMDB_API_KEY` | Free key from [themoviedb.org/settings/api](https://www.themoviedb.org/settings/api) |
+
+Leave `TVDB_API_KEY`, `TVDB_PIN`, and `IMDB_DATASET_PATH` blank to disable those providers for now. You can add them later.
+
+### Finding your Plex library section key
+
+While Plex is running, open this URL in a browser (replace token and host):
+
+```text
+http://127.0.0.1:32400/library/sections?X-Plex-Token=<your-token>
+```
+
+The `key` attribute on each `<Directory>` element is the section key. Use the numeric key for your movies or TV library.
+
+---
+
+## Step 3 — Add your media paths
+
+Open `docker-compose.yml` and uncomment the media volume lines that apply to you, then update the `MEDIA_MOVIES` and `MEDIA_TV` variables in `.env` to your actual paths:
 
 ```yaml
-services:
-  dacollector:
-    image: ghcr.io/iranman/dacollector:latest
-    shm_size: 256m
-    container_name: dacollector
-    restart: unless-stopped
-    ports:
-      - "38111:38111"
-    environment:
-      PUID: "1000"
-      PGID: "1000"
-      UMASK: "002"
-      TZ: Etc/UTC
-      DACOLLECTOR_HOME: /home/dacollector/.dacollector/DaCollector
-      PLEX_TARGET_BASE_URL: http://host.docker.internal:32400
-      PLEX_TARGET_SECTION_KEY: ""
-      PLEX_TARGET_TOKEN: ""
-      TMDB_API_KEY: ""
-      IMDB_DATASET_PATH: ""
-      IMDB_CACHE_EXPIRATION_DAYS: "7"
-      TVDB_API_KEY: ""
-      TVDB_PIN: ""
-      TVDB_CACHE_EXPIRATION_DAYS: "7"
-    volumes:
-      - dacollector-data:/home/dacollector/.dacollector
-      - "D:/Media/Movies:/media/movies:ro"
-      - "D:/Media/TV:/media/tv:ro"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-
-volumes:
-  dacollector-data:
+# In docker-compose.yml — uncomment these lines:
+- "${MEDIA_MOVIES:-/mnt/media/movies}:/media/movies:ro"
+- "${MEDIA_TV:-/mnt/media/tv}:/media/tv:ro"
 ```
 
-Replace the media paths before running the container. On Linux, paths normally look like:
-
-```yaml
-volumes:
-  - dacollector-data:/home/dacollector/.dacollector
-  - "/mnt/media/movies:/media/movies:ro"
-  - "/mnt/media/tv:/media/tv:ro"
+```bash
+# In .env — set your real paths:
+MEDIA_MOVIES=/mnt/media/movies
+MEDIA_TV=/mnt/media/tv
 ```
 
-Keep media mounts read-only until you intentionally want DaCollector to delete duplicate files from that path.
+Keep `:ro` (read-only) unless you intentionally want DaCollector to delete duplicate files from that location.
 
-## Start DaCollector
+---
 
-From the folder containing `docker-compose.yml`:
+## Step 4 — Start the container
 
-```powershell
+```bash
 docker compose pull
 docker compose up -d
 ```
 
-Open:
+The first pull downloads the image. The first start creates the data volume, runs database migrations, and starts the server.
 
-```text
-http://127.0.0.1:38111/webui
+Check that the container is running:
+
+```bash
+docker compose ps
 ```
 
-Then run the [install verification checklist](../verify-install.md).
+Watch the startup logs until the server is ready:
 
-Check container status:
-
-```powershell
-docker compose ps
+```bash
 docker compose logs -f dacollector
 ```
 
-Stop the container:
+You should see a startup summary block followed by the Kestrel listener line:
 
-```powershell
-docker compose down
+```
+-------------------------------------
+User ID:   1000
+Group ID:  1000
+UMASK set: 002
+Directory: "/home/dacollector/.dacollector/DaCollector"
+Owner:     1000:1000
+-------------------------------------
+Now listening on: http://0.0.0.0:38111
 ```
 
-If GitHub returns an authentication or not found error when pulling the image, confirm that the package has been published and that the GHCR package visibility is public.
+---
 
-## Persistent Data
-
-The Compose file creates a named volume:
-
-```yaml
-volumes:
-  dacollector-data:
-```
-
-Inside the container, DaCollector uses:
+## Step 5 — Open the Web UI
 
 ```text
-/home/dacollector/.dacollector/DaCollector
+http://<server-ip>:38111/webui
 ```
 
-That path contains settings, SQLite databases, logs, provider cache, images, plugins, and Web UI data.
+The setup wizard runs on first boot. Create your admin account, then follow the [First Run](../../getting-started/first-run.md) guide to connect Plex and configure providers.
 
-## Plex on the Docker Host
+---
 
-When Plex runs on the same Windows machine as Docker Desktop, use:
+## Daily log access
 
-```yaml
-PLEX_TARGET_BASE_URL: http://host.docker.internal:32400
+Server logs are written to `./logs/` in the same directory as `docker-compose.yml` — no `docker exec` required:
+
+```bash
+# Watch live
+tail -f logs/DaCollector.log
+
+# Or read today's log file (JSONL format)
+ls logs/
 ```
 
-When Plex runs on another machine, use its LAN URL:
+You can also stream container stdout (entrypoint messages only):
 
-```yaml
-PLEX_TARGET_BASE_URL: http://192.168.1.50:32400
+```bash
+docker compose logs --tail 100 dacollector
 ```
 
-Set `PLEX_TARGET_TOKEN` directly in `docker-compose.yml`, then use the Plex Target APIs or Web UI status checks to confirm DaCollector can read libraries.
-
-## Change the Port
-
-Change the host-side port in `docker-compose.yml`:
-
-```yaml
-ports:
-  - "38112:38111"
-```
-
-Restart:
-
-```powershell
-docker compose up -d
-```
-
-Open `http://127.0.0.1:38112/webui`.
-
-## Local Build
-
-Use `compose.yaml` when you want to build the image from this repository instead of pulling the GHCR image:
-
-```powershell
-docker compose -f compose.yaml up -d --build
-```
-
-For an ARM64 container build, edit `compose.yaml` and set:
-
-```yaml
-dockerfile: Dockerfile.aarch64
-```
-
-Then rebuild:
-
-```powershell
-docker compose -f compose.yaml build --no-cache dacollector
-docker compose -f compose.yaml up -d
-```
+---
 
 ## Update
 
-For the recommended GHCR image:
-
-```powershell
+```bash
 docker compose pull
 docker compose up -d
 ```
 
-For a local build:
+The named data volume is preserved. Database migrations run automatically on startup. Back up the data volume before testing a release that may run migrations:
 
-```powershell
-git pull
-docker compose -f compose.yaml build --pull dacollector
-docker compose -f compose.yaml up -d
+```bash
+docker compose down
+docker run --rm \
+  -v dacollector_dacollector-data:/data \
+  -v "$(pwd)":/backup \
+  alpine tar czf /backup/dacollector-data.tgz -C /data .
+docker compose up -d
 ```
 
-The named volume is preserved. Back up the volume before testing a branch that may run database migrations.
+---
+
+## Change the port
+
+In `.env`:
+
+```bash
+DACOLLECTOR_PORT=38112
+```
+
+Then restart:
+
+```bash
+docker compose up -d
+```
+
+---
 
 ## TrueNAS and ZFS
 
 ### Slow first-boot (ownership repair stall)
 
-On a TrueNAS or ZFS-backed Docker volume, DaCollector may appear to stall after:
+On a TrueNAS or ZFS-backed Docker volume, the container may appear stuck after:
 
 ```
-Creating user dacollector (uid=1000, gid=1000)...
 Ownership mismatch on /home/dacollector/.dacollector/DaCollector
 Starting ownership repair. This may be slow on large datasets or ZFS/TrueNAS volumes.
 ```
 
-The container is not frozen — it is recursively `chown`-ing the data directory to match `PUID:PGID`. On a ZFS dataset with thousands of inodes, this can take minutes.
+The container is recursively `chown`-ing the data directory to match `PUID:PGID`. On a ZFS dataset with thousands of inodes, this can take minutes.
 
-**Option 1 — Set `PUID`/`PGID` to the dataset owner first (preferred)**
-
-Find the dataset owner on the TrueNAS host:
+**Preferred fix — match `PUID`/`PGID` to the dataset owner:**
 
 ```bash
 stat -c '%u:%g' /mnt/your-pool/dacollector-data
 ```
 
-Then set `PUID` and `PGID` in `docker-compose.yml` to match. On the next start, the ownership check will pass immediately and `chown` is skipped.
+Set the matching values in `.env`:
 
-**Option 2 — Skip `chown` entirely (`SKIP_CHOWN=true`)**
-
-If you manage file permissions through TrueNAS ACLs or want to skip ownership repair entirely:
-
-```yaml
-environment:
-  SKIP_CHOWN: "true"
+```bash
+PUID=1000
+PGID=1000
 ```
 
-With `SKIP_CHOWN=true`, the container assumes the mounted volume already has correct ownership and skips the repair step. The startup log will confirm:
+On the next start, the ownership check passes immediately and `chown` is skipped.
+
+**Alternative — skip `chown` entirely for ACL-managed datasets:**
+
+```bash
+# In .env:
+SKIP_CHOWN=true
+```
+
+The startup log will confirm:
 
 ```
 Ownership repair skipped (SKIP_CHOWN=true). Owner of /home/dacollector/.dacollector/DaCollector: 1000:1000
@@ -238,47 +227,62 @@ Ownership repair skipped (SKIP_CHOWN=true). Owner of /home/dacollector/.dacollec
 
 ### Diagnosing a stalled container
 
-Check whether the container is actually doing `chown` work or is genuinely stuck:
-
 ```bash
-# Check current ownership inside the container
-docker exec dacollector stat -c '%u:%g %n' /home/dacollector/.dacollector/DaCollector
+# Is the container alive?
+docker compose ps
 
-# Check the running user inside the container
-docker exec dacollector id dacollector
-
-# Check container logs for the ownership repair messages
+# What is it doing?
 docker compose logs --tail 30 dacollector
+
+# Check current ownership
+docker exec dacollector stat -c '%u:%g %n' /home/dacollector/.dacollector/DaCollector
 ```
 
-If the container log shows `Starting ownership repair...` but nothing after it, the recursive `chown` is still running. Wait for it to finish, or stop the container and set `SKIP_CHOWN=true`.
-
-If ownership is wrong after the container is running:
-
-1. Stop the container: `docker compose down`
-2. Fix the host dataset owner, or update `PUID`/`PGID` to match the current dataset owner.
-3. Start the container: `docker compose up -d`
+If the log shows `Starting ownership repair...` but nothing after it, the recursive `chown` is still running. Wait for it to finish, or stop the container and set `SKIP_CHOWN=true` in `.env`.
 
 ### Media mounts on TrueNAS
 
-Mount media paths at `/media/movies`, `/media/tv`, etc., not under `/home/dacollector`. DaCollector's ownership repair targets only `/home/dacollector/.dacollector/DaCollector` — paths outside this scope are not affected.
+Mount media under `/media/movies`, `/media/tv`, etc. — not under `/home/dacollector`. DaCollector's ownership repair only targets `$DACOLLECTOR_HOME`; paths outside that scope are not affected.
 
-```yaml
-volumes:
-  - dacollector-data:/home/dacollector/.dacollector
-  - "/mnt/media/movies:/media/movies:ro"
-  - "/mnt/media/tv:/media/tv:ro"
-```
+---
 
-Keep media mounts read-only unless you need DaCollector to delete duplicate files from that path.
+## Back up and restore
 
-## Back Up Docker Data
+Stop the container before backing up:
 
-Stop DaCollector before backing up the volume:
-
-```powershell
+```bash
 docker compose down
-docker run --rm -v dacollector_dacollector-data:/data -v "${PWD}:/backup" alpine tar czf /backup/dacollector-data.tgz -C /data .
+docker run --rm \
+  -v dacollector_dacollector-data:/data \
+  -v "$(pwd)":/backup \
+  alpine tar czf /backup/dacollector-data.tgz -C /data .
 ```
 
-Restore only into a stopped container and only when you intend to replace the current data.
+Restore (replaces current data):
+
+```bash
+docker compose down
+docker run --rm \
+  -v dacollector_dacollector-data:/data \
+  -v "$(pwd)":/backup \
+  alpine sh -c "cd /data && tar xzf /backup/dacollector-data.tgz"
+docker compose up -d
+```
+
+---
+
+## Local build
+
+To build the image from source instead of pulling from GHCR:
+
+```bash
+docker compose -f compose.yaml up -d --build
+```
+
+For ARM64 (e.g. Raspberry Pi, Apple Silicon):
+
+```bash
+# In compose.yaml, set: dockerfile: Dockerfile.aarch64
+docker compose -f compose.yaml build --no-cache dacollector
+docker compose -f compose.yaml up -d
+```

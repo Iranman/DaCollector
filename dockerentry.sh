@@ -83,6 +83,13 @@ else
     echo "Ownership of $DACOLLECTOR_HOME is correct ($OWNER)."
 fi
 
+# Ensure the log directory exists and is writable by the container user.
+# This runs regardless of SKIP_CHOWN so that a bind-mounted ./logs directory
+# created by Docker (as root:root) is always accessible to the server process.
+LOG_DIR="$DACOLLECTOR_HOME/logs"
+mkdir -p "$LOG_DIR"
+chown $PUID:$PGID "$LOG_DIR"
+
 # Set ownership of DaCollector files to dacollector user
 chown -R $USER:$GROUP /usr/src/app/build/
 if [ -d /root/.dacollector ]; then

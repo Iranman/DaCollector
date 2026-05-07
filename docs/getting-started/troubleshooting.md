@@ -209,6 +209,7 @@ This was caused by an invalid local build version (`0.0.0-local`) and is fixed a
 | --- | --- |
 | Windows | `C:\ProgramData\DaCollector\logs\` |
 | Windows (custom home) | `%DACOLLECTOR_HOME%\logs\` |
-| Docker | `/home/dacollector/.dacollector/DaCollector/logs/` — or use `docker compose logs dacollector` |
+| Docker (recommended setup) | `./logs/` next to `docker-compose.yml` on the host — bind-mounted from inside the container |
+| Docker (fallback) | `docker compose logs dacollector` streams container stdout (entrypoint messages); for full server logs use `docker exec dacollector ls /home/dacollector/.dacollector/DaCollector/logs/` |
 
 The server log captures startup, migration, job, and error output. Always read the log before opening a bug report.
