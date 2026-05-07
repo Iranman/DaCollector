@@ -145,7 +145,7 @@ public class DatabaseFixes
     {
         //DB Fix Series not deleting series_user
         var list = new HashSet<int>(RepoFactory.MediaSeries.Cache.Keys);
-        RepoFactory.AnimeSeries_User.Delete(RepoFactory.AnimeSeries_User.Cache.Values
+        RepoFactory.MediaSeries_User.Delete(RepoFactory.MediaSeries_User.Cache.Values
             .Where(a => !list.Contains(a.MediaSeriesID))
             .ToList());
     }
@@ -219,7 +219,7 @@ public class DatabaseFixes
         var emptyGroups = RepoFactory.MediaGroup.GetAll().Where(a => a.AllSeries.Count == 0).ToArray();
         RepoFactory.MediaGroup.Delete(emptyGroups);
         var orphanedSeries = RepoFactory.MediaSeries.GetAll().Where(a => a.MediaGroupID == 0 || a.MediaGroup == null).ToArray();
-        var groupCreator = Utils.ServiceContainer.GetRequiredService<AnimeGroupCreator>();
+        var groupCreator = Utils.ServiceContainer.GetRequiredService<MediaGroupCreator>();
         using var session = Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().SessionFactory.OpenSession();
         foreach (var series in orphanedSeries)
         {
@@ -255,13 +255,13 @@ public class DatabaseFixes
         // Fetch every episode user record stored to both remove orphaned records and to make sure the watch date is correct.
         var userDict = RepoFactory.JMMUser.GetAll().ToDictionary(user => user.JMMUserID);
         var episodeDict = RepoFactory.MediaEpisode.GetAll()
-            .ToDictionary(episode => episode.AnimeEpisodeID, episode => episode.VideoLocals);
-        var episodesURsToSave = new List<AnimeEpisode_User>();
-        var episodeURsToRemove = new List<AnimeEpisode_User>();
-        foreach (var episodeUserRecord in RepoFactory.AnimeEpisode_User.GetAll())
+            .ToDictionary(episode => episode.MediaEpisodeID, episode => episode.VideoLocals);
+        var episodesURsToSave = new List<MediaEpisode_User>();
+        var episodeURsToRemove = new List<MediaEpisode_User>();
+        foreach (var episodeUserRecord in RepoFactory.MediaEpisode_User.GetAll())
         {
             // Remove any unknown episode user records.
-            if (!episodeDict.ContainsKey(episodeUserRecord.AnimeEpisodeID) ||
+            if (!episodeDict.ContainsKey(episodeUserRecord.MediaEpisodeID) ||
                 !userDict.ContainsKey(episodeUserRecord.JMMUserID))
             {
                 episodeURsToRemove.Add(episodeUserRecord);
@@ -269,7 +269,7 @@ public class DatabaseFixes
             }
 
             // Fetch the file user record for when a file for the episode was last watched.
-            var fileUserRecord = episodeDict[episodeUserRecord.AnimeEpisodeID]
+            var fileUserRecord = episodeDict[episodeUserRecord.MediaEpisodeID]
                 .Select(file => RepoFactory.VideoLocalUser.GetByUserAndVideoLocalID(episodeUserRecord.JMMUserID, file.VideoLocalID))
                 .WhereNotNull()
                 .OrderByDescending(record => record.LastUpdated)
@@ -298,15 +298,15 @@ public class DatabaseFixes
         }
 
         _logger.Debug($"Found {episodesURsToSave.Count} episode user records to fix and {episodeURsToRemove.Count} orphaned records.");
-        RepoFactory.AnimeEpisode_User.Delete(episodeURsToRemove);
-        RepoFactory.AnimeEpisode_User.Save(episodesURsToSave);
+        RepoFactory.MediaEpisode_User.Delete(episodeURsToRemove);
+        RepoFactory.MediaEpisode_User.Save(episodesURsToSave);
         _logger.Debug($"Updating series user records and series stats.");
         // Update all the series and groups to use the new watch dates.
         var seriesList = episodesURsToSave
             .GroupBy(record => record.MediaSeriesID)
             .Select(records => (RepoFactory.MediaSeries.GetByID(records.Key),
                 records.Select(record => record.JMMUserID).Distinct())).ToList();
-        var seriesService = Utils.ServiceContainer.GetRequiredService<AnimeSeriesService>();
+        var seriesService = Utils.ServiceContainer.GetRequiredService<MediaSeriesService>();
         foreach (var (series, userIDs) in seriesList)
         {
             // No idea why we would have episode entries for a deleted series, but just in case.
@@ -318,19 +318,19 @@ public class DatabaseFixes
             // Update the timestamp for when an episode for the series was last partially or fully watched.
             foreach (var userID in userIDs)
             {
-                var seriesUserRecord = RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(userID, series.MediaSeriesID)
+                var seriesUserRecord = RepoFactory.MediaSeries_User.GetByUserAndSeriesID(userID, series.MediaSeriesID)
                     ?? new() { JMMUserID = userID, MediaSeriesID = series.MediaSeriesID };
                 seriesUserRecord.LastEpisodeUpdate = seriesUserRecord.LastUpdated = DateTime.Now;
                 _logger.Debug(
                     $"Updating series user contract for user \"{userDict[seriesUserRecord.JMMUserID].Username}\". (UserID={seriesUserRecord.JMMUserID},SeriesID={seriesUserRecord.MediaSeriesID})");
-                RepoFactory.AnimeSeries_User.Save(seriesUserRecord);
+                RepoFactory.MediaSeries_User.Save(seriesUserRecord);
             }
 
             // Update the rest of the stats for the series.
             seriesService.UpdateStats(series, true, true);
         }
 
-        var groupService = Utils.ServiceContainer.GetRequiredService<AnimeGroupService>();
+        var groupService = Utils.ServiceContainer.GetRequiredService<MediaGroupService>();
         var groups = seriesList.Select(a => a.Item1.MediaGroup).WhereNotNull().DistinctBy(a => a.MediaGroupID);
         foreach (var group in groups)
         {
@@ -523,7 +523,7 @@ public class DatabaseFixes
             .WhereNotNull()
             .ToList();
 
-        var seriesService = Utils.ServiceContainer.GetRequiredService<AnimeSeriesService>();
+        var seriesService = Utils.ServiceContainer.GetRequiredService<MediaSeriesService>();
         foreach (var series in seriesList)
             seriesService.UpdateStats(series, false, true);
     }
@@ -1480,8 +1480,8 @@ public class DatabaseFixes
                 .AddScalar("VoteType", NHibernateUtil.Int32)
                 .List<object[]>();
 
-        var toSaveSeries = new List<AnimeSeries_User>();
-        var toSaveEpisode = new List<AnimeEpisode_User>();
+        var toSaveSeries = new List<MediaSeries_User>();
+        var toSaveEpisode = new List<MediaEpisode_User>();
         foreach (var fields in rawVotes)
         {
             if (fields.Length != 3)
@@ -1513,7 +1513,7 @@ public class DatabaseFixes
                         continue;
                     }
 
-                    var userData = RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(user.JMMUserID, series.MediaSeriesID)
+                    var userData = RepoFactory.MediaSeries_User.GetByUserAndSeriesID(user.JMMUserID, series.MediaSeriesID)
                         ?? new() { JMMUserID = user.JMMUserID, MediaSeriesID = series.MediaSeriesID };
                     userData.AbsoluteUserRating = vote.VoteValue;
                     userData.UserRatingVoteType = vote.VoteType is VoteType.AnimePermanent
@@ -1531,8 +1531,8 @@ public class DatabaseFixes
                         continue;
                     }
 
-                    var userData = RepoFactory.AnimeEpisode_User.GetByUserAndEpisodeID(user.JMMUserID, series.AnimeEpisodeID)
-                        ?? new() { JMMUserID = user.JMMUserID, AnimeEpisodeID = series.AnimeEpisodeID, LastUpdated = DateTime.Now };
+                    var userData = RepoFactory.MediaEpisode_User.GetByUserAndEpisodeID(user.JMMUserID, series.MediaEpisodeID)
+                        ?? new() { JMMUserID = user.JMMUserID, MediaEpisodeID = series.MediaEpisodeID, LastUpdated = DateTime.Now };
                     userData.AbsoluteUserRating = vote.VoteValue;
                     toSaveEpisode.Add(userData);
                     break;
@@ -1547,8 +1547,8 @@ public class DatabaseFixes
             rawVotes.Count
         );
 
-        RepoFactory.AnimeSeries_User.Save(toSaveSeries);
-        RepoFactory.AnimeEpisode_User.Save(toSaveEpisode);
+        RepoFactory.MediaSeries_User.Save(toSaveSeries);
+        RepoFactory.MediaEpisode_User.Save(toSaveEpisode);
 
         session.CreateSQLQuery(DropCommand).ExecuteUpdate();
     }
