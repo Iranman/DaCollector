@@ -8,7 +8,48 @@ DaCollector includes Dockerfiles and a Compose file for running the headless ser
 - Enough disk space for the .NET build image, runtime image, local database, metadata cache, and any mounted media folders.
 - A persistent volume for `/home/dacollector/.dacollector`.
 
-## Quick Start
+## Quick Start from GHCR
+
+Use this path after the GitHub Container Registry image has been published.
+
+From the repository root:
+
+```powershell
+copy .env.example .env
+docker compose -f compose.ghcr.yaml pull
+docker compose -f compose.ghcr.yaml up -d
+```
+
+Open:
+
+```text
+http://127.0.0.1:8111/webui
+```
+
+Check container status:
+
+```powershell
+docker compose -f compose.ghcr.yaml ps
+docker compose -f compose.ghcr.yaml logs -f dacollector
+```
+
+Stop the container:
+
+```powershell
+docker compose -f compose.ghcr.yaml down
+```
+
+The image name is:
+
+```text
+ghcr.io/iranman/dacollector:latest
+```
+
+Set `DACOLLECTOR_IMAGE_TAG` in `.env` if you want to run a different published tag, for example `sha-abcdef1`.
+
+If GitHub returns an authentication or not found error when pulling the image, confirm that the package has been published and that the GHCR package visibility is public.
+
+## Quick Start from Local Build
 
 From the repository root:
 
@@ -46,6 +87,7 @@ PGID=1000
 UMASK=002
 TZ=Etc/UTC
 DACOLLECTOR_PORT=8111
+DACOLLECTOR_IMAGE_TAG=latest
 PLEX_TARGET_BASE_URL=http://host.docker.internal:32400
 PLEX_TARGET_SECTION_KEY=
 PLEX_TARGET_TOKEN=
@@ -139,6 +181,15 @@ docker compose up -d
 ```
 
 ## Update
+
+For the GHCR image:
+
+```powershell
+docker compose -f compose.ghcr.yaml pull
+docker compose -f compose.ghcr.yaml up -d
+```
+
+For a local build:
 
 From the repository root:
 

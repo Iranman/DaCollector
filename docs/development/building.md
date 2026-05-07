@@ -80,3 +80,18 @@ For ARM64:
 ```powershell
 docker build -f Dockerfile.aarch64 -t dacollector:local-arm64 .
 ```
+
+## Publish Docker Image
+
+The `Publish Docker Image to GHCR` workflow builds `linux/amd64` and `linux/arm64` images and publishes multi-architecture manifests to:
+
+```text
+ghcr.io/iranman/dacollector
+```
+
+On pushes to `main`, it publishes:
+
+- `ghcr.io/iranman/dacollector:latest`
+- `ghcr.io/iranman/dacollector:sha-<commit>`
+
+Pull requests build both architectures without pushing.

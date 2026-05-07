@@ -1,0 +1,169 @@
+name: Publish Docker Image to GHCR
+
+on:
+  push:
+    branches:
+      - main
+      - daccollector-main
+    paths:
+      - .github/workflows/docker-ghcr.yml
+      - .dockerignore
+      - Dockerfile
+      - Dockerfile.aarch64
+      - dockerentry.sh
+      - global.json
+      - SharedAssemblyInfo.cs
+      - DaCollector.sln
+      - DaCollector.CLI/**
+      - DaCollector.Server/**
+      - DaCollector.Abstractions/**
+      - Dependencies/**
+  pull_request:
+    paths:
+      - .github/workflows/docker-ghcr.yml
+      - .dockerignore
+      - Dockerfile
+      - Dockerfile.aarch64
+      - dockerentry.sh
+      - global.json
+      - SharedAssemblyInfo.cs
+      - DaCollector.sln
+      - DaCollector.CLI/**
+      - DaCollector.Server/**
+      - DaCollector.Abstractions/**
+      - Dependencies/**
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Container tag to publish.
+        default: latest
+        required: true
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE_NAME: ghcr.io/iranman/dacollector
+
+jobs:
+  docker-build:
+    name: Build ${{ matrix.arch }} image
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            platform: linux/amd64
+            dockerfile: Dockerfile
+          - arch: arm64
+            platform: linux/arm64
+            dockerfile: Dockerfile.aarch64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compute image metadata
+        id: meta
+        shell: bash
+        run: |
+          short_sha="${GITHUB_SHA::7}"
+          commit_date="$(git --no-pager show -s --date='format-local:%Y-%m-%dT%H:%M:%SZ' --format=%cd "${GITHUB_SHA}")"
+          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
+            image_tag="${{ github.event.inputs.tag }}"
+            channel="manual"
+          elif [ "${GITHUB_REF_NAME}" = "main" ] || [ "${GITHUB_REF_NAME}" = "daccollector-main" ]; then
+            image_tag="latest"
+            channel="main"
+          else
+            image_tag="$(echo "${GITHUB_REF_NAME}" | tr '/[:upper:]' '-[:lower:]')"
+            channel="branch"
+          fi
+          echo "short_sha=${short_sha}" >> "$GITHUB_OUTPUT"
+          echo "commit_date=${commit_date}" >> "$GITHUB_OUTPUT"
+          echo "image_tag=${image_tag}" >> "$GITHUB_OUTPUT"
+          echo "channel=${channel}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up QEMU
+        if: matrix.arch == 'arm64'
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          platforms: ${{ matrix.platform }}
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: |
+            ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.image_tag }}-${{ matrix.arch }}
+            ${{ env.IMAGE_NAME }}:sha-${{ steps.meta.outputs.short_sha }}-${{ matrix.arch }}
+          build-args: |
+            version=0.0.0.0
+            channel=${{ steps.meta.outputs.channel }}
+            commit=${{ github.sha }}
+            tag=${{ steps.meta.outputs.image_tag }}
+            date=${{ steps.meta.outputs.commit_date }}
+          provenance: false
+
+  docker-manifest:
+    name: Publish multi-arch manifests
+    if: github.event_name != 'pull_request'
+    needs:
+      - docker-build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Compute manifest tags
+        id: meta
+        shell: bash
+        run: |
+          short_sha="${GITHUB_SHA::7}"
+          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
+            image_tag="${{ github.event.inputs.tag }}"
+          elif [ "${GITHUB_REF_NAME}" = "main" ] || [ "${GITHUB_REF_NAME}" = "daccollector-main" ]; then
+            image_tag="latest"
+          else
+            image_tag="$(echo "${GITHUB_REF_NAME}" | tr '/[:upper:]' '-[:lower:]')"
+          fi
+          echo "short_sha=${short_sha}" >> "$GITHUB_OUTPUT"
+          echo "image_tag=${image_tag}" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish tag manifest
+        run: |
+          docker manifest create "${IMAGE_NAME}:${{ steps.meta.outputs.image_tag }}" \
+            --amend "${IMAGE_NAME}:${{ steps.meta.outputs.image_tag }}-amd64" \
+            --amend "${IMAGE_NAME}:${{ steps.meta.outputs.image_tag }}-arm64"
+          docker manifest push "${IMAGE_NAME}:${{ steps.meta.outputs.image_tag }}"
+
+      - name: Publish commit manifest
+        run: |
+          docker manifest create "${IMAGE_NAME}:sha-${{ steps.meta.outputs.short_sha }}" \
+            --amend "${IMAGE_NAME}:sha-${{ steps.meta.outputs.short_sha }}-amd64" \
+            --amend "${IMAGE_NAME}:sha-${{ steps.meta.outputs.short_sha }}-arm64"
+          docker manifest push "${IMAGE_NAME}:sha-${{ steps.meta.outputs.short_sha }}"
