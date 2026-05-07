@@ -16,8 +16,8 @@ From the repository root:
 
 ```powershell
 copy .env.example .env
-docker compose -f compose.ghcr.yaml pull
-docker compose -f compose.ghcr.yaml up -d
+docker compose -f docker-compose.yml pull
+docker compose -f docker-compose.yml up -d
 ```
 
 Open:
@@ -29,14 +29,14 @@ http://127.0.0.1:8111/webui
 Check container status:
 
 ```powershell
-docker compose -f compose.ghcr.yaml ps
-docker compose -f compose.ghcr.yaml logs -f dacollector
+docker compose -f docker-compose.yml ps
+docker compose -f docker-compose.yml logs -f dacollector
 ```
 
 Stop the container:
 
 ```powershell
-docker compose -f compose.ghcr.yaml down
+docker compose -f docker-compose.yml down
 ```
 
 The image name is:
@@ -49,13 +49,15 @@ Set `DACOLLECTOR_IMAGE_TAG` in `.env` if you want to run a different published t
 
 If GitHub returns an authentication or not found error when pulling the image, confirm that the package has been published and that the GHCR package visibility is public.
 
+`docker-compose.example.yml` is a commented template with Windows and Linux media mount examples. Copy it to your own deployment folder if you want a more guided starting point.
+
 ## Quick Start from Local Build
 
 From the repository root:
 
 ```powershell
 copy .env.example .env
-docker compose up -d --build
+docker compose -f compose.yaml up -d --build
 ```
 
 Open:
@@ -67,14 +69,14 @@ http://127.0.0.1:8111/webui
 Check container status:
 
 ```powershell
-docker compose ps
-docker compose logs -f dacollector
+docker compose -f compose.yaml ps
+docker compose -f compose.yaml logs -f dacollector
 ```
 
 Stop the container:
 
 ```powershell
-docker compose down
+docker compose -f compose.yaml down
 ```
 
 ## Configure `.env`
@@ -120,7 +122,7 @@ That path contains settings, SQLite databases, logs, provider cache, images, plu
 
 ## Media Folders
 
-Edit `compose.yaml` and mount the folders DaCollector should scan. Keep read-only mounts unless you want DaCollector to delete duplicate files from that path.
+Edit `docker-compose.yml`, `docker-compose.example.yml`, or `compose.yaml` and mount the folders DaCollector should scan. Keep read-only mounts unless you want DaCollector to delete duplicate files from that path.
 
 ```yaml
 volumes:
@@ -160,7 +162,7 @@ DACOLLECTOR_PORT=8112
 Restart:
 
 ```powershell
-docker compose up -d
+docker compose -f docker-compose.yml up -d
 ```
 
 Open `http://127.0.0.1:8112/webui`.
@@ -176,8 +178,8 @@ DACOLLECTOR_DOCKERFILE=Dockerfile.aarch64
 Then rebuild:
 
 ```powershell
-docker compose build --no-cache dacollector
-docker compose up -d
+docker compose -f compose.yaml build --no-cache dacollector
+docker compose -f compose.yaml up -d
 ```
 
 ## Update
@@ -185,8 +187,8 @@ docker compose up -d
 For the GHCR image:
 
 ```powershell
-docker compose -f compose.ghcr.yaml pull
-docker compose -f compose.ghcr.yaml up -d
+docker compose -f docker-compose.yml pull
+docker compose -f docker-compose.yml up -d
 ```
 
 For a local build:
@@ -195,8 +197,8 @@ From the repository root:
 
 ```powershell
 git pull
-docker compose build --pull dacollector
-docker compose up -d
+docker compose -f compose.yaml build --pull dacollector
+docker compose -f compose.yaml up -d
 ```
 
 The named volume is preserved. Back up the volume before testing a branch that may run database migrations.
@@ -206,7 +208,7 @@ The named volume is preserved. Back up the volume before testing a branch that m
 Stop DaCollector before backing up the volume:
 
 ```powershell
-docker compose down
+docker compose -f docker-compose.yml down
 docker run --rm -v dacollector_dacollector-data:/data -v "${PWD}:/backup" alpine tar czf /backup/dacollector-data.tgz -C /data .
 ```
 

@@ -1,0 +1,32 @@
+services:
+  dacollector:
+    image: "ghcr.io/iranman/dacollector:${DACOLLECTOR_IMAGE_TAG:-latest}"
+    container_name: dacollector
+    restart: unless-stopped
+    ports:
+      - "${DACOLLECTOR_PORT:-8111}:8111"
+    environment:
+      PUID: "${PUID:-1000}"
+      PGID: "${PGID:-1000}"
+      UMASK: "${UMASK:-002}"
+      TZ: "${TZ:-Etc/UTC}"
+      DACOLLECTOR_HOME: /home/dacollector/.dacollector/DaCollector
+      PLEX_TARGET_BASE_URL: "${PLEX_TARGET_BASE_URL:-http://host.docker.internal:32400}"
+      PLEX_TARGET_SECTION_KEY: "${PLEX_TARGET_SECTION_KEY:-}"
+      PLEX_TARGET_TOKEN: "${PLEX_TARGET_TOKEN:-}"
+      TMDB_API_KEY: "${TMDB_API_KEY:-}"
+      IMDB_DATASET_PATH: "${IMDB_DATASET_PATH:-}"
+      IMDB_CACHE_EXPIRATION_DAYS: "${IMDB_CACHE_EXPIRATION_DAYS:-7}"
+      TVDB_API_KEY: "${TVDB_API_KEY:-}"
+      TVDB_PIN: "${TVDB_PIN:-}"
+      TVDB_CACHE_EXPIRATION_DAYS: "${TVDB_CACHE_EXPIRATION_DAYS:-7}"
+    volumes:
+      - dacollector-data:/home/dacollector/.dacollector
+      # Add your media folders here, then add the container paths as managed folders in DaCollector.
+      # - "D:/Media/Movies:/media/movies:ro"
+      # - "D:/Media/TV:/media/tv:ro"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  dacollector-data:

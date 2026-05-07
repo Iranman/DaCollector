@@ -66,7 +66,7 @@ Use the standalone ZIP when testing on a machine without installed .NET runtimes
 ## Build Docker Image
 
 ```powershell
-docker compose build dacollector
+docker compose -f compose.yaml build dacollector
 ```
 
 Or build directly:
