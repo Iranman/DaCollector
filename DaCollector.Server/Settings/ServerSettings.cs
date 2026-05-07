@@ -52,10 +52,6 @@ public class ServerSettings : IServerSettings, INewtonsoftJsonConfiguration, IHi
     public static IReadOnlyDictionary<string, IReadOnlyList<string>> Validate(ServerSettings config, IConfigurationService configurationService, IPluginManager pluginManager)
     {
         var errors = new Dictionary<string, IReadOnlyList<string>>();
-        if (!config.FirstRun && config.AniDb.Username is not { Length: > 0 })
-            errors.Add("AniDb.Username", ["AniDb.Username cannot be empty or null if FirstRun is set to false."]);
-        if (!config.FirstRun && config.AniDb.Password is not { Length: > 0 })
-            errors.Add("AniDb.Password", ["AniDb.Password cannot be empty or null if FirstRun is set to false."]);
         return errors;
     }
 
