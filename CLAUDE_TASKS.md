@@ -2,7 +2,7 @@
 
 Context:
 - Branch: `daccollector-main`
-- Latest commits: `43cc973 Commit pre-existing uncommitted work: duplicate models, Plex service, tests, docs`
+- Latest commits: `60b429d Mark P2 product improvements complete`
 - Follow `CLAUDE.md`: append database migrations; **never rewrite historical migration strings**.
 - Keep legacy API contract class names like `CL_AnimeSeries_User` unless intentionally versioning the public API.
 - `.NET SDK 10.0.203` may not be in PATH in the sandbox — use `& "C:\Program Files\dotnet\dotnet.exe"` if needed.
