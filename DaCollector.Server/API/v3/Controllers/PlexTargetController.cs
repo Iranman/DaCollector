@@ -133,8 +133,9 @@ public class PlexTargetController(
                 preview.Collection.Name,
                 preview.Items,
                 preview.Collection.SyncMode,
-                body.BaseUrl,
-                body.Token
+                dryRun: false,
+                baseUrl: body.BaseUrl,
+                token: body.Token
             ));
         }
         catch (Exception e) when (e is ArgumentException or InvalidOperationException)

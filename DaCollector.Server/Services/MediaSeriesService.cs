@@ -246,7 +246,7 @@ public class MediaSeriesService
 
     private void UpdateMissingEpisodeStats(MediaSeries series, IReadOnlyList<MediaEpisode> eps, string name, ref DateTime start)
     {
-        var MediaType = series.AniDB_Anime?.MediaType ?? MediaType.TVSeries;
+        var mediaType = series.AniDB_Anime?.MediaType ?? MediaType.TVSeries;
 
         series.MissingEpisodeCount = 0;
         series.MissingEpisodeCountGroups = 0;
@@ -262,8 +262,8 @@ public class MediaSeriesService
 
         var latestLocalEpNumber = 0;
         DateTime? lastEpAirDate = null;
-        var epReleasedList = new EpisodeList(MediaType);
-        var epGroupReleasedList = new EpisodeList(MediaType);
+        var epReleasedList = new EpisodeList(mediaType);
+        var epGroupReleasedList = new EpisodeList(mediaType);
         var daysofweekcounter = new Dictionary<DayOfWeek, int>();
 
         var userReleaseGroups = eps

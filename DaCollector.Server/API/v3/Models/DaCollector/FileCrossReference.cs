@@ -217,7 +217,7 @@ public class FileCrossReference
                         SeriesID = new SeriesCrossReferenceIDs
                         {
                             ID = dacollectorSeries?.MediaSeriesID,
-                            AniDB = tuples.Key,
+                            SourceID = tuples.Key,
                             TMDB = new()
                             {
                                 Movie = dacollectorSeries?.TmdbMovieCrossReferences.Select(xref => xref.TmdbMovieID).Distinct().ToList() ?? [],

@@ -471,7 +471,7 @@ public class TreeController(ISettingsProvider settingsProvider, FilterFactory _f
             .Where(a => user.AllowedSeries(a))
             .Select(series => new Series(series, User.JMMUserID, randomImages, includeDataFrom))
             .Where(series => series.Size > 0 || includeMissing)
-            .OrderBy(a => a.AniDB?.AirDate ?? DateOnly.MaxValue)
+            .OrderBy(a => a.Source?.AirDate ?? DateOnly.MaxValue)
             .ToList();
     }
 

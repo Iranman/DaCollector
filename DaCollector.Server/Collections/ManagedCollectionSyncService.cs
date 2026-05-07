@@ -37,7 +37,7 @@ public class ManagedCollectionSyncService(
 
         foreach (var definition in enabled)
         {
-            logger.LogDebug("Evaluating collection '{Name}' ({ID})", definition.Name, definition.CollectionID);
+            logger.LogDebug("Evaluating collection '{Name}' ({ID})", definition.Name, definition.ID);
             try
             {
                 var result = await Evaluate(definition, apply, cancellationToken).ConfigureAwait(false);

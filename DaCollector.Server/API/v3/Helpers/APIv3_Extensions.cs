@@ -41,8 +41,8 @@ public static class APIv3_Extensions
             _ => CreatorRoleType.Staff,
         };
 
-    public static MediaType ToV3Dto(this AbstractAnimeType MediaType)
-        => MediaType switch
+    public static MediaType ToV3Dto(this AbstractAnimeType type)
+        => type switch
         {
             AbstractAnimeType.TVSeries => MediaType.TV,
             AbstractAnimeType.Movie => MediaType.Movie,
