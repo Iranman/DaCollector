@@ -26,7 +26,17 @@ public sealed record ExactDuplicateSummary
     public long PotentialReclaimBytes { get; init; }
 
     /// <summary>
+    /// Reclaimable bytes from suggested remove candidates that currently exist on disk.
+    /// </summary>
+    public long AvailablePotentialReclaimBytes { get; init; }
+
+    /// <summary>
     /// Number of duplicate locations that currently exist on disk.
     /// </summary>
     public int AvailableLocationCount { get; init; }
+
+    /// <summary>
+    /// Number of suggested remove candidates that no longer exist on disk.
+    /// </summary>
+    public int UnavailableRemoveLocationCount { get; init; }
 }

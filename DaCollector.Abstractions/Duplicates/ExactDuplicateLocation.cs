@@ -63,6 +63,11 @@ public sealed record ExactDuplicateLocation
     public bool SuggestedRemove { get; init; }
 
     /// <summary>
+    /// Human-readable reason this location was selected to keep or remove.
+    /// </summary>
+    public string SelectionReason { get; init; } = string.Empty;
+
+    /// <summary>
     /// When the linked video record was imported, if known.
     /// </summary>
     public DateTime? ImportedAt { get; init; }
