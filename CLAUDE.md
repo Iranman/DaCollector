@@ -88,7 +88,7 @@ Two hubs, both behind `[Authorize]`:
 - **`LoggingHub`** (`/signalr/logging`) — streams buffered server logs to connecting clients, separate from the aggregate hub because it can become noisy, fast.
 - **`AggregateHub`** (`/signalr/aggregate`) — subscription model; clients call `feed.join_single` / `feed.join_many` etc. to subscribe to event categories.
 
-Event emitters bridge internal domain events to SignalR: `AnidbEventEmitter`, `AvdumpEventEmitter`, `ConfigurationEventEmitter`, `FileEventEmitter`, `ManagedFolderEventEmitter`, `MetadataEventEmitter`, `NetworkEventEmitter`, `QueueEventEmitter`, `ReleaseEventEmitter`, `UserDataEventEmitter`, `UserEventEmitter`.
+Event emitters bridge internal domain events to SignalR: `AniDBConnectionEventEmitter` (AniDB UDP/HTTP connection state), `AvdumpEventEmitter`, `ConfigurationEventEmitter`, `FileEventEmitter`, `ManagedFolderEventEmitter`, `MetadataEventEmitter`, `NetworkEventEmitter`, `QueueEventEmitter`, `ReleaseEventEmitter`, `UserDataEventEmitter`, `UserEventEmitter`.
 
 ### Model Layers and Separation
 

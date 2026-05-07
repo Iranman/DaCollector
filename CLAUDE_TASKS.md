@@ -2,7 +2,7 @@
 
 Context:
 - Branch: `daccollector-main`
-- Latest commits: `c287df2 Rename AniDB v3 API models, controller, and public JSON properties`
+- Latest commits: `248bc99 Rename AnimeType enum to MediaType across all projects`
 - Follow `CLAUDE.md`: append database migrations; **never rewrite historical migration strings**.
 - Keep legacy API contract class names like `CL_AnimeSeries_User` unless intentionally versioning the public API.
 - `.NET SDK 10.0.203` may not be in PATH in the sandbox — use `& "C:\Program Files\dotnet\dotnet.exe"` if needed.
@@ -19,65 +19,9 @@ Context:
 - Rename v3 API controller: `AniDBController`→`MetadataController` (route: `/api/v3/Metadata/`)
 - Rename v3 API model classes: `AnidbAnime`→`MetadataAnime`, `AnidbEpisode`→`MetadataEpisode`, etc.
 - Rename public JSON properties: `Series.AniDB`→`Series.Source`, `Episode.AniDB`→`Episode.Source`, `IDs.AniDB`→`IDs.SourceID`
-
----
-
-## P0 — Repair Historical Database Migrations (BLOCKER)
-
-The mass rename passes changed strings inside historical `DatabaseCommand` entries in `SQLite.cs`, `MySQL.cs`, and `SQLServer.cs`. Historical migration strings must match the schema that existed when they were originally written. Changing them breaks **fresh installs** because:
-
-- v1.52 now creates `MediaGroup` with column `MediaGroupParentID`
-- v145.9 then tries to `RENAME COLUMN AnimeGroupParentID TO MediaGroupParentID` — but that column was never created with that name → **SQL error on fresh install**
-
-**Required fix in `SQLite.cs`:**
-
-1. Revert ALL historical migration strings (v1 through v143) that reference `Anime*` table/column names back to their original values. The rename pass changed:
-   - `AnimeEpisode` → `MediaEpisode` (v1.49–51, v1.102–104, v140.x)
-   - `AnimeSeries` → `MediaSeries` (v1.53–54, v13.1, v41.1, v44.x, v140.x)
-   - `AnimeGroup` → `MediaGroup` (v1.52, v4.1, v44.x, v140.x, v143.x)
-   - `AnimeGroupParentID` → `MediaGroupParentID` (v1.52)
-   - `DefaultAnimeSeriesID` → `DefaultMediaSeriesID` (v4.1)
-   - Column/index names in CREATE INDEX statements
-
-2. The new append-only rename migrations already added (v145.1–10 for SQLite, v163.1–10 for MySQL, v158.1–10 for SQLServer) are correct — keep them.
-
-3. Also verify that v144 (TVDB columns) targets `AnimeSeries` (the name before the v145 rename), OR is ordered after v145. Currently v144 targets `MediaSeries` which does NOT exist on old databases before v145 runs.
-
-**Same fix applies to `MySQL.cs` and `SQLServer.cs`.**
-
-Use `git show 0a74238:DaCollector.Server/Databases/SQLite.cs` to recover the original strings.
-
----
-
-## P0 — Fix DatabaseFixes.cs Stale References (COMPILE BLOCKER)
-
-File: `DaCollector.Server/Databases/DatabaseFixes.cs`
-
-Search and replace:
-- `RepoFactory.AnimeSeries_User` → `RepoFactory.MediaSeries_User`
-- `RepoFactory.AnimeEpisode_User` → `RepoFactory.MediaEpisode_User`
-- `RepoFactory.AnimeGroup_User` → `RepoFactory.MediaGroup_User`
-- `AnimeGroupCreator` → `MediaGroupCreator`
-- `AnimeSeriesService` → `MediaSeriesService`
-- `AnimeGroupService` → `MediaGroupService`
-- Any remaining `AnimeSeries`, `AnimeEpisode`, `AnimeGroup` type references (not SQL strings)
-
-After fixing, run:
-```powershell
-rg -n "RepoFactory\.(AnimeSeries_User|AnimeGroup_User|AnimeEpisode_User|AnimeSeries|AnimeGroup|AnimeEpisode)\b|\bAnimeGroupCreator\b|\bAnimeSeriesService\b|\bAnimeGroupService\b" DaCollector.Server
-```
-Expected: zero matches (or only inside SQL string literals).
-
----
-
-## P1 — Rename `AnimeType` Enum to `MediaType`
-
-File: `DaCollector.Server/API/v3/Models/AniDB/AnimeType.cs` (and all references)
-
-- Rename enum `AnimeType` → `MediaType`
-- Rename physical file `AnimeType.cs` → `MediaType.cs`
-- Update all references across the codebase (using statement aliases like `using AnimeType = ...` and direct usages)
-- Add DB migration if `AnimeType` is persisted as a string/int column anywhere
+- **P0**: Repair historical DB migrations — restored all three DB files to pre-rename state; added v145/163/158 rename blocks (20 entries each)
+- **P0**: Fix `DatabaseFixes.cs` stale type/property references (`AnimeSeries_User`→`MediaSeries_User`, `AnimeEpisodeID`→`MediaEpisodeID`, service renames)
+- **P1**: Rename `AnimeType` enum → `MediaType` in both Abstractions and Server API v3; rename physical files; preserve v1 JSON contract with `[JsonProperty("AnimeType")]`; NHibernate column mapping override so DB column stays as `AnimeType`
 
 ---
 
@@ -116,13 +60,17 @@ File: `CLAUDE.md`
 
 ---
 
-## P1 — Rename SignalR AniDB Event Emitter
+## P1 — Rename AniDB Connection Event Emitter
 
 File: `DaCollector.Server/API/SignalR/Aggregate/AnidbEventEmitter.cs`
 
-- Rename class `AnidbEventEmitter` → `MetadataEventEmitter`
-- Rename file `AnidbEventEmitter.cs` → `MetadataEventEmitter.cs`
-- Update registration and references in `AggregateHub` and `APIExtensions.cs`
+> **Note:** A `MetadataEventEmitter` already exists as a separate class (handles series/episode/movie metadata events).
+> `AnidbEventEmitter` is for AniDB UDP/HTTP connection state events specifically.
+> The correct rename is: `AnidbEventEmitter` → `AniDBConnectionEventEmitter` (or `ProviderConnectionEventEmitter`)
+
+- Rename class `AnidbEventEmitter` → `AniDBConnectionEventEmitter`
+- Rename file `AnidbEventEmitter.cs` → `AniDBConnectionEventEmitter.cs`
+- Update registration in `APIExtensions.cs`
 
 ---
 

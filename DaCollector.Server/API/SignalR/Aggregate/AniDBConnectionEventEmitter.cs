@@ -7,12 +7,12 @@ using DaCollector.Server.Providers.AniDB.Interfaces;
 
 namespace DaCollector.Server.API.SignalR.Aggregate;
 
-public class AnidbEventEmitter : BaseEventEmitter, IDisposable
+public class AniDBConnectionEventEmitter : BaseEventEmitter, IDisposable
 {
     private IUDPConnectionHandler UDPHandler { get; set; }
     private IHttpConnectionHandler HttpHandler { get; set; }
 
-    public AnidbEventEmitter(IHubContext<AggregateHub> hub, IUDPConnectionHandler udp, IHttpConnectionHandler http) : base(hub)
+    public AniDBConnectionEventEmitter(IHubContext<AggregateHub> hub, IUDPConnectionHandler udp, IHttpConnectionHandler http) : base(hub)
     {
         HttpHandler = http;
         UDPHandler = udp;
