@@ -45,7 +45,7 @@ public class ReleaseManagementMultipleReleasesController(ISettingsProvider setti
         [FromQuery, Range(0, 1000)] int pageSize = 100,
         [FromQuery, Range(1, int.MaxValue)] int page = 1)
     {
-        var enumerable = RepoFactory.AnimeEpisode.GetWithMultipleReleases(ignoreVariations);
+        var enumerable = RepoFactory.MediaEpisode.GetWithMultipleReleases(ignoreVariations);
 
         return enumerable
             .ToListResult(episode => new Episode(HttpContext, episode, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths, includeXRefs), page, pageSize);
@@ -62,7 +62,7 @@ public class ReleaseManagementMultipleReleasesController(ISettingsProvider setti
         [FromQuery] bool ignoreVariations = true
     )
     {
-        var enumerable = RepoFactory.AnimeEpisode.GetWithMultipleReleases(ignoreVariations);
+        var enumerable = RepoFactory.MediaEpisode.GetWithMultipleReleases(ignoreVariations);
 
         return enumerable
             .SelectMany(episode =>
@@ -95,14 +95,14 @@ public class ReleaseManagementMultipleReleasesController(ISettingsProvider setti
         [FromQuery, Range(0, 1000)] int pageSize = 100,
         [FromQuery, Range(1, int.MaxValue)] int page = 1)
     {
-        var enumerable = RepoFactory.AnimeSeries.GetWithMultipleReleases(ignoreVariations);
+        var enumerable = RepoFactory.MediaSeries.GetWithMultipleReleases(ignoreVariations);
         if (onlyFinishedSeries)
             enumerable = enumerable.Where(a => a.AniDB_Anime.GetFinishedAiring());
 
         return enumerable
             .OrderBy(series => series.Title)
             .ThenBy(series => series.AniDB_ID)
-            .ToListResult(series => new Series.WithEpisodeCount(RepoFactory.AnimeEpisode.GetWithMultipleReleases(ignoreVariations, series.AniDB_ID).Count(), series, User.JMMUserID, includeDataFrom), page, pageSize);
+            .ToListResult(series => new Series.WithEpisodeCount(RepoFactory.MediaEpisode.GetWithMultipleReleases(ignoreVariations, series.AniDB_ID).Count(), series, User.JMMUserID, includeDataFrom), page, pageSize);
     }
 
     /// <summary>
@@ -130,14 +130,14 @@ public class ReleaseManagementMultipleReleasesController(ISettingsProvider setti
         [FromQuery, Range(0, 1000)] int pageSize = 100,
         [FromQuery, Range(1, int.MaxValue)] int page = 1)
     {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
             return new ListResult<Episode>();
 
         if (!User.AllowedSeries(series))
             return new ListResult<Episode>();
 
-        var enumerable = RepoFactory.AnimeEpisode.GetWithMultipleReleases(ignoreVariations, series.AniDB_ID);
+        var enumerable = RepoFactory.MediaEpisode.GetWithMultipleReleases(ignoreVariations, series.AniDB_ID);
 
         return enumerable
             .ToListResult(episode => new Episode(HttpContext, episode, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths, includeXRefs, includeReleaseInfo: true), page, pageSize);
@@ -156,14 +156,14 @@ public class ReleaseManagementMultipleReleasesController(ISettingsProvider setti
         [FromQuery] bool ignoreVariations = true
     )
     {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
             return new List<int>();
 
         if (!User.AllowedSeries(series))
             return new List<int>();
 
-        var enumerable = RepoFactory.AnimeEpisode.GetWithMultipleReleases(ignoreVariations, series.AniDB_ID);
+        var enumerable = RepoFactory.MediaEpisode.GetWithMultipleReleases(ignoreVariations, series.AniDB_ID);
 
         return enumerable
             .SelectMany(episode =>

@@ -18,12 +18,14 @@ public static class RepositoryStartup
     {
         services.AddSingleton<RepoFactory>();
         services.AddSingleton<DatabaseFactory>();
-        services.AddDirectRepository<AniDB_AnimeUpdateRepository>();
 
+        services.AddDirectRepository<AniDB_AnimeUpdateRepository>();
         services.AddDirectRepository<AniDB_Anime_RelationRepository>();
         services.AddDirectRepository<AniDB_Anime_SimilarRepository>();
         services.AddDirectRepository<AniDB_Anime_StaffRepository>();
         services.AddDirectRepository<AniDB_GroupStatusRepository>();
+        services.AddDirectRepository<AniDB_MessageRepository>();
+        services.AddDirectRepository<AniDB_NotifyQueueRepository>();
         services.AddDirectRepository<FileNameHashRepository>();
         services.AddDirectRepository<PlaylistRepository>();
         services.AddDirectRepository<ScanFileRepository>();
@@ -46,8 +48,6 @@ public static class RepositoryStartup
         services.AddDirectRepository<TMDB_Show_NetworkRepository>();
         services.AddDirectRepository<TMDB_TitleRepository>();
         services.AddDirectRepository<VersionsRepository>();
-        services.AddDirectRepository<AniDB_MessageRepository>();
-        services.AddDirectRepository<AniDB_NotifyQueueRepository>();
 
         services.AddCachedRepository<AniDB_AnimeRepository>();
         services.AddCachedRepository<AniDB_Anime_CharacterRepository>();
@@ -61,12 +61,12 @@ public static class RepositoryStartup
         services.AddCachedRepository<AniDB_Episode_TitleRepository>();
         services.AddCachedRepository<AniDB_CreatorRepository>();
         services.AddCachedRepository<AniDB_TagRepository>();
-        services.AddCachedRepository<AnimeEpisodeRepository>();
-        services.AddCachedRepository<AnimeEpisode_UserRepository>();
-        services.AddCachedRepository<AnimeGroupRepository>();
-        services.AddCachedRepository<AnimeGroup_UserRepository>();
-        services.AddCachedRepository<AnimeSeriesRepository>();
-        services.AddCachedRepository<AnimeSeries_UserRepository>();
+        services.AddCachedRepository<MediaEpisodeRepository>();
+        services.AddCachedRepository<MediaEpisode_UserRepository>();
+        services.AddCachedRepository<MediaGroupRepository>();
+        services.AddCachedRepository<MediaGroup_UserRepository>();
+        services.AddCachedRepository<MediaSeriesRepository>();
+        services.AddCachedRepository<MediaSeries_UserRepository>();
         services.AddCachedRepository<AuthTokensRepository>();
         services.AddCachedRepository<CrossRef_AniDB_MALRepository>();
         services.AddCachedRepository<CrossRef_AniDB_TMDB_EpisodeRepository>();

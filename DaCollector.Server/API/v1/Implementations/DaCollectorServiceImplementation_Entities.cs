@@ -35,15 +35,15 @@ public partial class DaCollectorServiceImplementation
     /// <summary>
     /// Finds the previous episode for use int the next unwatched episode.
     /// </summary>
-    /// <param name="animeSeriesID"></param>
+    /// <param name="MediaSeriesID"></param>
     /// <param name="userID"></param>
     /// <returns></returns>
-    [HttpGet("Episode/PreviousEpisode/{animeSeriesID}/{userID}")]
-    public CL_AnimeEpisode_User GetPreviousEpisodeForUnwatched(int animeSeriesID, int userID)
+    [HttpGet("Episode/PreviousEpisode/{MediaSeriesID}/{userID}")]
+    public CL_AnimeEpisode_User GetPreviousEpisodeForUnwatched(int MediaSeriesID, int userID)
     {
         try
         {
-            var nextEp = GetNextUnwatchedEpisode(animeSeriesID, userID);
+            var nextEp = GetNextUnwatchedEpisode(MediaSeriesID, userID);
             if (nextEp is null)
                 return null;
 
@@ -53,7 +53,7 @@ public partial class DaCollectorServiceImplementation
             if (epNum <= 0)
                 return null;
 
-            var series = RepoFactory.AnimeSeries.GetByID(animeSeriesID);
+            var series = RepoFactory.MediaSeries.GetByID(MediaSeriesID);
             if (series is null)
                 return null;
 
@@ -61,7 +61,7 @@ public partial class DaCollectorServiceImplementation
             if (anidbEpisodes.Count == 0)
                 return null;
 
-            var ep = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(anidbEpisodes[0].EpisodeID);
+            var ep = RepoFactory.MediaEpisode.GetByAniDBEpisodeID(anidbEpisodes[0].EpisodeID);
             return _legacyV1Service.GetV1Contract(ep, userID);
         }
         catch (Exception ex)
@@ -71,13 +71,13 @@ public partial class DaCollectorServiceImplementation
         }
     }
 
-    [HttpGet("Episode/NextForSeries/{animeSeriesID}/{userID}")]
-    public CL_AnimeEpisode_User GetNextUnwatchedEpisode(int animeSeriesID, int userID)
+    [HttpGet("Episode/NextForSeries/{MediaSeriesID}/{userID}")]
+    public CL_AnimeEpisode_User GetNextUnwatchedEpisode(int MediaSeriesID, int userID)
     {
         try
         {
-            var seriesService = Utils.ServiceContainer.GetService<AnimeSeriesService>();
-            var series = RepoFactory.AnimeSeries.GetByID(animeSeriesID);
+            var seriesService = Utils.ServiceContainer.GetService<MediaSeriesService>();
+            var series = RepoFactory.MediaSeries.GetByID(MediaSeriesID);
             if (series is null)
                 return null;
 
@@ -94,14 +94,14 @@ public partial class DaCollectorServiceImplementation
         }
     }
 
-    [HttpGet("Episode/Unwatched/{animeSeriesID}/{userID}")]
-    public List<CL_AnimeEpisode_User> GetAllUnwatchedEpisodes(int animeSeriesID, int userID)
+    [HttpGet("Episode/Unwatched/{MediaSeriesID}/{userID}")]
+    public List<CL_AnimeEpisode_User> GetAllUnwatchedEpisodes(int MediaSeriesID, int userID)
     {
         var ret = new List<CL_AnimeEpisode_User>();
 
         try
         {
-            return RepoFactory.AnimeEpisode.GetBySeriesID(animeSeriesID)
+            return RepoFactory.MediaEpisode.GetBySeriesID(MediaSeriesID)
                 .Where(a => a != null && !a.IsHidden)
                 .Select(a => _legacyV1Service.GetV1Contract(a, userID))
                 .WhereNotNull()
@@ -117,12 +117,12 @@ public partial class DaCollectorServiceImplementation
         }
     }
 
-    [HttpGet("Episode/NextForGroup/{animeGroupID}/{userID}")]
-    public CL_AnimeEpisode_User GetNextUnwatchedEpisodeForGroup(int animeGroupID, int userID)
+    [HttpGet("Episode/NextForGroup/{MediaGroupID}/{userID}")]
+    public CL_AnimeEpisode_User GetNextUnwatchedEpisodeForGroup(int MediaGroupID, int userID)
     {
         try
         {
-            var group = RepoFactory.AnimeGroup.GetByID(animeGroupID);
+            var group = RepoFactory.MediaGroup.GetByID(MediaGroupID);
             if (group is null)
             {
                 return null;
@@ -133,7 +133,7 @@ public partial class DaCollectorServiceImplementation
 
             foreach (var ser in allSeries)
             {
-                var contract = GetNextUnwatchedEpisode(ser.AnimeSeriesID, userID);
+                var contract = GetNextUnwatchedEpisode(ser.MediaSeriesID, userID);
                 if (contract != null)
                 {
                     return contract;
@@ -164,12 +164,12 @@ public partial class DaCollectorServiceImplementation
             if (gf is null) return retEps;
 
             var evaluator = HttpContext.RequestServices.GetRequiredService<IFilterEvaluator>();
-            var comboGroups = evaluator.EvaluateFilter(gf, user).Select(a => RepoFactory.AnimeGroup.GetByID(a.Key)).WhereNotNull()
+            var comboGroups = evaluator.EvaluateFilter(gf, user).Select(a => RepoFactory.MediaGroup.GetByID(a.Key)).WhereNotNull()
                 .Select(a => _legacyV1Service.GetV1Contract(a, userID));
 
             foreach (var group in comboGroups)
             {
-                var seriesList = RepoFactory.AnimeSeries.GetByGroupID(group.AnimeGroupID).OrderBy(a => a.AirDate).ToList();
+                var seriesList = RepoFactory.MediaSeries.GetByGroupID(group.MediaGroupID).OrderBy(a => a.AirDate).ToList();
                 var seriesWatching = new List<int>();
                 foreach (var ser in seriesList)
                 {
@@ -180,7 +180,7 @@ public partial class DaCollectorServiceImplementation
                         a.RelationType.ToLower().Trim().Equals("sequel") || a.RelationType.ToLower().Trim().Equals("prequel"));
                     if (!useSeries) continue;
 
-                    var ep = GetNextUnwatchedEpisode(ser.AnimeSeriesID, userID);
+                    var ep = GetNextUnwatchedEpisode(ser.MediaSeriesID, userID);
                     if (ep is null) continue;
 
                     retEps.Add(ep);
@@ -220,7 +220,7 @@ public partial class DaCollectorServiceImplementation
             }
 
             // get a list of series that is applicable
-            var allSeriesUser = RepoFactory.AnimeSeries_User.GetMostRecentlyWatched(userID);
+            var allSeriesUser = RepoFactory.MediaSeries_User.GetMostRecentlyWatched(userID);
 
             var ts = DateTime.Now - start;
             _logger.LogInformation("GetEpisodesToWatch_RecentlyWatched:Series: {Milliseconds}", ts.TotalMilliseconds);
@@ -228,7 +228,7 @@ public partial class DaCollectorServiceImplementation
 
             foreach (var userRecord in allSeriesUser)
             {
-                var series = RepoFactory.AnimeSeries.GetByID(userRecord.AnimeSeriesID);
+                var series = RepoFactory.MediaSeries.GetByID(userRecord.MediaSeriesID);
                 if (series is null)
                 {
                     continue;
@@ -239,7 +239,7 @@ public partial class DaCollectorServiceImplementation
                     continue;
                 }
 
-                var ep = GetNextUnwatchedEpisode(userRecord.AnimeSeriesID, userID);
+                var ep = GetNextUnwatchedEpisode(userRecord.MediaSeriesID, userID);
                 if (ep != null)
                 {
                     retEps.Add(ep);
@@ -272,8 +272,8 @@ public partial class DaCollectorServiceImplementation
         try
         {
             return
-                RepoFactory.AnimeEpisode_User.GetMostRecentlyWatched(userID, maxRecords)
-                    .Select(a => _legacyV1Service.GetV1Contract(RepoFactory.AnimeEpisode.GetByID(a.AnimeEpisodeID), userID))
+                RepoFactory.MediaEpisode_User.GetMostRecentlyWatched(userID, maxRecords)
+                    .Select(a => _legacyV1Service.GetV1Contract(RepoFactory.MediaEpisode.GetByID(a.MediaEpisodeID), userID))
                     .ToList();
         }
         catch (Exception ex)
@@ -305,7 +305,7 @@ public partial class DaCollectorServiceImplementation
                 foreach (var ep in vid.AnimeEpisodes)
                 {
                     var epContract = _legacyV1Service.GetV1Contract(ep, userID);
-                    if (!user.AllowedSeries(ep.AnimeSeries)) continue;
+                    if (!user.AllowedSeries(ep.MediaSeries)) continue;
                     retEps.Add(epContract);
 
                     // Let's only return the specified amount
@@ -337,7 +337,7 @@ public partial class DaCollectorServiceImplementation
             var start = DateTime.Now;
 
             var results = RepoFactory.VideoLocal.GetMostRecentlyAdded(-1, userID)
-                .SelectMany(a => a.AnimeEpisodes).Select(a => a.AnimeSeriesID).Distinct().Take(maxRecords);
+                .SelectMany(a => a.AnimeEpisodes).Select(a => a.MediaSeriesID).Distinct().Take(maxRecords);
 
 
             var ts2 = DateTime.Now - start;
@@ -346,7 +346,7 @@ public partial class DaCollectorServiceImplementation
 
             foreach (var res in results)
             {
-                var ser = RepoFactory.AnimeSeries.GetByID(res);
+                var ser = RepoFactory.MediaSeries.GetByID(res);
                 if (ser is null)
                 {
                     continue;
@@ -407,7 +407,7 @@ public partial class DaCollectorServiceImplementation
                 return retSeries;
             }
 
-            var series = RepoFactory.AnimeSeries.GetMostRecentlyAdded(maxRecords, userID);
+            var series = RepoFactory.MediaSeries.GetMostRecentlyAdded(maxRecords, userID);
             retSeries.AddRange(series.Select(a => _legacyV1Service.GetV1UserContract(a, userID)).WhereNotNull());
         }
         catch (Exception ex)
@@ -418,12 +418,12 @@ public partial class DaCollectorServiceImplementation
         return retSeries;
     }
 
-    [HttpGet("Episode/LastWatched/{animeSeriesID}/{userID}")]
-    public CL_AnimeEpisode_User GetLastWatchedEpisodeForSeries(int animeSeriesID, int userID)
+    [HttpGet("Episode/LastWatched/{MediaSeriesID}/{userID}")]
+    public CL_AnimeEpisode_User GetLastWatchedEpisodeForSeries(int MediaSeriesID, int userID)
     {
         try
         {
-            return _legacyV1Service.GetV1Contract(RepoFactory.AnimeEpisode_User.GetLastWatchedEpisodeForSeries(animeSeriesID, userID)?.AnimeEpisode, userID);
+            return _legacyV1Service.GetV1Contract(RepoFactory.MediaEpisode_User.GetLastWatchedEpisodeForSeries(MediaSeriesID, userID)?.MediaEpisode, userID);
         }
         catch (Exception ex)
         {
@@ -433,12 +433,12 @@ public partial class DaCollectorServiceImplementation
         return null;
     }
 
-    [HttpGet("Episode/{animeEpisodeID}/{userID}")]
-    public CL_AnimeEpisode_User GetEpisode(int animeEpisodeID, int userID)
+    [HttpGet("Episode/{MediaEpisodeID}/{userID}")]
+    public CL_AnimeEpisode_User GetEpisode(int MediaEpisodeID, int userID)
     {
         try
         {
-            return _legacyV1Service.GetV1Contract(RepoFactory.AnimeEpisode.GetByID(animeEpisodeID), userID);
+            return _legacyV1Service.GetV1Contract(RepoFactory.MediaEpisode.GetByID(MediaEpisodeID), userID);
         }
         catch (Exception ex)
         {
@@ -452,7 +452,7 @@ public partial class DaCollectorServiceImplementation
     {
         try
         {
-            return RepoFactory.AnimeEpisode.GetAll()
+            return RepoFactory.MediaEpisode.GetAll()
                 .Select(a => (CL_AnimeEpisode)_legacyV1Service.GetV1Contract(a, 0))
                 .ToList();
         }
@@ -468,7 +468,7 @@ public partial class DaCollectorServiceImplementation
     {
         try
         {
-            return _legacyV1Service.GetV1Contract(RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(episodeID), userID);
+            return _legacyV1Service.GetV1Contract(RepoFactory.MediaEpisode.GetByAniDBEpisodeID(episodeID), userID);
         }
         catch (Exception ex)
         {
@@ -477,8 +477,8 @@ public partial class DaCollectorServiceImplementation
         }
     }
 
-    [HttpDelete("File/Association/{videoLocalID}/{animeEpisodeID}")]
-    public string RemoveAssociationOnFile(int videoLocalID, int animeEpisodeID)
+    [HttpDelete("File/Association/{videoLocalID}/{MediaEpisodeID}")]
+    public string RemoveAssociationOnFile(int videoLocalID, int MediaEpisodeID)
     {
         return "All file association/deassociation actions are deprecated in APIv1";
     }
@@ -527,22 +527,22 @@ public partial class DaCollectorServiceImplementation
         }
     }
 
-    [HttpPost("File/Association/{videoLocalID}/{animeEpisodeID}")]
-    public string AssociateSingleFile(int videoLocalID, int animeEpisodeID)
+    [HttpPost("File/Association/{videoLocalID}/{MediaEpisodeID}")]
+    public string AssociateSingleFile(int videoLocalID, int MediaEpisodeID)
     {
         return "All file association/deassociation actions are deprecated in APIv1";
     }
 
-    [HttpPost("File/Association/{videoLocalID}/{animeSeriesID}/{startingEpisodeNumber}/{endEpisodeNumber}")]
-    public string AssociateSingleFileWithMultipleEpisodes(int videoLocalID, int animeSeriesID,
+    [HttpPost("File/Association/{videoLocalID}/{MediaSeriesID}/{startingEpisodeNumber}/{endEpisodeNumber}")]
+    public string AssociateSingleFileWithMultipleEpisodes(int videoLocalID, int MediaSeriesID,
         int startingEpisodeNumber,
         int endEpisodeNumber)
     {
         return "All file association/deassociation actions are deprecated in APIv1";
     }
 
-    [HttpPost("File/Association/{animeSeriesID}/{startingEpisodeNumber}/{singleEpisode}")]
-    public string AssociateMultipleFiles(List<int> videoLocalIDs, int animeSeriesID, string startingEpisodeNumber,
+    [HttpPost("File/Association/{MediaSeriesID}/{startingEpisodeNumber}/{singleEpisode}")]
+    public string AssociateMultipleFiles(List<int> videoLocalIDs, int MediaSeriesID, string startingEpisodeNumber,
         bool singleEpisode)
     {
         return "All file association/deassociation actions are deprecated in APIv1";
@@ -758,11 +758,11 @@ public partial class DaCollectorServiceImplementation
         try
         {
             var user = HttpContext.GetUser();
-            var series = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
+            var series = RepoFactory.MediaSeries.GetByAnimeID(animeID);
             if (series is null)
                 return null;
 
-            var userData = RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(user.JMMUserID, series.AnimeSeriesID);
+            var userData = RepoFactory.MediaSeries_User.GetByUserAndSeriesID(user.JMMUserID, series.MediaSeriesID);
             if (userData is not { HasUserRating: true })
                 return null;
 
@@ -782,8 +782,8 @@ public partial class DaCollectorServiceImplementation
         return null;
     }
 
-    [HttpGet("Episode/IncrementStats/{animeEpisodeID}/{userID}/{statCountType}")]
-    public void IncrementEpisodeStats(int animeEpisodeID, int userID, int statCountType)
+    [HttpGet("Episode/IncrementStats/{MediaEpisodeID}/{userID}/{statCountType}")]
+    public void IncrementEpisodeStats(int MediaEpisodeID, int userID, int statCountType)
     {
         try
         {
@@ -793,7 +793,7 @@ public partial class DaCollectorServiceImplementation
                 return;
             }
 
-            var ep = RepoFactory.AnimeEpisode.GetByID(animeEpisodeID);
+            var ep = RepoFactory.MediaEpisode.GetByID(MediaEpisodeID);
             if (ep is null)
             {
                 return;
@@ -859,14 +859,14 @@ public partial class DaCollectorServiceImplementation
         return new List<CL_AniDB_Episode>();
     }
 
-    [HttpGet("Episode/ForSeries/{animeSeriesID}/{userID}")]
-    public List<CL_AnimeEpisode_User> GetEpisodesForSeries(int animeSeriesID, int userID)
+    [HttpGet("Episode/ForSeries/{MediaSeriesID}/{userID}")]
+    public List<CL_AnimeEpisode_User> GetEpisodesForSeries(int MediaSeriesID, int userID)
     {
         var eps = new List<CL_AnimeEpisode_User>();
         try
         {
             return
-                RepoFactory.AnimeEpisode.GetBySeriesID(animeSeriesID)
+                RepoFactory.MediaEpisode.GetBySeriesID(MediaSeriesID)
                     .Where(a => a != null && !a.IsHidden)
                     .Select(a => _legacyV1Service.GetV1Contract(a, userID))
                     .WhereNotNull()
@@ -880,8 +880,8 @@ public partial class DaCollectorServiceImplementation
         return eps;
     }
 
-    [HttpGet("Episode/Old/{animeSeriesID}")]
-    public List<CL_AnimeEpisode_User> GetEpisodesForSeriesOld(int animeSeriesID)
+    [HttpGet("Episode/Old/{MediaSeriesID}")]
+    public List<CL_AnimeEpisode_User> GetEpisodesForSeriesOld(int MediaSeriesID)
     {
         var eps = new List<CL_AnimeEpisode_User>();
         try
@@ -891,7 +891,7 @@ public partial class DaCollectorServiceImplementation
             //HACK (We should have a default user locked)
             if (user != null)
             {
-                return GetEpisodesForSeries(animeSeriesID, user.JMMUserID);
+                return GetEpisodesForSeries(MediaSeriesID, user.JMMUserID);
             }
         }
         catch (Exception ex)
@@ -907,7 +907,7 @@ public partial class DaCollectorServiceImplementation
     {
         try
         {
-            var ep = RepoFactory.AnimeEpisode.GetByID(episodeID);
+            var ep = RepoFactory.MediaEpisode.GetByID(episodeID);
             if (ep != null)
             {
                 var files = ep.VideoLocals.ToList();
@@ -931,7 +931,7 @@ public partial class DaCollectorServiceImplementation
         var contracts = new List<CL_VideoLocal>();
         try
         {
-            var ep = RepoFactory.AnimeEpisode.GetByID(episodeID);
+            var ep = RepoFactory.MediaEpisode.GetByID(episodeID);
             if (ep != null)
             {
                 foreach (var vid in ep.VideoLocals)
@@ -971,14 +971,14 @@ public partial class DaCollectorServiceImplementation
         }
     }
 
-    [HttpPost("Episode/Watch/{animeEpisodeID}/{watchedStatus}/{userID}")]
-    public CL_Response<CL_AnimeEpisode_User> ToggleWatchedStatusOnEpisode(int animeEpisodeID, bool watchedStatus,
+    [HttpPost("Episode/Watch/{MediaEpisodeID}/{watchedStatus}/{userID}")]
+    public CL_Response<CL_AnimeEpisode_User> ToggleWatchedStatusOnEpisode(int MediaEpisodeID, bool watchedStatus,
         int userID)
     {
         var response = new CL_Response<CL_AnimeEpisode_User> { ErrorMessage = "", Result = null };
         try
         {
-            var ep = RepoFactory.AnimeEpisode.GetByID(animeEpisodeID);
+            var ep = RepoFactory.MediaEpisode.GetByID(MediaEpisodeID);
             if (ep is null)
             {
                 response.ErrorMessage = "Could not find anime episode record";
@@ -993,11 +993,11 @@ public partial class DaCollectorServiceImplementation
             }
 
             _userDataService.SetEpisodeWatchedStatus(ep, user, watchedStatus, DateTime.Now).GetAwaiter().GetResult();
-            var series = ep.AnimeSeries;
-            var seriesService = Utils.ServiceContainer.GetRequiredService<AnimeSeriesService>();
+            var series = ep.MediaSeries;
+            var seriesService = Utils.ServiceContainer.GetRequiredService<MediaSeriesService>();
             seriesService.UpdateStats(series, true, false);
-            var groupService = Utils.ServiceContainer.GetRequiredService<AnimeGroupService>();
-            groupService.UpdateStatsFromTopLevel(series?.AnimeGroup?.TopLevelAnimeGroup, true, true);
+            var groupService = Utils.ServiceContainer.GetRequiredService<MediaGroupService>();
+            groupService.UpdateStatsFromTopLevel(series?.MediaGroup?.TopLevelAnimeGroup, true, true);
 
             // refresh from db
 
@@ -1088,7 +1088,7 @@ public partial class DaCollectorServiceImplementation
                 return relGroups;
             }
 
-            var series = RepoFactory.AnimeSeries.GetByAnimeID(aniEp.AnimeID);
+            var series = RepoFactory.MediaSeries.GetByAnimeID(aniEp.AnimeID);
             if (series is null)
             {
                 return relGroups;
@@ -1144,12 +1144,12 @@ public partial class DaCollectorServiceImplementation
 
     #region Groups and Series
 
-    [HttpGet("Series/{animeSeriesID}/{userID}")]
-    public CL_AnimeSeries_User GetSeries(int animeSeriesID, int userID)
+    [HttpGet("Series/{MediaSeriesID}/{userID}")]
+    public CL_AnimeSeries_User GetSeries(int MediaSeriesID, int userID)
     {
         try
         {
-            return _legacyV1Service.GetV1UserContract(RepoFactory.AnimeSeries.GetByID(animeSeriesID), userID);
+            return _legacyV1Service.GetV1UserContract(RepoFactory.MediaSeries.GetByID(MediaSeriesID), userID);
         }
         catch (Exception ex)
         {
@@ -1171,7 +1171,7 @@ public partial class DaCollectorServiceImplementation
             {
                 foreach (var ae in GetEpisodesForFile(vi.VideoLocalID, userID))
                 {
-                    var ase = GetSeries(ae.AnimeSeriesID, userID);
+                    var ase = GetSeries(ae.MediaSeriesID, userID);
                     if (!list.Contains(ase))
                     {
                         limit++;
@@ -1202,7 +1202,7 @@ public partial class DaCollectorServiceImplementation
     [HttpPost("AniDB/Vote/{animeID}/{voteType}")]
     public async void VoteAnime(int animeID, [FromForm] double voteValue, int voteType)
     {
-        var series = animeID is > 0 ? RepoFactory.AnimeSeries.GetByAnimeID(animeID) : null;
+        var series = animeID is > 0 ? RepoFactory.MediaSeries.GetByAnimeID(animeID) : null;
         var user = HttpContext.GetUser();
         var pluginVoteType = voteType is 1 ? SeriesVoteType.Permanent : SeriesVoteType.Temporary;
         await _userDataService.RateSeries(series, user, voteValue, pluginVoteType);
@@ -1211,7 +1211,7 @@ public partial class DaCollectorServiceImplementation
     [HttpDelete("AniDB/Vote/{animeID}")]
     public async void VoteAnimeRevoke(int animeID)
     {
-        var series = animeID is > 0 ? RepoFactory.AnimeSeries.GetByAnimeID(animeID) : null;
+        var series = animeID is > 0 ? RepoFactory.MediaSeries.GetByAnimeID(animeID) : null;
         var user = HttpContext.GetUser();
         await _userDataService.UnrateSeries(series, user);
     }
@@ -1219,26 +1219,26 @@ public partial class DaCollectorServiceImplementation
     /// <summary>
     ///     Set watched status on all normal episodes
     /// </summary>
-    /// <param name="animeSeriesID"></param>
+    /// <param name="MediaSeriesID"></param>
     /// <param name="watchedStatus"></param>
     /// <param name="maxEpisodeNumber">Use this to specify a max episode number to apply to</param>
     /// <param name="episodeType"></param>
     /// <param name="userID"></param>
     /// <returns></returns>
-    [HttpPost("Series/Watch/{animeSeriesID}/{watchedStatus}/{maxEpisodeNumber}/{episodeType:int}/{userID}")]
-    public string SetWatchedStatusOnSeries(int animeSeriesID, bool watchedStatus, int maxEpisodeNumber, int episodeType,
+    [HttpPost("Series/Watch/{MediaSeriesID}/{watchedStatus}/{maxEpisodeNumber}/{episodeType:int}/{userID}")]
+    public string SetWatchedStatusOnSeries(int MediaSeriesID, bool watchedStatus, int maxEpisodeNumber, int episodeType,
         int userID)
     {
         try
         {
-            var eps = RepoFactory.AnimeEpisode.GetBySeriesID(animeSeriesID);
+            var eps = RepoFactory.MediaEpisode.GetBySeriesID(MediaSeriesID);
 
             var user = RepoFactory.JMMUser.GetByID(userID);
             if (user is null)
                 return "Could not find user record";
 
-            AnimeSeries ser = null;
-            var seriesService = Utils.ServiceContainer.GetRequiredService<AnimeSeriesService>();
+            MediaSeries ser = null;
+            var seriesService = Utils.ServiceContainer.GetRequiredService<MediaSeriesService>();
             foreach (var ep in eps)
             {
                 if (ep?.AniDB_Episode is null)
@@ -1265,15 +1265,15 @@ public partial class DaCollectorServiceImplementation
                 }
 
 
-                ser = ep.AnimeSeries;
+                ser = ep.MediaSeries;
             }
 
             // now update the stats
             if (ser != null)
             {
                 seriesService.UpdateStats(ser, true, true);
-                var groupService = Utils.ServiceContainer.GetRequiredService<AnimeGroupService>();
-                groupService.UpdateStatsFromTopLevel(ser.AnimeGroup?.TopLevelAnimeGroup, true, true);
+                var groupService = Utils.ServiceContainer.GetRequiredService<MediaGroupService>();
+                groupService.UpdateStatsFromTopLevel(ser.MediaGroup?.TopLevelAnimeGroup, true, true);
             }
 
             return string.Empty;
@@ -1290,7 +1290,7 @@ public partial class DaCollectorServiceImplementation
     {
         try
         {
-            return _legacyV1Service.GetV1UserContract(RepoFactory.AnimeSeries.GetByAnimeID(animeID), userID);
+            return _legacyV1Service.GetV1UserContract(RepoFactory.MediaSeries.GetByAnimeID(animeID), userID);
         }
         catch (Exception ex)
         {
@@ -1305,7 +1305,7 @@ public partial class DaCollectorServiceImplementation
     {
         try
         {
-            var series = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
+            var series = RepoFactory.MediaSeries.GetByAnimeID(animeID);
             if (series is null)
             {
                 return false;
@@ -1327,7 +1327,7 @@ public partial class DaCollectorServiceImplementation
         var grps = new List<CL_AnimeGroup_User>();
         try
         {
-            return RepoFactory.AnimeGroup.GetAll()
+            return RepoFactory.MediaGroup.GetAll()
                 .Select(a => _legacyV1Service.GetV1Contract(a, userID))
                 .OrderBy(a => a.GroupName)
                 .ToList();
@@ -1340,17 +1340,17 @@ public partial class DaCollectorServiceImplementation
         return grps;
     }
 
-    [HttpGet("Group/AboveGroup/{animeGroupID}/{userID}")]
-    public List<CL_AnimeGroup_User> GetAllGroupsAboveGroupInclusive(int animeGroupID, int userID)
+    [HttpGet("Group/AboveGroup/{MediaGroupID}/{userID}")]
+    public List<CL_AnimeGroup_User> GetAllGroupsAboveGroupInclusive(int MediaGroupID, int userID)
     {
         var grps = new List<CL_AnimeGroup_User>();
         try
         {
-            int? grpid = animeGroupID;
+            int? grpid = MediaGroupID;
             while (grpid.HasValue)
             {
                 grpid = null;
-                var grp = RepoFactory.AnimeGroup.GetByID(animeGroupID);
+                var grp = RepoFactory.MediaGroup.GetByID(MediaGroupID);
                 if (grp != null)
                 {
                     grps.Add(_legacyV1Service.GetV1Contract(grp, userID));
@@ -1368,13 +1368,13 @@ public partial class DaCollectorServiceImplementation
         return grps;
     }
 
-    [HttpGet("Group/AboveSeries/{animeSeriesID}/{userID}")]
-    public List<CL_AnimeGroup_User> GetAllGroupsAboveSeries(int animeSeriesID, int userID)
+    [HttpGet("Group/AboveSeries/{MediaSeriesID}/{userID}")]
+    public List<CL_AnimeGroup_User> GetAllGroupsAboveSeries(int MediaSeriesID, int userID)
     {
         var grps = new List<CL_AnimeGroup_User>();
         try
         {
-            var series = RepoFactory.AnimeSeries.GetByID(animeSeriesID);
+            var series = RepoFactory.MediaSeries.GetByID(MediaSeriesID);
             if (series is null)
             {
                 return grps;
@@ -1395,12 +1395,12 @@ public partial class DaCollectorServiceImplementation
         return grps;
     }
 
-    [HttpGet("Group/{animeGroupID}/{userID}")]
-    public CL_AnimeGroup_User GetGroup(int animeGroupID, int userID)
+    [HttpGet("Group/{MediaGroupID}/{userID}")]
+    public CL_AnimeGroup_User GetGroup(int MediaGroupID, int userID)
     {
         try
         {
-            return _legacyV1Service.GetV1Contract(RepoFactory.AnimeGroup.GetByID(animeGroupID), userID);
+            return _legacyV1Service.GetV1Contract(RepoFactory.MediaGroup.GetByID(MediaGroupID), userID);
         }
         catch (Exception ex)
         {
@@ -1428,7 +1428,7 @@ public partial class DaCollectorServiceImplementation
     {
         try
         {
-            var groupService = Utils.ServiceContainer.GetRequiredService<AnimeGroupService>();
+            var groupService = Utils.ServiceContainer.GetRequiredService<MediaGroupService>();
             groupService.RenameAllGroups();
         }
         catch (Exception ex)
@@ -1440,12 +1440,12 @@ public partial class DaCollectorServiceImplementation
         return string.Empty;
     }
 
-    [HttpDelete("Group/{animeGroupID}/{deleteFiles}")]
-    public string DeleteAnimeGroup(int animeGroupID, bool deleteFiles)
+    [HttpDelete("Group/{MediaGroupID}/{deleteFiles}")]
+    public string DeleteAnimeGroup(int MediaGroupID, bool deleteFiles)
     {
         try
         {
-            var grp = RepoFactory.AnimeGroup.GetByID(animeGroupID);
+            var grp = RepoFactory.MediaGroup.GetByID(MediaGroupID);
             if (grp is null)
             {
                 return "Group does not exist";
@@ -1456,7 +1456,7 @@ public partial class DaCollectorServiceImplementation
                 return "Group must be empty to be deleted. Move the series out of the group first.";
             }
 
-            var groupService = Utils.ServiceContainer.GetRequiredService<AnimeGroupService>();
+            var groupService = Utils.ServiceContainer.GetRequiredService<MediaGroupService>();
             groupService.DeleteGroup(grp);
 
             return string.Empty;
@@ -1483,7 +1483,7 @@ public partial class DaCollectorServiceImplementation
             {
                 var evaluator = HttpContext.RequestServices.GetRequiredService<IFilterEvaluator>();
                 var results = evaluator.EvaluateFilter(gf, user);
-                retGroups = results.Select(a => RepoFactory.AnimeGroup.GetByID(a.Key)).WhereNotNull().Select(a => _legacyV1Service.GetV1Contract(a, userID))
+                retGroups = results.Select(a => RepoFactory.MediaGroup.GetByID(a.Key)).WhereNotNull().Select(a => _legacyV1Service.GetV1Contract(a, userID))
                     .ToList();
             }
 
@@ -1497,11 +1497,11 @@ public partial class DaCollectorServiceImplementation
                 {
                     if (cag.DefaultAnimeSeriesID.HasValue)
                     {
-                        ng.SeriesForNameOverride = _legacyV1Service.GetV1UserContract(RepoFactory.AnimeSeries.GetByGroupID(ng.AnimeGroupID)
-                            .FirstOrDefault(a => a.AnimeSeriesID == cag.DefaultAnimeSeriesID.Value), userID);
+                        ng.SeriesForNameOverride = _legacyV1Service.GetV1UserContract(RepoFactory.MediaSeries.GetByGroupID(ng.MediaGroupID)
+                            .FirstOrDefault(a => a.MediaSeriesID == cag.DefaultAnimeSeriesID.Value), userID);
                     }
 
-                    ng.SeriesForNameOverride ??= _legacyV1Service.GetV1UserContract(RepoFactory.AnimeSeries.GetByGroupID(ng.AnimeGroupID).FirstOrDefault(), userID);
+                    ng.SeriesForNameOverride ??= _legacyV1Service.GetV1UserContract(RepoFactory.MediaSeries.GetByGroupID(ng.MediaGroupID).FirstOrDefault(), userID);
                 }
 
                 nGroups.Add(ng);
@@ -1529,22 +1529,22 @@ public partial class DaCollectorServiceImplementation
                 contractout.ErrorMessage = "Could not find user with ID: " + userID;
                 return contractout;
             }
-            var groupService = Utils.ServiceContainer.GetRequiredService<AnimeGroupService>();
-            AnimeGroup group;
+            var groupService = Utils.ServiceContainer.GetRequiredService<MediaGroupService>();
+            MediaGroup group;
             var updated = false;
-            if (contract.AnimeGroupID is > 0)
+            if (contract.MediaGroupID is > 0)
             {
-                group = RepoFactory.AnimeGroup.GetByID(contract.AnimeGroupID.Value);
+                group = RepoFactory.MediaGroup.GetByID(contract.MediaGroupID.Value);
                 if (group is null)
                 {
                     contractout.ErrorMessage = "Could not find existing group with ID: " +
-                                               contract.AnimeGroupID.Value;
+                                               contract.MediaGroupID.Value;
                     return contractout;
                 }
             }
             else
             {
-                group = new AnimeGroup
+                group = new MediaGroup
                 {
                     Description = string.Empty,
                     IsManuallyNamed = 0,
@@ -1566,15 +1566,15 @@ public partial class DaCollectorServiceImplementation
             if (contract.AnimeGroupParentID.HasValue && contract.AnimeGroupParentID.Value > 0)
             {
                 // make sure the parent group exists
-                var parent = RepoFactory.AnimeGroup.GetByID(contract.AnimeGroupParentID.Value);
+                var parent = RepoFactory.MediaGroup.GetByID(contract.AnimeGroupParentID.Value);
                 if (parent is null)
                 {
                     contractout.ErrorMessage = "Could not find existing parent group with ID: " + contract.AnimeGroupParentID.Value;
                     return contractout;
                 }
-                if (group.AnimeGroupParentID != group.AnimeGroupID)
+                if (group.AnimeGroupParentID != group.MediaGroupID)
                 {
-                    group.AnimeGroupParentID = parent.AnimeGroupID;
+                    group.AnimeGroupParentID = parent.MediaGroupID;
                     updated = true;
                 }
             }
@@ -1649,7 +1649,7 @@ public partial class DaCollectorServiceImplementation
             if (updated)
             {
                 group.DateTimeUpdated = DateTime.Now;
-                RepoFactory.AnimeGroup.Save(group, true);
+                RepoFactory.MediaGroup.Save(group, true);
             }
 
             if (mainSeries is not null)
@@ -1667,31 +1667,31 @@ public partial class DaCollectorServiceImplementation
         }
     }
 
-    [HttpPost("Series/Move/{animeSeriesID}/{newAnimeGroupID}/{userID}")]
-    public CL_Response<CL_AnimeSeries_User> MoveSeries(int animeSeriesID, int newAnimeGroupID, int userID)
+    [HttpPost("Series/Move/{MediaSeriesID}/{newAnimeGroupID}/{userID}")]
+    public CL_Response<CL_AnimeSeries_User> MoveSeries(int MediaSeriesID, int newAnimeGroupID, int userID)
     {
         var contractout = new CL_Response<CL_AnimeSeries_User> { ErrorMessage = string.Empty, Result = null };
         try
         {
             // make sure the series exists
-            var series = RepoFactory.AnimeSeries.GetByID(animeSeriesID);
+            var series = RepoFactory.MediaSeries.GetByID(MediaSeriesID);
             if (series is null)
             {
-                contractout.ErrorMessage = "Could not find existing series with ID: " + animeSeriesID;
+                contractout.ErrorMessage = "Could not find existing series with ID: " + MediaSeriesID;
                 return contractout;
             }
 
             // make sure the group exists
             var group = newAnimeGroupID <= 0
                 ? _groupCreator.GetOrCreateSingleGroupForSeries(series)
-                : RepoFactory.AnimeGroup.GetByID(newAnimeGroupID);
+                : RepoFactory.MediaGroup.GetByID(newAnimeGroupID);
             if (group is null)
             {
                 contractout.ErrorMessage = "Could not find existing group with ID: " + newAnimeGroupID;
                 return contractout;
             }
 
-            var seriesService = Utils.ServiceContainer.GetRequiredService<AnimeSeriesService>();
+            var seriesService = Utils.ServiceContainer.GetRequiredService<MediaSeriesService>();
             seriesService.MoveSeries(series, group);
 
             contractout.Result = _legacyV1Service.GetV1UserContract(series, userID);
@@ -1709,16 +1709,16 @@ public partial class DaCollectorServiceImplementation
     [HttpPost("Series/{userID}")]
     public CL_Response<CL_AnimeSeries_User> SaveSeries(CL_AnimeSeries_Save_Request contract, int userID)
     {
-        var seriesService = Utils.ServiceContainer.GetRequiredService<AnimeSeriesService>();
+        var seriesService = Utils.ServiceContainer.GetRequiredService<MediaSeriesService>();
         var contractout = new CL_Response<CL_AnimeSeries_User> { ErrorMessage = string.Empty, Result = null };
         try
         {
-            if (contract.AnimeSeriesID.HasValue && contract.AnimeSeriesID.Value > 0)
+            if (contract.MediaSeriesID.HasValue && contract.MediaSeriesID.Value > 0)
             {
-                var series = RepoFactory.AnimeSeries.GetByID(contract.AnimeSeriesID.Value);
+                var series = RepoFactory.MediaSeries.GetByID(contract.MediaSeriesID.Value);
                 if (series is null)
                 {
-                    contractout.ErrorMessage = "Could not find existing series with ID: " + contract.AnimeSeriesID.Value;
+                    contractout.ErrorMessage = "Could not find existing series with ID: " + contract.MediaSeriesID.Value;
                     return contractout;
                 }
 
@@ -1729,13 +1729,13 @@ public partial class DaCollectorServiceImplementation
                 }
 
                 // Check if we are moving a series, and also check the group if we are.
-                AnimeGroup group = null;
-                var shouldMove = contract.AnimeGroupID != series.AnimeGroupID;
+                MediaGroup group = null;
+                var shouldMove = contract.MediaGroupID != series.MediaGroupID;
                 if (shouldMove)
                 {
-                    group = contract.AnimeGroupID <= 0
+                    group = contract.MediaGroupID <= 0
                         ? _groupCreator.GetOrCreateSingleGroupForSeries(series)
-                        : RepoFactory.AnimeGroup.GetByID(contract.AnimeGroupID);
+                        : RepoFactory.MediaGroup.GetByID(contract.MediaGroupID);
                     if (group is null)
                     {
                         contractout.ErrorMessage = $"Invalid series group id for series record with ID: {series.AniDB_ID}";
@@ -1773,7 +1773,7 @@ public partial class DaCollectorServiceImplementation
                 {
                     series.DateTimeUpdated = DateTime.Now;
 
-                    RepoFactory.AnimeSeries.Save(series, true, true);
+                    RepoFactory.MediaSeries.Save(series, true, true);
 
                     DaCollectorEventHandler.Instance.OnSeriesUpdated(series, UpdateReason.Updated);
                 }
@@ -1790,7 +1790,7 @@ public partial class DaCollectorServiceImplementation
                 }
 
                 // Create a new series.
-                var series = new AnimeSeries
+                var series = new MediaSeries
                 {
                     AniDB_ID = anime.AnimeID,
                     LatestLocalEpisodeNumber = 0,
@@ -1802,13 +1802,13 @@ public partial class DaCollectorServiceImplementation
                     SeriesNameOverride = contract.SeriesNameOverride,
                 };
 
-                var group = contract.AnimeGroupID <= 0
+                var group = contract.MediaGroupID <= 0
                     ? _groupCreator.GetOrCreateSingleGroupForAnime(anime)
-                    : RepoFactory.AnimeGroup.GetByID(contract.AnimeGroupID);
-                series.AnimeGroupID = group.AnimeGroupID;
+                    : RepoFactory.MediaGroup.GetByID(contract.MediaGroupID);
+                series.MediaGroupID = group.MediaGroupID;
 
                 // Populate before making a group to ensure IDs and stats are set for group filters.
-                RepoFactory.AnimeSeries.Save(series, false, false);
+                RepoFactory.MediaSeries.Save(series, false, false);
 
                 seriesService.CreateAnimeEpisodes(series).ConfigureAwait(false)
                     .GetAwaiter()
@@ -1829,16 +1829,16 @@ public partial class DaCollectorServiceImplementation
         }
     }
 
-    [HttpPost("Series/CreateFromAnime/{animeID}/{userID}/{animeGroupID?}/{forceOverwrite}")]
-    public CL_Response<CL_AnimeSeries_User> CreateSeriesFromAnime(int animeID, int? animeGroupID, int userID,
+    [HttpPost("Series/CreateFromAnime/{animeID}/{userID}/{MediaGroupID?}/{forceOverwrite}")]
+    public CL_Response<CL_AnimeSeries_User> CreateSeriesFromAnime(int animeID, int? MediaGroupID, int userID,
         bool forceOverwrite)
     {
         var response = new CL_Response<CL_AnimeSeries_User> { Result = null, ErrorMessage = string.Empty };
         try
         {
-            if (animeGroupID is > 0)
+            if (MediaGroupID is > 0)
             {
-                var grp = RepoFactory.AnimeGroup.GetByID(animeGroupID.Value);
+                var grp = RepoFactory.MediaGroup.GetByID(MediaGroupID.Value);
                 if (grp is null)
                 {
                     response.ErrorMessage = "Could not find the specified group";
@@ -1847,7 +1847,7 @@ public partial class DaCollectorServiceImplementation
             }
 
             // make sure a series doesn't already exists for this anime
-            var ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
+            var ser = RepoFactory.MediaSeries.GetByAnimeID(animeID);
             if (ser != null && !forceOverwrite)
             {
                 response.ErrorMessage = "A series already exists for this anime";
@@ -1866,7 +1866,7 @@ public partial class DaCollectorServiceImplementation
                 return response;
             }
 
-            ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
+            ser = RepoFactory.MediaSeries.GetByAnimeID(animeID);
 
             // check if we have any group status data for this associated anime
             // if not we will download it now
@@ -1934,24 +1934,24 @@ public partial class DaCollectorServiceImplementation
         _logger.LogTrace("UpdateAnimeDisableExternalLinksFlag is deprecated");
     }
 
-    [HttpPost("Group/DefaultSeries/{animeGroupID}/{animeSeriesID}")]
-    public void SetDefaultSeriesForGroup(int animeGroupID, int animeSeriesID)
+    [HttpPost("Group/DefaultSeries/{MediaGroupID}/{MediaSeriesID}")]
+    public void SetDefaultSeriesForGroup(int MediaGroupID, int MediaSeriesID)
     {
         try
         {
-            var grp = RepoFactory.AnimeGroup.GetByID(animeGroupID);
+            var grp = RepoFactory.MediaGroup.GetByID(MediaGroupID);
             if (grp is null)
             {
                 return;
             }
 
-            var ser = RepoFactory.AnimeSeries.GetByID(animeSeriesID);
+            var ser = RepoFactory.MediaSeries.GetByID(MediaSeriesID);
             if (ser is null)
             {
                 return;
             }
 
-            var groupService = Utils.ServiceContainer.GetRequiredService<AnimeGroupService>();
+            var groupService = Utils.ServiceContainer.GetRequiredService<MediaGroupService>();
             groupService.SetMainSeries(grp, ser);
         }
         catch (Exception ex)
@@ -1960,18 +1960,18 @@ public partial class DaCollectorServiceImplementation
         }
     }
 
-    [HttpDelete("Group/DefaultSeries/{animeGroupID}")]
-    public void RemoveDefaultSeriesForGroup(int animeGroupID)
+    [HttpDelete("Group/DefaultSeries/{MediaGroupID}")]
+    public void RemoveDefaultSeriesForGroup(int MediaGroupID)
     {
         try
         {
-            var grp = RepoFactory.AnimeGroup.GetByID(animeGroupID);
+            var grp = RepoFactory.MediaGroup.GetByID(MediaGroupID);
             if (grp is null)
             {
                 return;
             }
 
-            var groupService = Utils.ServiceContainer.GetRequiredService<AnimeGroupService>();
+            var groupService = Utils.ServiceContainer.GetRequiredService<MediaGroupService>();
             groupService.SetMainSeries(grp, null);
         }
         catch (Exception ex)
@@ -1980,12 +1980,12 @@ public partial class DaCollectorServiceImplementation
         }
     }
 
-    [HttpGet("Group/ForSeries/{animeSeriesID}/{userID}")]
-    public CL_AnimeGroup_User GetTopLevelGroupForSeries(int animeSeriesID, int userID)
+    [HttpGet("Group/ForSeries/{MediaSeriesID}/{userID}")]
+    public CL_AnimeGroup_User GetTopLevelGroupForSeries(int MediaSeriesID, int userID)
     {
         try
         {
-            return _legacyV1Service.GetV1Contract(RepoFactory.AnimeSeries.GetByID(animeSeriesID)?.TopLevelAnimeGroup, userID);
+            return _legacyV1Service.GetV1Contract(RepoFactory.MediaSeries.GetByID(MediaSeriesID)?.TopLevelAnimeGroup, userID);
         }
         catch (Exception ex)
         {
@@ -2031,7 +2031,7 @@ public partial class DaCollectorServiceImplementation
                 }
 
                 // check if this anime has a series
-                var ser = RepoFactory.AnimeSeries.GetByAnimeID(link.SimilarAnimeID);
+                var ser = RepoFactory.MediaSeries.GetByAnimeID(link.SimilarAnimeID);
                 var cl = new CL_AniDB_Anime_Similar
                 {
                     AniDB_Anime_SimilarID = link.AniDB_Anime_SimilarID,
@@ -2041,7 +2041,7 @@ public partial class DaCollectorServiceImplementation
                     Total = link.Total
                 };
                 cl.AniDB_Anime = _legacyV1Service.GetV1Contract(animeLink);
-                cl.AnimeSeries = _legacyV1Service.GetV1UserContract(ser, userID);
+                cl.MediaSeries = _legacyV1Service.GetV1UserContract(ser, userID);
 
                 links.Add(cl);
             }
@@ -2086,7 +2086,7 @@ public partial class DaCollectorServiceImplementation
                 }
 
                 // check if this anime has a series
-                var ser = RepoFactory.AnimeSeries.GetByAnimeID(link.RelatedAnimeID);
+                var ser = RepoFactory.MediaSeries.GetByAnimeID(link.RelatedAnimeID);
                 var cl = new CL_AniDB_Anime_Relation
                 {
                     AniDB_Anime_RelationID = link.AniDB_Anime_RelationID,
@@ -2095,7 +2095,7 @@ public partial class DaCollectorServiceImplementation
                     RelatedAnimeID = link.RelatedAnimeID
                 };
                 cl.AniDB_Anime = _legacyV1Service.GetV1Contract(animeLink);
-                cl.AnimeSeries = _legacyV1Service.GetV1UserContract(ser, userID);
+                cl.MediaSeries = _legacyV1Service.GetV1UserContract(ser, userID);
 
                 links.Add(cl);
             }
@@ -2112,22 +2112,22 @@ public partial class DaCollectorServiceImplementation
     /// <summary>
     ///     Delete a series, and everything underneath it (episodes, files)
     /// </summary>
-    /// <param name="animeSeriesID"></param>
+    /// <param name="MediaSeriesID"></param>
     /// <param name="deleteFiles">also delete the physical files</param>
     /// <param name="deleteParentGroup"></param>
     /// <returns></returns>
-    [HttpDelete("Series/{animeSeriesID}/{deleteFiles}/{deleteParentGroup}")]
-    public string DeleteAnimeSeries(int animeSeriesID, bool deleteFiles, bool deleteParentGroup)
+    [HttpDelete("Series/{MediaSeriesID}/{deleteFiles}/{deleteParentGroup}")]
+    public string DeleteAnimeSeries(int MediaSeriesID, bool deleteFiles, bool deleteParentGroup)
     {
         try
         {
-            var ser = RepoFactory.AnimeSeries.GetByID(animeSeriesID);
+            var ser = RepoFactory.MediaSeries.GetByID(MediaSeriesID);
             if (ser is null)
             {
                 return "Series does not exist";
             }
 
-            var animeGroupID = ser.AnimeGroupID;
+            var MediaGroupID = ser.MediaGroupID;
 
             foreach (var ep in ser.AllAnimeEpisodes)
             {
@@ -2148,22 +2148,22 @@ public partial class DaCollectorServiceImplementation
                     }
                 }
 
-                RepoFactory.AnimeEpisode.Delete(ep.AnimeEpisodeID);
+                RepoFactory.MediaEpisode.Delete(ep.MediaEpisodeID);
             }
 
-            RepoFactory.AnimeSeries.Delete(ser.AnimeSeriesID);
+            RepoFactory.MediaSeries.Delete(ser.MediaSeriesID);
 
             // finally update stats
-            var grp = RepoFactory.AnimeGroup.GetByID(animeGroupID);
+            var grp = RepoFactory.MediaGroup.GetByID(MediaGroupID);
             if (grp != null)
             {
                 if (grp.AllSeries.Count == 0)
                 {
-                    DeleteAnimeGroup(grp.AnimeGroupID, false);
+                    DeleteAnimeGroup(grp.MediaGroupID, false);
                 }
                 else
                 {
-                    var groupService = Utils.ServiceContainer.GetRequiredService<AnimeGroupService>();
+                    var groupService = Utils.ServiceContainer.GetRequiredService<MediaGroupService>();
                     groupService.UpdateStatsFromTopLevel(grp.TopLevelAnimeGroup, true, true);
                 }
             }
@@ -2215,8 +2215,8 @@ public partial class DaCollectorServiceImplementation
 
         try
         {
-            var allSeries = RepoFactory.AnimeSeries.GetAll();
-            var dictSeries = new Dictionary<int, AnimeSeries>();
+            var allSeries = RepoFactory.MediaSeries.GetAll();
+            var dictSeries = new Dictionary<int, MediaSeries>();
             foreach (var ser in allSeries)
             {
                 dictSeries[ser.AniDB_ID] = ser;
@@ -2283,7 +2283,7 @@ public partial class DaCollectorServiceImplementation
                         continue;
                     }
 
-                    var userRec = RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(userID, series.AnimeSeriesID);
+                    var userRec = RepoFactory.MediaSeries_User.GetByUserAndSeriesID(userID, series.MediaSeriesID);
                     if (userRec is null)
                     {
                         continue;
@@ -2299,7 +2299,7 @@ public partial class DaCollectorServiceImplementation
                 {
                     if (dictSeries.TryGetValue(anime.AnimeID, out var series))
                     {
-                        var userRec = RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(userID, series.AnimeSeriesID);
+                        var userRec = RepoFactory.MediaSeries_User.GetByUserAndSeriesID(userID, series.MediaSeriesID);
                         if (userRec != null)
                         {
                             if (userRec.UnwatchedEpisodeCount == 0)
@@ -2318,7 +2318,7 @@ public partial class DaCollectorServiceImplementation
                         continue;
                     }
 
-                    var seriesUserData = RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(userID, series.AnimeSeriesID);
+                    var seriesUserData = RepoFactory.MediaSeries_User.GetByUserAndSeriesID(userID, series.MediaSeriesID);
                     if (seriesUserData is not { HasUserRating: true })
                     {
                         continue;
@@ -2329,7 +2329,7 @@ public partial class DaCollectorServiceImplementation
                 {
                     if (dictSeries.TryGetValue(anime.AnimeID, out var series))
                     {
-                        var seriesUserData = RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(userID, series.AnimeSeriesID);
+                        var seriesUserData = RepoFactory.MediaSeries_User.GetByUserAndSeriesID(userID, series.MediaSeriesID);
                         if (seriesUserData is { HasUserRating: true })
                         {
                             continue;
@@ -2340,7 +2340,7 @@ public partial class DaCollectorServiceImplementation
                 var contract = new CL_AnimeRating { AnimeID = anime.AnimeID, AnimeDetailed = _legacyV1Service.GetV1DetailedContract(anime, user.JMMUserID) };
                 if (dictSeries.TryGetValue(anime.AnimeID, out var series1))
                 {
-                    contract.AnimeSeries = _legacyV1Service.GetV1UserContract(series1, userID);
+                    contract.MediaSeries = _legacyV1Service.GetV1UserContract(series1, userID);
                 }
 
                 contracts.Add(contract);
@@ -2374,7 +2374,7 @@ public partial class DaCollectorServiceImplementation
     {
         try
         {
-            return RepoFactory.AnimeSeries.GetAll().Select(a => _legacyV1Service.GetV1UserContract(a, userID)).ToList();
+            return RepoFactory.MediaSeries.GetAll().Select(a => _legacyV1Service.GetV1UserContract(a, userID)).ToList();
         }
         catch (Exception ex)
         {
@@ -2399,13 +2399,13 @@ public partial class DaCollectorServiceImplementation
         }
     }
 
-    [HttpGet("Group/SubGroup/{animeGroupID}/{userID}")]
-    public List<CL_AnimeGroup_User> GetSubGroupsForGroup(int animeGroupID, int userID)
+    [HttpGet("Group/SubGroup/{MediaGroupID}/{userID}")]
+    public List<CL_AnimeGroup_User> GetSubGroupsForGroup(int MediaGroupID, int userID)
     {
         var retGroups = new List<CL_AnimeGroup_User>();
         try
         {
-            var grp = RepoFactory.AnimeGroup.GetByID(animeGroupID);
+            var grp = RepoFactory.MediaGroup.GetByID(MediaGroupID);
             if (grp is null)
             {
                 return retGroups;
@@ -2427,13 +2427,13 @@ public partial class DaCollectorServiceImplementation
         return retGroups;
     }
 
-    [HttpGet("Series/ForGroup/{animeGroupID}/{userID}")]
-    public List<CL_AnimeSeries_User> GetSeriesForGroup(int animeGroupID, int userID)
+    [HttpGet("Series/ForGroup/{MediaGroupID}/{userID}")]
+    public List<CL_AnimeSeries_User> GetSeriesForGroup(int MediaGroupID, int userID)
     {
         var series = new List<CL_AnimeSeries_User>();
         try
         {
-            var grp = RepoFactory.AnimeGroup.GetByID(animeGroupID);
+            var grp = RepoFactory.MediaGroup.GetByID(MediaGroupID);
             if (grp is null)
             {
                 return series;
@@ -2457,13 +2457,13 @@ public partial class DaCollectorServiceImplementation
         }
     }
 
-    [HttpGet("Series/ForGroupRecursive/{animeGroupID}/{userID}")]
-    public List<CL_AnimeSeries_User> GetSeriesForGroupRecursive(int animeGroupID, int userID)
+    [HttpGet("Series/ForGroupRecursive/{MediaGroupID}/{userID}")]
+    public List<CL_AnimeSeries_User> GetSeriesForGroupRecursive(int MediaGroupID, int userID)
     {
         var series = new List<CL_AnimeSeries_User>();
         try
         {
-            var grp = RepoFactory.AnimeGroup.GetByID(animeGroupID);
+            var grp = RepoFactory.MediaGroup.GetByID(MediaGroupID);
             if (grp is null)
             {
                 return series;

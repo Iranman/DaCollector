@@ -165,12 +165,12 @@ public class FileCrossReference
                     // Percentages.
                     var releaseGroup = xref.Release.Group is { Source: "AniDB" } group && int.TryParse(group.ID, out var releaseGroupId) ? releaseGroupId : (int?)null;
                     var assumedFileCount = PercentageToFileCount(xref.Percentage);
-                    var dacollectorEpisode = xref.DaCollectorEpisode as AnimeEpisode;
+                    var dacollectorEpisode = xref.DaCollectorEpisode as MediaEpisode;
                     return (
                         xref,
                         dto: new EpisodeCrossReferenceIDs
                         {
-                            ID = dacollectorEpisode?.AnimeEpisodeID,
+                            ID = dacollectorEpisode?.MediaEpisodeID,
                             AniDB = xref.AnidbEpisodeID,
                             ReleaseGroup = releaseGroup,
                             TMDB = new()
@@ -211,12 +211,12 @@ public class FileCrossReference
                 .GroupBy(tuple => tuple.xref.AnidbEpisode?.SeriesID ?? tuple.xref.AnidbAnimeID)
                 .Select(tuples =>
                 {
-                    var dacollectorSeries = RepoFactory.AnimeSeries.GetByAnimeID(tuples.Key);
+                    var dacollectorSeries = RepoFactory.MediaSeries.GetByAnimeID(tuples.Key);
                     return new FileCrossReference
                     {
                         SeriesID = new SeriesCrossReferenceIDs
                         {
-                            ID = dacollectorSeries?.AnimeSeriesID,
+                            ID = dacollectorSeries?.MediaSeriesID,
                             AniDB = tuples.Key,
                             TMDB = new()
                             {

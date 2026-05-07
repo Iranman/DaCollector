@@ -20,49 +20,49 @@ using DaCollector.Server.Utilities;
 #nullable enable
 namespace DaCollector.Server.Repositories.Cached;
 
-public class AnimeSeriesRepository : BaseCachedRepository<AnimeSeries, int>
+public class MediaSeriesRepository : BaseCachedRepository<MediaSeries, int>
 {
     private static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
-    private PocoIndex<int, AnimeSeries, int>? AniDBIds;
-    private PocoIndex<int, AnimeSeries, int>? Groups;
+    private PocoIndex<int, MediaSeries, int>? AniDBIds;
+    private PocoIndex<int, MediaSeries, int>? Groups;
 
     private readonly ChangeTracker<int> Changes = new();
 
-    public AnimeSeriesRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
+    public MediaSeriesRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
     {
         BeginDeleteCallback = cr =>
         {
-            RepoFactory.AnimeSeries_User.Delete(RepoFactory.AnimeSeries_User.GetBySeriesID(cr.AnimeSeriesID));
-            Changes.Remove(cr.AnimeSeriesID);
+            RepoFactory.MediaSeries_User.Delete(RepoFactory.MediaSeries_User.GetBySeriesID(cr.MediaSeriesID));
+            Changes.Remove(cr.MediaSeriesID);
         };
         EndDeleteCallback = cr =>
         {
-            if (cr.AnimeGroupID <= 0)
+            if (cr.MediaGroupID <= 0)
             {
                 return;
             }
 
-            logger.Trace("Updating group stats by group from AnimeSeriesRepository.Delete: {0}",
-                cr.AnimeGroupID);
-            var oldGroup = RepoFactory.AnimeGroup.GetByID(cr.AnimeGroupID);
+            logger.Trace("Updating group stats by group from MediaSeriesRepository.Delete: {0}",
+                cr.MediaGroupID);
+            var oldGroup = RepoFactory.MediaGroup.GetByID(cr.MediaGroupID);
             if (oldGroup != null)
             {
-                RepoFactory.AnimeGroup.Save(oldGroup, true);
+                RepoFactory.MediaGroup.Save(oldGroup, true);
             }
         };
     }
 
-    protected override int SelectKey(AnimeSeries entity)
+    protected override int SelectKey(MediaSeries entity)
     {
-        return entity.AnimeSeriesID;
+        return entity.MediaSeriesID;
     }
 
     public override void PopulateIndexes()
     {
         Changes.AddOrUpdateRange(Cache.Keys);
         AniDBIds = Cache.CreateIndex(a => a.AniDB_ID);
-        Groups = Cache.CreateIndex(a => a.AnimeGroupID);
+        Groups = Cache.CreateIndex(a => a.MediaGroupID);
     }
 
     public override void RegenerateDb()
@@ -70,7 +70,7 @@ public class AnimeSeriesRepository : BaseCachedRepository<AnimeSeries, int>
         try
         {
             SystemService.StartupMessage =
-                $"Database - Validating - {nameof(AnimeSeries)} Database Regeneration - Caching Titles & Overview...";
+                $"Database - Validating - {nameof(MediaSeries)} Database Regeneration - Caching Titles & Overview...";
             foreach (var series in Cache.Values.ToList())
             {
                 series.ResetPreferredTitle();
@@ -78,18 +78,18 @@ public class AnimeSeriesRepository : BaseCachedRepository<AnimeSeries, int>
                 series.ResetAnimeTitles();
             }
 
-            var sers = Cache.Values.Where(a => a.AnimeGroupID == 0 || RepoFactory.AnimeGroup.GetByID(a.AnimeGroupID) == null).ToList();
+            var sers = Cache.Values.Where(a => a.MediaGroupID == 0 || RepoFactory.MediaGroup.GetByID(a.MediaGroupID) == null).ToList();
             var max = sers.Count;
-            SystemService.StartupMessage = $"Database - Validating - {nameof(AnimeSeries)} Database Regeneration - Ensuring Groups Exist...";
+            SystemService.StartupMessage = $"Database - Validating - {nameof(MediaSeries)} Database Regeneration - Ensuring Groups Exist...";
 
-            var groupCreator = Utils.ServiceContainer.GetRequiredService<AnimeGroupCreator>();
+            var groupCreator = Utils.ServiceContainer.GetRequiredService<MediaGroupCreator>();
             for (var i = 0; i < max; i++)
             {
                 var s = sers[i];
                 try
                 {
                     var group = groupCreator.GetOrCreateSingleGroupForSeries(s);
-                    s.AnimeGroupID = group.AnimeGroupID;
+                    s.MediaGroupID = group.MediaGroupID;
                     Save(s, false, true);
                 }
                 catch
@@ -99,11 +99,11 @@ public class AnimeSeriesRepository : BaseCachedRepository<AnimeSeries, int>
 
                 if (i % 10 != 0) continue;
                 SystemService.StartupMessage =
-                    $"Database - Validating - {nameof(AnimeSeries)} DbRegen - Ensuring Groups Exist - {i}/{max}...";
+                    $"Database - Validating - {nameof(MediaSeries)} DbRegen - Ensuring Groups Exist - {i}/{max}...";
             }
 
             SystemService.StartupMessage =
-                $"Database - Validating - {nameof(AnimeSeries)} DbRegen - Ensuring Groups Exist - {max}/{max}...";
+                $"Database - Validating - {nameof(MediaSeries)} DbRegen - Ensuring Groups Exist - {max}/{max}...";
         }
         catch (Exception e)
         {
@@ -117,28 +117,28 @@ public class AnimeSeriesRepository : BaseCachedRepository<AnimeSeries, int>
         return Changes;
     }
 
-    public override void Save(AnimeSeries obj)
+    public override void Save(MediaSeries obj)
     {
         Save(obj, false);
     }
 
-    public void Save(AnimeSeries obj, bool onlyupdatestats)
+    public void Save(MediaSeries obj, bool onlyupdatestats)
     {
         Save(obj, true, onlyupdatestats);
     }
 
-    public void Save(AnimeSeries obj, bool updateGroups, bool onlyupdatestats, bool alsoupdateepisodes = false)
+    public void Save(MediaSeries obj, bool updateGroups, bool onlyupdatestats, bool alsoupdateepisodes = false)
     {
         var animeID = obj.AniDB_Anime?.MainTitle ?? obj.AniDB_ID.ToString();
         logger.Trace($"Saving Series {animeID}");
         var totalSw = Stopwatch.StartNew();
         var sw = Stopwatch.StartNew();
         var newSeries = false;
-        AnimeGroup? oldGroup = null;
+        MediaGroup? oldGroup = null;
         // Updated Now
         obj.DateTimeUpdated = DateTime.Now;
         var isMigrating = false;
-        if (obj.AnimeSeriesID == 0)
+        if (obj.MediaSeriesID == 0)
         {
             newSeries = true; // a new series
         }
@@ -146,13 +146,13 @@ public class AnimeSeriesRepository : BaseCachedRepository<AnimeSeries, int>
         {
             // get the old version from the DB
             logger.Trace($"Saving Series {animeID} | Waiting for Database Lock");
-            var oldSeries = Lock(obj.AnimeSeriesID, animeID, sw, (animeSeriesID, id, s) =>
+            var oldSeries = Lock(obj.MediaSeriesID, animeID, sw, (MediaSeriesID, id, s) =>
             {
                 s.Stop();
                 logger.Trace($"Saving Series {id} | Got Database Lock in {s.Elapsed.TotalSeconds:0.00###}s");
                 s.Restart();
                 using var session = _databaseFactory.SessionFactory.OpenSession();
-                var series = session.Get<AnimeSeries>(animeSeriesID);
+                var series = session.Get<MediaSeries>(MediaSeriesID);
                 s.Stop();
                 logger.Trace($"Saving Series {id} | Got Series from Database in {s.Elapsed.TotalSeconds:0.00###}s");
                 s.Restart();
@@ -162,11 +162,11 @@ public class AnimeSeriesRepository : BaseCachedRepository<AnimeSeries, int>
             if (oldSeries != null)
             {
                 // means we are moving series to a different group
-                if (oldSeries.AnimeGroupID != obj.AnimeGroupID)
+                if (oldSeries.MediaGroupID != obj.MediaGroupID)
                 {
                     logger.Trace($"Saving Series {animeID} | Group ID is different. Moving to new group");
-                    oldGroup = RepoFactory.AnimeGroup.GetByID(oldSeries.AnimeGroupID);
-                    var newGroup = RepoFactory.AnimeGroup.GetByID(obj.AnimeGroupID);
+                    oldGroup = RepoFactory.MediaGroup.GetByID(oldSeries.MediaGroupID);
+                    var newGroup = RepoFactory.MediaGroup.GetByID(obj.MediaGroupID);
                     if (newGroup is { GroupName: "AAA Migrating Groups AAA" })
                     {
                         isMigrating = true;
@@ -208,7 +208,7 @@ public class AnimeSeriesRepository : BaseCachedRepository<AnimeSeries, int>
 
         if (updateGroups && !isMigrating) UpdateGroups(obj, animeID, sw, oldGroup!);
 
-        Changes.AddOrUpdate(obj.AnimeSeriesID);
+        Changes.AddOrUpdate(obj.MediaSeriesID);
 
         if (alsoupdateepisodes) UpdateEpisodes(obj, sw, animeID);
 
@@ -217,7 +217,7 @@ public class AnimeSeriesRepository : BaseCachedRepository<AnimeSeries, int>
         logger.Trace($"Saving Series {animeID} | Finished Saving in {totalSw.Elapsed.TotalSeconds:0.00###}s");
     }
 
-    private static void RegenerateSeasons(AnimeSeries obj, Stopwatch sw, string animeID)
+    private static void RegenerateSeasons(MediaSeries obj, Stopwatch sw, string animeID)
     {
         sw.Stop();
         logger.Trace(
@@ -234,46 +234,46 @@ public class AnimeSeriesRepository : BaseCachedRepository<AnimeSeries, int>
         sw.Restart();
     }
 
-    private static void UpdateEpisodes(AnimeSeries obj, Stopwatch sw, string animeID)
+    private static void UpdateEpisodes(MediaSeries obj, Stopwatch sw, string animeID)
     {
         sw.Stop();
         logger.Trace($"Saving Series {animeID} | Updating Episodes");
         sw.Restart();
-        var eps = RepoFactory.AnimeEpisode.GetBySeriesID(obj.AnimeSeriesID);
-        RepoFactory.AnimeEpisode.Save(eps);
+        var eps = RepoFactory.MediaEpisode.GetBySeriesID(obj.MediaSeriesID);
+        RepoFactory.MediaEpisode.Save(eps);
         sw.Stop();
         logger.Trace($"Saving Series {animeID} | Updated Episodes in {sw.Elapsed.TotalSeconds:0.00###}s");
         sw.Restart();
     }
 
-    private static void UpdateGroups(AnimeSeries obj, string animeID, Stopwatch sw, AnimeGroup oldGroup)
+    private static void UpdateGroups(MediaSeries obj, string animeID, Stopwatch sw, MediaGroup oldGroup)
     {
-        logger.Trace($"Saving Series {animeID} | Also Updating Group {obj.AnimeGroupID}");
-        var grp = RepoFactory.AnimeGroup.GetByID(obj.AnimeGroupID);
+        logger.Trace($"Saving Series {animeID} | Also Updating Group {obj.MediaGroupID}");
+        var grp = RepoFactory.MediaGroup.GetByID(obj.MediaGroupID);
         if (grp != null)
         {
-            RepoFactory.AnimeGroup.Save(grp, true);
+            RepoFactory.MediaGroup.Save(grp, true);
         }
         else
-            logger.Trace($"Saving Series {animeID} | Group {obj.AnimeGroupID} was not found. Not Updating");
+            logger.Trace($"Saving Series {animeID} | Group {obj.MediaGroupID} was not found. Not Updating");
 
         sw.Stop();
-        logger.Trace($"Saving Series {animeID} | Updated Group {obj.AnimeGroupID} in {sw.Elapsed.TotalSeconds:0.00###}s");
+        logger.Trace($"Saving Series {animeID} | Updated Group {obj.MediaGroupID} in {sw.Elapsed.TotalSeconds:0.00###}s");
         sw.Restart();
 
         // Last ditch to make sure we aren't just updating the same group twice (shouldn't be)
-        if (oldGroup != null && grp?.AnimeGroupID != oldGroup.AnimeGroupID)
+        if (oldGroup != null && grp?.MediaGroupID != oldGroup.MediaGroupID)
         {
-            logger.Trace($"Saving Series {animeID} | Also Updating previous group {oldGroup.AnimeGroupID}");
-            RepoFactory.AnimeGroup.Save(oldGroup, true);
+            logger.Trace($"Saving Series {animeID} | Also Updating previous group {oldGroup.MediaGroupID}");
+            RepoFactory.MediaGroup.Save(oldGroup, true);
             sw.Stop();
             logger.Trace(
-                $"Saving Series {animeID} | Updated old group {oldGroup.AnimeGroupID} in {sw.Elapsed.TotalSeconds:0.00###}s");
+                $"Saving Series {animeID} | Updated old group {oldGroup.MediaGroupID} in {sw.Elapsed.TotalSeconds:0.00###}s");
             sw.Restart();
         }
     }
 
-    public async Task UpdateBatch(ISessionWrapper session, IReadOnlyCollection<AnimeSeries> seriesBatch)
+    public async Task UpdateBatch(ISessionWrapper session, IReadOnlyCollection<MediaSeries> seriesBatch)
     {
         ArgumentNullException.ThrowIfNull(session);
         ArgumentNullException.ThrowIfNull(seriesBatch);
@@ -287,28 +287,28 @@ public class AnimeSeriesRepository : BaseCachedRepository<AnimeSeries, int>
         {
             await Lock(async () => await session.UpdateAsync(series));
             UpdateCache(series);
-            Changes.AddOrUpdate(series.AnimeSeriesID);
+            Changes.AddOrUpdate(series.MediaSeriesID);
         }
     }
 
-    public AnimeSeries? GetByAnimeID(int id)
+    public MediaSeries? GetByAnimeID(int id)
     {
         return ReadLock(() => AniDBIds!.GetOne(id));
     }
 
-    public List<AnimeSeries> GetByGroupID(int groupid)
+    public List<MediaSeries> GetByGroupID(int groupid)
     {
         return ReadLock(() => Groups!.GetMultiple(groupid));
     }
 
-    public List<AnimeSeries> GetWithMissingEpisodes()
+    public List<MediaSeries> GetWithMissingEpisodes()
     {
         return ReadLock(() => Cache.Values.Where(a => a.MissingEpisodeCountGroups > 0)
             .OrderByDescending(a => a.EpisodeAddedDate)
             .ToList());
     }
 
-    public List<AnimeSeries> GetMostRecentlyAdded(int maxResults, int userID)
+    public List<MediaSeries> GetMostRecentlyAdded(int maxResults, int userID)
     {
         var user = RepoFactory.JMMUser.GetByID(userID);
         return ReadLock(() => user == null
@@ -322,7 +322,7 @@ public class AnimeSeriesRepository : BaseCachedRepository<AnimeSeries, int>
     private const string MultipleReleasesCountVariationsQuery =
         @"SELECT DISTINCT ani.AnimeID FROM VideoLocal AS vl JOIN CrossRef_File_Episode ani ON vl.Hash = ani.Hash WHERE vl.Hash != '' GROUP BY ani.AnimeID, ani.EpisodeID HAVING COUNT(ani.EpisodeID) > 1";
 
-    public IEnumerable<AnimeSeries> GetWithMultipleReleases(bool ignoreVariations)
+    public IEnumerable<MediaSeries> GetWithMultipleReleases(bool ignoreVariations)
     {
         var ids = Lock(() =>
         {
@@ -372,7 +372,7 @@ GROUP BY
     ani.AnimeID
 ";
 
-    public IEnumerable<AnimeSeries> GetWithDuplicateFiles()
+    public IEnumerable<MediaSeries> GetWithDuplicateFiles()
     {
         var ids = Lock(() =>
         {
@@ -389,11 +389,11 @@ GROUP BY
             .WhereNotNull();
     }
 
-    public const string MissingEpisodesCollectingQuery = @"SELECT ser.AniDB_ID FROM AnimeSeries AS ser WHERE ser.MissingEpisodeCountGroups > 0";
+    public const string MissingEpisodesCollectingQuery = @"SELECT ser.AniDB_ID FROM MediaSeries AS ser WHERE ser.MissingEpisodeCountGroups > 0";
 
-    public const string MissingEpisodesQuery = @"SELECT ser.AniDB_ID FROM AnimeSeries AS ser WHERE ser.MissingEpisodeCount > 0";
+    public const string MissingEpisodesQuery = @"SELECT ser.AniDB_ID FROM MediaSeries AS ser WHERE ser.MissingEpisodeCount > 0";
 
-    public IEnumerable<AnimeSeries> GetWithMissingEpisodes(bool collecting)
+    public IEnumerable<MediaSeries> GetWithMissingEpisodes(bool collecting)
     {
         var ids = Lock(() =>
         {
@@ -416,7 +416,7 @@ GROUP BY
 
     public IEnumerable<int> GetAllYears()
     {
-        var anime = RepoFactory.AnimeSeries.GetAll().Select(a => RepoFactory.AniDB_Anime.GetByAnimeID(a.AniDB_ID)).Where(a => a?.AirDate != null).ToList();
+        var anime = RepoFactory.MediaSeries.GetAll().Select(a => RepoFactory.AniDB_Anime.GetByAnimeID(a.AniDB_ID)).Where(a => a?.AirDate != null).ToList();
         if (anime.Count == 0) yield break;
         var minDate = anime.Min(a => a!.AirDate!.Value);
         var maxDate = anime.Max(o => o!.EndDate ?? DateTime.Today);

@@ -1,32 +1,26 @@
 using FluentNHibernate.Mapping;
-using DaCollector.Abstractions.User.Enums;
 using DaCollector.Server.Databases.NHibernate;
 using DaCollector.Server.Models.DaCollector;
 
 namespace DaCollector.Server.Mappings;
 
-public class AnimeSeries_UserMap : ClassMap<AnimeSeries_User>
+public class MediaEpisode_UserMap : ClassMap<MediaEpisode_User>
 {
-    public AnimeSeries_UserMap()
+    public MediaEpisode_UserMap()
     {
-        Table("AnimeSeries_User");
-
+        Table("MediaEpisode_User");
         Not.LazyLoad();
-        Id(x => x.AnimeSeries_UserID);
+        Id(x => x.MediaEpisode_UserID);
+
+        Map(x => x.MediaEpisodeID).Not.Nullable();
+        Map(x => x.MediaSeriesID).Not.Nullable();
         Map(x => x.JMMUserID).Not.Nullable();
-        Map(x => x.AnimeSeriesID).Not.Nullable();
         Map(x => x.PlayedCount).Not.Nullable();
         Map(x => x.StoppedCount).Not.Nullable();
-        Map(x => x.UnwatchedEpisodeCount).Not.Nullable();
         Map(x => x.WatchedCount).Not.Nullable();
         Map(x => x.WatchedDate);
-        Map(x => x.WatchedEpisodeCount).Not.Nullable();
-        Map(x => x.LastEpisodeUpdate);
-        Map(x => x.LastVideoUpdate);
-        Map(x => x.HiddenUnwatchedEpisodeCount).Not.Nullable();
         Map(x => x.IsFavorite).Not.Nullable();
         Map(x => x.AbsoluteUserRating);
-        Map(x => x.UserRatingVoteType).CustomType<SeriesVoteType>();
         Map(x => x.UserTags).Not.Nullable().CustomType<StringListConverter>();
         Map(x => x.LastUpdated).Not.Nullable();
     }

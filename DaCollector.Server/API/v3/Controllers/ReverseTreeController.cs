@@ -79,7 +79,7 @@ public class ReverseTreeController : BaseController
     [HttpGet("Group/{groupID}/Parent")]
     public ActionResult<Group> GetParentFromGroup([FromRoute, Range(1, int.MaxValue)] int groupID, [FromQuery] bool topLevel = false)
     {
-        var group = RepoFactory.AnimeGroup.GetByID(groupID);
+        var group = RepoFactory.MediaGroup.GetByID(groupID);
         if (group == null)
         {
             return NotFound(GroupController.GroupNotFound);
@@ -118,7 +118,7 @@ public class ReverseTreeController : BaseController
     [HttpGet("Series/{seriesID}/Group")]
     public ActionResult<Group> GetGroupFromSeries([FromRoute, Range(1, int.MaxValue)] int seriesID, [FromQuery] bool topLevel = false)
     {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
         {
             return NotFound(SeriesController.SeriesNotFoundWithSeriesID);
@@ -129,7 +129,7 @@ public class ReverseTreeController : BaseController
             return Forbid(SeriesController.SeriesForbiddenForUser);
         }
 
-        var group = topLevel ? series.TopLevelAnimeGroup : series.AnimeGroup;
+        var group = topLevel ? series.TopLevelAnimeGroup : series.MediaGroup;
         if (group == null)
         {
             return InternalError("No Group entry for the Series");
@@ -149,13 +149,13 @@ public class ReverseTreeController : BaseController
     public ActionResult<Series> GetSeriesFromEpisode([FromRoute, Range(1, int.MaxValue)] int episodeID, [FromQuery] bool randomImages = false,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType> includeDataFrom = null)
     {
-        var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
+        var episode = RepoFactory.MediaEpisode.GetByID(episodeID);
         if (episode == null)
         {
             return NotFound(EpisodeController.EpisodeNotFoundWithEpisodeID);
         }
 
-        var series = episode.AnimeSeries;
+        var series = episode.MediaSeries;
         if (series == null)
         {
             return InternalError("No Series entry for the Episode");
@@ -195,7 +195,7 @@ public class ReverseTreeController : BaseController
         }
 
         var episodes = file.AnimeEpisodes;
-        if (!episodes.All(episode => User.AllowedSeries(episode.AnimeSeries)))
+        if (!episodes.All(episode => User.AllowedSeries(episode.MediaSeries)))
         {
             return Forbid(FileController.FileForbiddenForUser);
         }

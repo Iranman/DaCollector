@@ -223,14 +223,14 @@ public static class ModelHelper
         return (episodeNumber, episodeType, null);
     }
 
-    public static int GetTotalEpisodesForType(IEnumerable<AnimeEpisode> episodeList, EpisodeType episodeType)
+    public static int GetTotalEpisodesForType(IEnumerable<MediaEpisode> episodeList, EpisodeType episodeType)
     {
         return episodeList
             .Select(episode => episode.AniDB_Episode)
             .Count(anidbEpisode => anidbEpisode != null && (EpisodeType)anidbEpisode.EpisodeType == episodeType);
     }
 
-    public static SeriesSizes GenerateSeriesSizes(IEnumerable<AnimeEpisode> episodeList, int userID)
+    public static SeriesSizes GenerateSeriesSizes(IEnumerable<MediaEpisode> episodeList, int userID)
     {
         var sizes = new SeriesSizes();
         var fileSet = new HashSet<int>();
@@ -404,7 +404,7 @@ public static class ModelHelper
         return sizes;
     }
 
-    public static GroupSizes GenerateGroupSizes(IEnumerable<AnimeSeries> seriesList, IEnumerable<AnimeEpisode> episodeList,
+    public static GroupSizes GenerateGroupSizes(IEnumerable<MediaSeries> seriesList, IEnumerable<MediaEpisode> episodeList,
         int subGroups, int userID)
     {
         var sizes = new GroupSizes(GenerateSeriesSizes(episodeList, userID));

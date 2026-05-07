@@ -61,7 +61,7 @@ public class GetAniDBReleaseGroupStatusJob : BaseJob
 
         if (AnimeID == 0) return;
         // only get group status if we have an associated series
-        var series = RepoFactory.AnimeSeries.GetByAnimeID(AnimeID);
+        var series = RepoFactory.MediaSeries.GetByAnimeID(AnimeID);
         if (series == null) return;
 
         var anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);

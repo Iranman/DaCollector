@@ -50,10 +50,10 @@ public class CrossRef_AniDB_TMDB_Movie : ITmdbMovieCrossReference
     public AniDB_Anime? AnidbAnime =>
         RepoFactory.AniDB_Anime.GetByAnimeID(AnidbAnimeID);
 
-    public AnimeEpisode? AnimeEpisode => RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(AnidbEpisodeID);
+    public MediaEpisode? MediaEpisode => RepoFactory.MediaEpisode.GetByAniDBEpisodeID(AnidbEpisodeID);
 
-    public AnimeSeries? AnimeSeries =>
-        RepoFactory.AnimeSeries.GetByAnimeID(AnidbAnimeID);
+    public MediaSeries? MediaSeries =>
+        RepoFactory.MediaSeries.GetByAnimeID(AnidbAnimeID);
 
     public TMDB_Movie? TmdbMovie
         => RepoFactory.TMDB_Movie.GetByTmdbMovieID(TmdbMovieID);
@@ -99,9 +99,9 @@ public class CrossRef_AniDB_TMDB_Movie : ITmdbMovieCrossReference
 
     #region ITmdbMovieCrossReference Implementation
 
-    IDaCollectorSeries? ITmdbMovieCrossReference.DaCollectorSeries => AnimeSeries;
+    IDaCollectorSeries? ITmdbMovieCrossReference.DaCollectorSeries => MediaSeries;
 
-    IDaCollectorEpisode? ITmdbMovieCrossReference.DaCollectorEpisode => AnimeEpisode;
+    IDaCollectorEpisode? ITmdbMovieCrossReference.DaCollectorEpisode => MediaEpisode;
 
     ITmdbMovie? ITmdbMovieCrossReference.TmdbMovie => TmdbMovie;
 

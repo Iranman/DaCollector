@@ -102,7 +102,7 @@ public static class LegacyConditionConverter
 
         condition = new CL_GroupFilterCondition
         {
-            ConditionType = (int)CL_GroupFilterConditionType.AnimeGroup,
+            ConditionType = (int)CL_GroupFilterConditionType.MediaGroup,
             ConditionOperator = (int)conditionOperator,
             ConditionParameter = nameExpression.Parameter,
         };
@@ -321,7 +321,7 @@ public static class LegacyConditionConverter
             condition = new CL_GroupFilterCondition
             {
                 ConditionOperator = (int)conditionOperator,
-                ConditionType = (int)CL_GroupFilterConditionType.AnimeGroup,
+                ConditionType = (int)CL_GroupFilterConditionType.MediaGroup,
                 ConditionParameter = string.Join(",", groups)
             };
             return true;
@@ -876,7 +876,7 @@ public static class LegacyConditionConverter
                 return LegacyMappings.GetAudioLanguageExpression(op, parameter, suppressErrors);
             case CL_GroupFilterConditionType.SubtitleLanguage:
                 return LegacyMappings.GetSubtitleLanguageExpression(op, parameter, suppressErrors);
-            case CL_GroupFilterConditionType.AnimeGroup:
+            case CL_GroupFilterConditionType.MediaGroup:
                 return LegacyMappings.GetGroupExpression(op, parameter, suppressErrors);
             case CL_GroupFilterConditionType.AniDBRating:
                 return LegacyMappings.GetRatingExpression(op, parameter, suppressErrors);

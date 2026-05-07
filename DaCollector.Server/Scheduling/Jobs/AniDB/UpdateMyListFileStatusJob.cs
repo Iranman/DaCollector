@@ -25,7 +25,7 @@ public class UpdateMyListFileStatusJob : BaseJob
 {
     private readonly IRequestFactory _requestFactory;
     private readonly ISettingsProvider _settingsProvider;
-    private readonly AnimeSeriesService _seriesService;
+    private readonly MediaSeriesService _seriesService;
 
     private string FullFileName { get; set; }
     public string Hash { get; set; }
@@ -105,11 +105,11 @@ public class UpdateMyListFileStatusJob : BaseJob
         if (!UpdateSeriesStats) return;
 
         // update watched stats
-        var eps = RepoFactory.AnimeEpisode.GetByHash(vid.Hash);
-        if (eps.Count > 0) await Task.WhenAll(eps.DistinctBy(a => a.AnimeSeriesID).Select(a => _seriesService.QueueUpdateStats(a.AnimeSeries)));
+        var eps = RepoFactory.MediaEpisode.GetByHash(vid.Hash);
+        if (eps.Count > 0) await Task.WhenAll(eps.DistinctBy(a => a.MediaSeriesID).Select(a => _seriesService.QueueUpdateStats(a.MediaSeries)));
     }
 
-    public UpdateMyListFileStatusJob(IRequestFactory requestFactory, ISettingsProvider settingsProvider, AnimeSeriesService seriesService)
+    public UpdateMyListFileStatusJob(IRequestFactory requestFactory, ISettingsProvider settingsProvider, MediaSeriesService seriesService)
     {
         _requestFactory = requestFactory;
         _settingsProvider = settingsProvider;

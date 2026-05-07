@@ -25,19 +25,19 @@ using DaCollector.Server.Utilities;
 #nullable enable
 namespace DaCollector.Server.Models.DaCollector;
 
-public class AnimeEpisode : IDaCollectorEpisode, IEquatable<AnimeEpisode>
+public class MediaEpisode : IDaCollectorEpisode, IEquatable<MediaEpisode>
 {
     #region DB Columns
 
     /// <summary>
-    /// Local <see cref="AnimeEpisode"/> id.
+    /// Local <see cref="MediaEpisode"/> id.
     /// </summary>
-    public int AnimeEpisodeID { get; set; }
+    public int MediaEpisodeID { get; set; }
 
     /// <summary>
-    /// Local <see cref="DaCollector.AnimeSeries"/> id.
+    /// Local <see cref="DaCollector.MediaSeries"/> id.
     /// </summary>
-    public int AnimeSeriesID { get; set; }
+    public int MediaSeriesID { get; set; }
 
     /// <summary>
     /// The universally unique anidb episode id.
@@ -299,14 +299,14 @@ public class AnimeEpisode : IDaCollectorEpisode, IEquatable<AnimeEpisode>
 
     #region DaCollector
 
-    public AnimeEpisode_User? GetUserRecord(int userID)
-        => userID <= 0 ? null : RepoFactory.AnimeEpisode_User.GetByUserAndEpisodeID(userID, AnimeEpisodeID);
+    public MediaEpisode_User? GetUserRecord(int userID)
+        => userID <= 0 ? null : RepoFactory.MediaEpisode_User.GetByUserAndEpisodeID(userID, MediaEpisodeID);
 
     /// <summary>
-    /// Gets the AnimeSeries this episode belongs to
+    /// Gets the MediaSeries this episode belongs to
     /// </summary>
-    public AnimeSeries? AnimeSeries
-        => RepoFactory.AnimeSeries.GetByID(AnimeSeriesID);
+    public MediaSeries? MediaSeries
+        => RepoFactory.MediaSeries.GetByID(MediaSeriesID);
 
     public IReadOnlyList<VideoLocal> VideoLocals
         => RepoFactory.VideoLocal.GetByAniDBEpisodeID(AniDB_EpisodeID);
@@ -346,25 +346,25 @@ public class AnimeEpisode : IDaCollectorEpisode, IEquatable<AnimeEpisode>
 
     #endregion
 
-    public bool Equals(AnimeEpisode? other)
+    public bool Equals(MediaEpisode? other)
         => other is not null &&
-            AnimeEpisodeID == other.AnimeEpisodeID &&
-            AnimeSeriesID == other.AnimeSeriesID &&
+            MediaEpisodeID == other.MediaEpisodeID &&
+            MediaSeriesID == other.MediaSeriesID &&
             AniDB_EpisodeID == other.AniDB_EpisodeID &&
             DateTimeUpdated == other.DateTimeUpdated &&
             DateTimeCreated == other.DateTimeCreated;
 
     public override bool Equals(object? obj)
-        => obj is not null && (ReferenceEquals(this, obj) || (obj is AnimeEpisode ep && Equals(ep)));
+        => obj is not null && (ReferenceEquals(this, obj) || (obj is MediaEpisode ep && Equals(ep)));
 
     public override int GetHashCode()
-        => HashCode.Combine(AnimeEpisodeID, AnimeSeriesID, AniDB_EpisodeID, DateTimeUpdated, DateTimeCreated);
+        => HashCode.Combine(MediaEpisodeID, MediaSeriesID, AniDB_EpisodeID, DateTimeUpdated, DateTimeCreated);
 
     #region IMetadata Implementation
 
     DataSource IMetadata.Source => DataSource.DaCollector;
 
-    int IMetadata<int>.ID => AnimeEpisodeID;
+    int IMetadata<int>.ID => MediaEpisodeID;
 
     #endregion
 
@@ -434,9 +434,9 @@ public class AnimeEpisode : IDaCollectorEpisode, IEquatable<AnimeEpisode>
 
     #region IEpisode Implementation
 
-    int IEpisode.SeriesID => AnimeSeriesID;
+    int IEpisode.SeriesID => MediaSeriesID;
 
-    IReadOnlyList<int> IEpisode.DaCollectorEpisodeIDs => [AnimeEpisodeID];
+    IReadOnlyList<int> IEpisode.DaCollectorEpisodeIDs => [MediaEpisodeID];
 
     EpisodeType IEpisode.Type => EpisodeType;
 
@@ -492,7 +492,7 @@ public class AnimeEpisode : IDaCollectorEpisode, IEquatable<AnimeEpisode>
         }
     }
 
-    ISeries? IEpisode.Series => AnimeSeries;
+    ISeries? IEpisode.Series => MediaSeries;
 
     IReadOnlyList<IDaCollectorEpisode> IEpisode.DaCollectorEpisodes => [this];
 
@@ -512,10 +512,10 @@ public class AnimeEpisode : IDaCollectorEpisode, IEquatable<AnimeEpisode>
 
     int IDaCollectorEpisode.AnidbEpisodeID => AniDB_EpisodeID;
 
-    IDaCollectorSeries? IDaCollectorEpisode.Series => AnimeSeries;
+    IDaCollectorSeries? IDaCollectorEpisode.Series => MediaSeries;
 
     IAnidbEpisode IDaCollectorEpisode.AnidbEpisode => AniDB_Episode ??
-        throw new NullReferenceException($"Unable to find AniDB Episode {AniDB_EpisodeID} for AnimeEpisode {AnimeEpisodeID}");
+        throw new NullReferenceException($"Unable to find AniDB Episode {AniDB_EpisodeID} for MediaEpisode {MediaEpisodeID}");
 
     IReadOnlyList<IAnilistEpisode> IDaCollectorEpisode.AnilistEpisodes => [];
 
@@ -567,9 +567,9 @@ public class AnimeEpisode : IDaCollectorEpisode, IEquatable<AnimeEpisode>
         if (user.ID is 0 || RepoFactory.JMMUser.GetByID(user.ID) is null)
             throw new ArgumentException("User is not stored in the database!", nameof(user));
         var userData = GetUserRecord(user.ID)
-            ?? new() { JMMUserID = user.ID, AnimeEpisodeID = AnimeEpisodeID, AnimeSeriesID = AnimeSeriesID };
-        if (userData.AnimeEpisode_UserID is 0)
-            RepoFactory.AnimeEpisode_User.Save(userData);
+            ?? new() { JMMUserID = user.ID, MediaEpisodeID = MediaEpisodeID, MediaSeriesID = MediaSeriesID };
+        if (userData.MediaEpisode_UserID is 0)
+            RepoFactory.MediaEpisode_User.Save(userData);
         return userData;
     }
 

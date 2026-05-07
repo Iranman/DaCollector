@@ -55,18 +55,18 @@ public class SyncPlexWatchedStatesJob : BaseJob
                     using var scope = _logger.BeginScope(ep.Key);
                     var episode = (SVR_Episode)ep;
 
-                    var animeEpisode = episode.AnimeEpisode;
+                    var MediaEpisode = episode.MediaEpisode;
 
 
                     _logger.LogInformation("Processing episode {Title} of {SeriesName}", episode.Title, series.Title);
-                    if (animeEpisode == null)
+                    if (MediaEpisode == null)
                     {
                         var filePath = episode.Media[0].Part[0].File;
                         _logger.LogTrace("Episode not found in DaCollector, skipping - {Filename} ({FilePath})", Path.GetFileName(filePath), filePath);
                         continue;
                     }
 
-                    var userRecord = animeEpisode.GetUserRecord(User.JMMUserID);
+                    var userRecord = MediaEpisode.GetUserRecord(User.JMMUserID);
                     var isWatched = episode.ViewCount is > 0;
                     var lastWatched = userRecord?.WatchedDate;
                     if ((userRecord?.WatchedCount ?? 0) == 0 && isWatched && episode.LastViewedAt != null)
@@ -75,10 +75,10 @@ public class SyncPlexWatchedStatesJob : BaseJob
                         _logger.LogTrace("Last watched date is {LastWatched}", lastWatched);
                     }
 
-                    var video = animeEpisode.VideoLocals?.FirstOrDefault();
+                    var video = MediaEpisode.VideoLocals?.FirstOrDefault();
                     if (video == null) continue;
 
-                    var alreadyWatched = animeEpisode.VideoLocals
+                    var alreadyWatched = MediaEpisode.VideoLocals
                         .Select(a => _vlUsers.GetByUserAndVideoLocalID(User.JMMUserID, a.VideoLocalID))
                         .WhereNotNull()
                         .Any(x => x.WatchedDate is not null || x.WatchedCount > 0);

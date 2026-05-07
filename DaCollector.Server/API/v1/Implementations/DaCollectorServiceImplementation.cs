@@ -44,7 +44,7 @@ namespace DaCollector.Server.API.v1.Implementations;
 public partial class DaCollectorServiceImplementation : Controller
 {
     private readonly ILogger<DaCollectorServiceImplementation> _logger;
-    private readonly AnimeGroupCreator _groupCreator;
+    private readonly MediaGroupCreator _groupCreator;
     private readonly TraktTVHelper _traktHelper;
     private readonly TmdbLinkingService _tmdbLinkingService;
     private readonly TmdbMetadataService _tmdbMetadataService;
@@ -69,7 +69,7 @@ public partial class DaCollectorServiceImplementation : Controller
         ISettingsProvider settingsProvider,
         ILogger<DaCollectorServiceImplementation> logger,
         ActionService actionService,
-        AnimeGroupCreator groupCreator,
+        MediaGroupCreator groupCreator,
         DaCollectorServiceImplementationService legacyV1Service,
         IUserDataService userDataService,
         IImageManager imageManager,
@@ -133,10 +133,10 @@ public partial class DaCollectorServiceImplementation : Controller
         {
             var changes = ChangeTracker<int>.GetChainedChanges(
             [
-                RepoFactory.AnimeGroup.GetChangeTracker(),
-                RepoFactory.AnimeGroup_User.GetChangeTracker(userID),
-                RepoFactory.AnimeSeries.GetChangeTracker(),
-                RepoFactory.AnimeSeries_User.GetChangeTracker(userID)
+                RepoFactory.MediaGroup.GetChangeTracker(),
+                RepoFactory.MediaGroup_User.GetChangeTracker(userID),
+                RepoFactory.MediaSeries.GetChangeTracker(),
+                RepoFactory.MediaSeries_User.GetChangeTracker(userID)
             ], date);
             var legacyConverter = HttpContext.RequestServices.GetRequiredService<LegacyFilterConverter>();
             c.Filters = new CL_Changes<CL_GroupFilter>
@@ -157,7 +157,7 @@ public partial class DaCollectorServiceImplementation : Controller
             }
 
             c.Groups.ChangedItems = changes[0]
-                .ChangedItems.Select(RepoFactory.AnimeGroup.GetByID)
+                .ChangedItems.Select(RepoFactory.MediaGroup.GetByID)
                 .WhereNotNull()
                 .Select(a => _legacyV1Service.GetV1Contract(a, userID))
                 .ToList();
@@ -174,7 +174,7 @@ public partial class DaCollectorServiceImplementation : Controller
             }
 
             c.Series.ChangedItems = changes[2]
-                .ChangedItems.Select(a => RepoFactory.AnimeSeries.GetByID(a))
+                .ChangedItems.Select(a => RepoFactory.MediaSeries.GetByID(a))
                 .WhereNotNull()
                 .Select(a => _legacyV1Service.GetV1UserContract(a, userID))
                 .ToList();
@@ -293,13 +293,13 @@ public partial class DaCollectorServiceImplementation : Controller
     [HttpGet("Years")]
     public List<string> GetAllYears()
     {
-        return RepoFactory.AnimeSeries.GetAllYears().Select(a => a.ToString()).ToList();
+        return RepoFactory.MediaSeries.GetAllYears().Select(a => a.ToString()).ToList();
     }
 
     [HttpGet("Seasons")]
     public List<string> GetAllSeasons()
     {
-        return RepoFactory.AnimeSeries.GetAllSeasons().Select(a => a.Season + " " + a).ToList();
+        return RepoFactory.MediaSeries.GetAllSeasons().Select(a => a.Season + " " + a).ToList();
     }
 
     [HttpGet("Tags")]
@@ -890,12 +890,12 @@ public partial class DaCollectorServiceImplementation : Controller
 
         try
         {
-            var seriesService = Utils.ServiceContainer.GetRequiredService<AnimeSeriesService>();
+            var seriesService = Utils.ServiceContainer.GetRequiredService<MediaSeriesService>();
             var user = RepoFactory.JMMUser.GetByID(userID);
             if (user == null)
                 return recs;
 
-            var allUserDataWithRatings = RepoFactory.AnimeSeries_User.GetByUserID(user.JMMUserID)
+            var allUserDataWithRatings = RepoFactory.MediaSeries_User.GetByUserID(user.JMMUserID)
                 .Where(a => a.HasUserRating)
                 .OrderByDescending(a => a.UserRating.Value)
                 .ToList();
@@ -906,7 +906,7 @@ public partial class DaCollectorServiceImplementation : Controller
             foreach (var userData in allUserDataWithRatings)
             {
                 // check if the user has this anime
-                if (userData.AnimeSeries?.AniDB_Anime is not { } anime)
+                if (userData.MediaSeries?.AniDB_Anime is not { } anime)
                     continue;
 
                 // get similar anime
@@ -929,7 +929,7 @@ public partial class DaCollectorServiceImplementation : Controller
                         continue;
 
                     // don't recommend to watch series that the user doesn't have
-                    var ser = RepoFactory.AnimeSeries.GetByAnimeID(link.SimilarAnimeID);
+                    var ser = RepoFactory.MediaSeries.GetByAnimeID(link.SimilarAnimeID);
                     if (ser == null && recommendationType == 1)
                         continue;
 
@@ -937,7 +937,7 @@ public partial class DaCollectorServiceImplementation : Controller
                     if (ser != null)
                     {
                         // don't recommend to watch series that the user has already started watching
-                        var userRecord = RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(userID, ser.AnimeSeriesID);
+                        var userRecord = RepoFactory.MediaSeries_User.GetByUserAndSeriesID(userID, ser.MediaSeriesID);
                         if (userRecord != null)
                         {
                             if (userRecord.WatchedEpisodeCount > 0 && recommendationType == 1)
@@ -989,7 +989,7 @@ public partial class DaCollectorServiceImplementation : Controller
                         rec.Recommended_AnimeSeries = _legacyV1Service.GetV1UserContract(ser, userID);
                     }
 
-                    var serBasedOn = RepoFactory.AnimeSeries.GetByAnimeID(anime.AnimeID);
+                    var serBasedOn = RepoFactory.MediaSeries.GetByAnimeID(anime.AnimeID);
                     if (serBasedOn == null)
                         continue;
 
@@ -1076,7 +1076,7 @@ public partial class DaCollectorServiceImplementation : Controller
 
         try
         {
-            var series = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
+            var series = RepoFactory.MediaSeries.GetByAnimeID(animeID);
             if (series == null)
             {
                 return relGroups;

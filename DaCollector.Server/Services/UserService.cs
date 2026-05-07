@@ -26,10 +26,10 @@ public class UserService(
     ISchedulerFactory _schedulerFactory,
     JMMUserRepository _userRepository,
     AuthTokensRepository _authTokensRepository,
-    AnimeSeriesRepository _seriesRepository,
-    AnimeGroup_UserRepository _groupUserRepository,
-    AnimeSeries_UserRepository _seriesUserRepository,
-    AnimeEpisode_UserRepository _episodeUserRepository,
+    MediaSeriesRepository _seriesRepository,
+    MediaGroup_UserRepository _groupUserRepository,
+    MediaSeries_UserRepository _seriesUserRepository,
+    MediaEpisode_UserRepository _episodeUserRepository,
     VideoLocal_UserRepository _videoUserRepository
 ) : IUserService
 {

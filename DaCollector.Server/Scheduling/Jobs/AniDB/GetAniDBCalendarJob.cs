@@ -106,8 +106,8 @@ public class GetAniDBCalendarJob : BaseJob
 
                 anime.AirDate = cal.ReleaseDate;
                 RepoFactory.AniDB_Anime.Save(anime);
-                var ser = RepoFactory.AnimeSeries.GetByAnimeID(anime.AnimeID);
-                if (ser is not null) RepoFactory.AnimeSeries.Save(ser, true, false);
+                var ser = RepoFactory.MediaSeries.GetByAnimeID(anime.AnimeID);
+                if (ser is not null) RepoFactory.MediaSeries.Save(ser, true, false);
             }
         }
         else

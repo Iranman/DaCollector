@@ -7,6 +7,6 @@ public class CL_AniDB_Anime_Relation
     public string RelationType { get; set; }
     public int RelatedAnimeID { get; set; }
     public CL_AniDB_Anime AniDB_Anime { get; set; }
-    public CL_AnimeSeries_User AnimeSeries { get; set; }
+    public CL_AnimeSeries_User MediaSeries { get; set; }
 
 }

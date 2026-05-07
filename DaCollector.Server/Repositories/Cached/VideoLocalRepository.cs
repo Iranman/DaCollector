@@ -168,7 +168,7 @@ public class VideoLocalRepository : BaseCachedRepository<VideoLocal, int>
     {
         var list = obj.AnimeEpisodes;
         base.Delete(obj);
-        list.WhereNotNull().ForEach(RepoFactory.AnimeEpisode.Save);
+        list.WhereNotNull().ForEach(RepoFactory.MediaEpisode.Save);
     }
 
     public override void Save(VideoLocal obj)
@@ -189,7 +189,7 @@ public class VideoLocalRepository : BaseCachedRepository<VideoLocal, int>
 
         if (updateEpisodes)
         {
-            RepoFactory.AnimeEpisode.Save(obj.AnimeEpisodes);
+            RepoFactory.MediaEpisode.Save(obj.AnimeEpisodes);
         }
     }
 
@@ -321,7 +321,7 @@ public class VideoLocalRepository : BaseCachedRepository<VideoLocal, int>
         if (maxResults < 0)
             return ReadLock(() => Cache.Values
                 .Where(a => a.AnimeEpisodes
-                    .Select(b => b.AnimeSeries)
+                    .Select(b => b.MediaSeries)
                     .WhereNotNull()
                     .DistinctBy(b => b.AniDB_ID)
                     .All(user.AllowedSeries)
@@ -331,7 +331,7 @@ public class VideoLocalRepository : BaseCachedRepository<VideoLocal, int>
 
         return ReadLock(() => Cache.Values
             .Where(a => a.AnimeEpisodes
-                .Select(b => b.AnimeSeries)
+                .Select(b => b.MediaSeries)
                 .WhereNotNull()
                 .DistinctBy(b => b.AniDB_ID)
                 .All(user.AllowedSeries)
@@ -359,7 +359,7 @@ public class VideoLocalRepository : BaseCachedRepository<VideoLocal, int>
         return ReadLock(() => take < 0
             ? Cache.Values
                 .Where(a => a.AnimeEpisodes
-                    .Select(b => b.AnimeSeries)
+                    .Select(b => b.MediaSeries)
                     .WhereNotNull()
                     .DistinctBy(b => b.AniDB_ID)
                     .All(user.AllowedSeries)
@@ -369,7 +369,7 @@ public class VideoLocalRepository : BaseCachedRepository<VideoLocal, int>
                 .ToList()
             : Cache.Values
                 .Where(a => a.AnimeEpisodes
-                    .Select(b => b.AnimeSeries)
+                    .Select(b => b.MediaSeries)
                     .WhereNotNull()
                     .DistinctBy(b => b.AniDB_ID)
                     .All(user.AllowedSeries)
@@ -426,7 +426,7 @@ public class VideoLocalRepository : BaseCachedRepository<VideoLocal, int>
 
 
     /// <summary>
-    /// returns all the VideoLocal records associate with an AnimeEpisode Record
+    /// returns all the VideoLocal records associate with an MediaEpisode Record
     /// </summary>
     /// <param name="episodeID">AniDB Episode ID</param>
     /// <returns></returns>
@@ -518,11 +518,11 @@ public class VideoLocalRepository : BaseCachedRepository<VideoLocal, int>
         if (xref.ReleaseInfo is null)
             return false;
 
-        var episode = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(xref.EpisodeID);
+        var episode = RepoFactory.MediaEpisode.GetByAniDBEpisodeID(xref.EpisodeID);
         if (episode?.AniDB_Episode == null)
             return false;
 
-        var anime = RepoFactory.AnimeSeries.GetByAnimeID(xref.AnimeID);
+        var anime = RepoFactory.MediaSeries.GetByAnimeID(xref.AnimeID);
         return anime?.AniDB_Anime != null;
     }
 

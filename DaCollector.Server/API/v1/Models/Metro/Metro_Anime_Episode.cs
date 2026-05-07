@@ -2,7 +2,7 @@ namespace DaCollector.Server.API.v1.Models.Metro;
 
 public class Metro_Anime_Episode
 {
-    public int AnimeEpisodeID { get; set; }
+    public int MediaEpisodeID { get; set; }
     public int EpisodeNumber { get; set; }
     public string EpisodeName { get; set; }
     public int EpisodeType { get; set; }

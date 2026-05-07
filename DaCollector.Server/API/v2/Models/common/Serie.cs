@@ -46,7 +46,7 @@ public class Serie : BaseDirectory, IComparable
         if (vl is null)
             return new();
 
-        var ser = vl.AnimeEpisodes.FirstOrDefault()?.AnimeSeries;
+        var ser = vl.AnimeEpisodes.FirstOrDefault()?.MediaSeries;
         if (ser is null)
             return new();
 
@@ -80,8 +80,8 @@ public class Serie : BaseDirectory, IComparable
         }
 
         if (
-            RepoFactory.AnimeSeries.GetByAnimeID(anime.AnimeID) is { } series &&
-            RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(uid, series.AnimeSeriesID) is { HasUserRating: true } userData
+            RepoFactory.MediaSeries.GetByAnimeID(anime.AnimeID) is { } series &&
+            RepoFactory.MediaSeries_User.GetByUserAndSeriesID(uid, series.MediaSeriesID) is { HasUserRating: true } userData
         )
         {
             sr.userrating = userData.UserRating.Value.ToString(CultureInfo.InvariantCulture);
@@ -137,14 +137,14 @@ public class Serie : BaseDirectory, IComparable
         return sr;
     }
 
-    public static Serie GenerateFromAnimeSeries(HttpContext ctx, AnimeSeries ser, int uid, bool noCast, bool noTag,
+    public static Serie GenerateFromAnimeSeries(HttpContext ctx, MediaSeries ser, int uid, bool noCast, bool noTag,
         int level, bool all, bool allPictures, int maxPictures, TagFilter.Filter tagFilter)
     {
         var sr = GenerateFromAniDBAnime(ctx, ser.AniDB_Anime, uid, noCast, noTag, allPictures, maxPictures, tagFilter);
 
         var ael = ser.AnimeEpisodes;
 
-        sr.id = ser.AnimeSeriesID;
+        sr.id = ser.MediaSeriesID;
         sr.name = ser.Title;
         GenerateSizes(sr, ael, uid);
 
@@ -217,7 +217,7 @@ public class Serie : BaseDirectory, IComparable
         return sr;
     }
 
-    private static void GenerateSizes(Serie sr, IEnumerable<AnimeEpisode> ael, int uid)
+    private static void GenerateSizes(Serie sr, IEnumerable<MediaEpisode> ael, int uid)
     {
         var eps = 0;
         var credits = 0;

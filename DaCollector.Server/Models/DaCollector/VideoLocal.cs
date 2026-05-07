@@ -117,8 +117,8 @@ public class VideoLocal : IVideo
     internal IReleaseGroup? ReleaseGroup =>
         ((IReleaseInfo?)ReleaseInfo)?.Group;
 
-    public IReadOnlyList<AnimeEpisode> AnimeEpisodes
-        => RepoFactory.AnimeEpisode.GetByHash(Hash);
+    public IReadOnlyList<MediaEpisode> AnimeEpisodes
+        => RepoFactory.MediaEpisode.GetByHash(Hash);
 
     public IReadOnlyList<CrossRef_File_Episode> EpisodeCrossReferences =>
         string.IsNullOrEmpty(Hash) ? [] : RepoFactory.CrossRef_File_Episode.GetByEd2k(Hash);
@@ -193,14 +193,14 @@ public class VideoLocal : IVideo
 
     IReadOnlyList<IDaCollectorEpisode> IVideo.Episodes =>
         EpisodeCrossReferences
-            .Select(x => x.AnimeEpisode)
+            .Select(x => x.MediaEpisode)
             .WhereNotNull()
             .ToArray();
 
     IReadOnlyList<IDaCollectorSeries> IVideo.Series =>
         EpisodeCrossReferences
             .DistinctBy(x => x.AnimeID)
-            .Select(x => x.AnimeSeries)
+            .Select(x => x.MediaSeries)
             .WhereNotNull()
             .OrderBy(a => a.Title)
             .ToArray();
@@ -208,10 +208,10 @@ public class VideoLocal : IVideo
     IReadOnlyList<IDaCollectorGroup> IVideo.Groups =>
         EpisodeCrossReferences
             .DistinctBy(x => x.AnimeID)
-            .Select(x => x.AnimeSeries)
+            .Select(x => x.MediaSeries)
             .WhereNotNull()
-            .DistinctBy(a => a.AnimeGroupID)
-            .Select(a => a.AnimeGroup)
+            .DistinctBy(a => a.MediaGroupID)
+            .Select(a => a.MediaGroup)
             .WhereNotNull()
             .OrderBy(g => g.GroupName)
             .ToArray();

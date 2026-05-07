@@ -15,7 +15,7 @@ using DaCollector.Abstractions.User;
 #nullable enable
 namespace DaCollector.Server.Filters;
 
-public class FilterEvaluator(ILogger<FilterEvaluator> _logger, AnimeGroupRepository _groups, AnimeSeriesRepository _series) : IFilterEvaluator
+public class FilterEvaluator(ILogger<FilterEvaluator> _logger, MediaGroupRepository _groups, MediaSeriesRepository _series) : IFilterEvaluator
 {
     public IReadOnlyList<IGrouping<int, int>> EvaluateFilter(IFilterPreset filter, IUser? user = null, DateTime? time = null, bool skipSorting = false)
     {
@@ -32,20 +32,20 @@ public class FilterEvaluator(ILogger<FilterEvaluator> _logger, AnimeGroupReposit
             true when needsUser => _series.GetAll()
                 .AsParallel()
                 .Where(a => dacollectorUser?.AllowedSeries(a) ?? true)
-                .Select(a => new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, a.ToFilterable(now), a.ToFilterableUserInfo(user!.ID, now))),
+                .Select(a => new FilterableWithID(a.MediaSeriesID, a.MediaGroupID, a.ToFilterable(now), a.ToFilterableUserInfo(user!.ID, now))),
             true => _series.GetAll()
                 .AsParallel()
                 .Where(a => dacollectorUser?.AllowedSeries(a) ?? true)
-                .Select(a => new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, a.ToFilterable(now))),
+                .Select(a => new FilterableWithID(a.MediaSeriesID, a.MediaGroupID, a.ToFilterable(now))),
             false when needsUser =>
                 _groups.GetAll()
                     .AsParallel()
                     .Where(a => dacollectorUser?.AllowedGroup(a) ?? true)
-                    .Select(a => new FilterableWithID(0, a.AnimeGroupID, a.ToFilterable(now), a.ToFilterableUserInfo(user!.ID, now))),
+                    .Select(a => new FilterableWithID(0, a.MediaGroupID, a.ToFilterable(now), a.ToFilterableUserInfo(user!.ID, now))),
             false => _groups.GetAll()
                 .AsParallel()
                 .Where(a => dacollectorUser?.AllowedGroup(a) ?? true)
-                .Select(a => new FilterableWithID(0, a.AnimeGroupID, a.ToFilterable(now))),
+                .Select(a => new FilterableWithID(0, a.MediaGroupID, a.ToFilterable(now))),
         };
         var filtered = filterable.Where(a =>
         {
@@ -70,7 +70,7 @@ public class FilterEvaluator(ILogger<FilterEvaluator> _logger, AnimeGroupReposit
             : OrderFilterable(filter, filtered, now);
         var result = filter.ApplyAtSeriesLevel
             ? sorted.GroupBy(a => a.GroupID, a => a.SeriesID)
-            : sorted.Select(a => new Grouping(a.GroupID, _series.GetByGroupID(a.GroupID).Select(ser => ser.AnimeSeriesID)));
+            : sorted.Select(a => new Grouping(a.GroupID, _series.GetByGroupID(a.GroupID).Select(ser => ser.MediaSeriesID)));
         return result.ToArray();
     }
 
@@ -105,20 +105,20 @@ public class FilterEvaluator(ILogger<FilterEvaluator> _logger, AnimeGroupReposit
         var series = !hasSeries ? [] : seriesNeedsUser
             ? _series.GetAll()
                 .Where(a => dacollectorUser?.AllowedSeries(a) ?? true)
-                .Select(a => new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, a.ToFilterable(now), a.ToFilterableUserInfo(user!.ID, now)))
+                .Select(a => new FilterableWithID(a.MediaSeriesID, a.MediaGroupID, a.ToFilterable(now), a.ToFilterableUserInfo(user!.ID, now)))
                 .ToArray()
             : _series.GetAll()
                 .Where(a => dacollectorUser?.AllowedSeries(a) ?? true)
-                .Select(a => new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, a.ToFilterable(now)))
+                .Select(a => new FilterableWithID(a.MediaSeriesID, a.MediaGroupID, a.ToFilterable(now)))
                 .ToArray();
         var groups = !hasGroups ? [] : groupsNeedUser
             ? _groups.GetAll()
                 .Where(a => dacollectorUser?.AllowedGroup(a) ?? true)
-                .Select(a => new FilterableWithID(0, a.AnimeGroupID, a.ToFilterable(now), a.ToFilterableUserInfo(user!.ID, now)))
+                .Select(a => new FilterableWithID(0, a.MediaGroupID, a.ToFilterable(now), a.ToFilterableUserInfo(user!.ID, now)))
                 .ToArray()
             : _groups.GetAll()
                 .Where(a => dacollectorUser?.AllowedGroup(a) ?? true)
-                .Select(a => new FilterableWithID(0, a.AnimeGroupID, a.ToFilterable(now)))
+                .Select(a => new FilterableWithID(0, a.MediaGroupID, a.ToFilterable(now)))
                 .ToArray();
         var results = new Dictionary<TFilter, Lazy<IReadOnlyList<IGrouping<int, int>>>>();
         foreach (var filter in filters.Where(a => !a.IsDirectory))
@@ -151,7 +151,7 @@ public class FilterEvaluator(ILogger<FilterEvaluator> _logger, AnimeGroupReposit
                 : OrderFilterable(filter, filtered, now);
             var result = filter.ApplyAtSeriesLevel
                 ? sorted.GroupBy(a => a.GroupID, a => a.SeriesID)
-                : sorted.Select(a => new Grouping(a.GroupID, _series.GetByGroupID(a.GroupID).Select(ser => ser.AnimeSeriesID)));
+                : sorted.Select(a => new Grouping(a.GroupID, _series.GetByGroupID(a.GroupID).Select(ser => ser.MediaSeriesID)));
             results[filter] = new(() => result.ToArray());
         }
 

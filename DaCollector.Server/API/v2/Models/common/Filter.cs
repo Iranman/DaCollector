@@ -58,14 +58,14 @@ public class Filter : Filters
         filter.size = evaluatedResults.Count;
 
         // Populate Random Art
-        List<AnimeSeries>? arts = null;
+        List<MediaSeries>? arts = null;
         var seriesList = evaluatedResults
             .SelectMany(a => a)
-            .Select(RepoFactory.AnimeSeries.GetByID)
+            .Select(RepoFactory.MediaSeries.GetByID)
             .WhereNotNull()
             .ToList();
         var groupsList = evaluatedResults
-            .Select(r => RepoFactory.AnimeGroup.GetByID(r.Key))
+            .Select(r => RepoFactory.MediaGroup.GetByID(r.Key))
             .Where(a => a is { AnimeGroupParentID: null })
             .ToList();
         if (pic == 1)
@@ -99,7 +99,7 @@ public class Filter : Filters
 
         if (level > 0)
             groups.AddRange(groupsList.Select(ag => Group.GenerateFromAnimeGroup(ctx, ag, uid, noCast, noTag, level - 1, all, filter.id, allPic, pic, tagFilter,
-                evaluatedResults?.FirstOrDefault(a => a.Key == ag.AnimeGroupID)?.ToList())));
+                evaluatedResults?.FirstOrDefault(a => a.Key == ag.MediaGroupID)?.ToList())));
 
         if (groups.Count > 0) filter.groups = groups;
 
@@ -109,7 +109,7 @@ public class Filter : Filters
         return filter;
     }
 
-    private static bool SeriesHasArt(AnimeSeries series)
+    private static bool SeriesHasArt(MediaSeries series)
     {
         return series.GetImages(ImageEntityType.Backdrop).Count is > 0;
     }

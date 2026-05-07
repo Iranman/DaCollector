@@ -9,5 +9,5 @@ public class CL_MissingFile
     public int EpisodeNumber { get; set; }
     public int EpisodeType { get; set; }
 
-    public CL_AnimeSeries_User AnimeSeries { get; set; }
+    public CL_AnimeSeries_User MediaSeries { get; set; }
 }

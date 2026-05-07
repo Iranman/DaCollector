@@ -434,7 +434,7 @@ public static class ModelClients
     public static CL_AnimeGroup_User DeepCopy(this CL_AnimeGroup_User c)
         => new()
         {
-            AnimeGroupID = c.AnimeGroupID,
+            MediaGroupID = c.MediaGroupID,
             AnimeGroupParentID = c.AnimeGroupParentID,
             DefaultAnimeSeriesID = c.DefaultAnimeSeriesID,
             GroupName = c.GroupName,

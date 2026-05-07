@@ -7,7 +7,7 @@ using DaCollector.Server.Repositories;
 
 namespace DaCollector.Server.Models.DaCollector.Embedded;
 
-public class AnimeTag(CustomTag tag, AnimeSeries series) : IDaCollectorTagForSeries
+public class AnimeTag(CustomTag tag, MediaSeries series) : IDaCollectorTagForSeries
 {
     #region IMetadata Implementation
 
@@ -28,7 +28,7 @@ public class AnimeTag(CustomTag tag, AnimeSeries series) : IDaCollectorTagForSer
     #region IDaCollectorTag Implementation
 
     public IReadOnlyList<IDaCollectorSeries> AllDaCollectorSeries => RepoFactory.CrossRef_CustomTag.GetByCustomTagID(tag.CustomTagID)
-        .Select(xref => RepoFactory.AnimeSeries.GetByAnimeID(xref.CrossRefID))
+        .Select(xref => RepoFactory.MediaSeries.GetByAnimeID(xref.CrossRefID))
         .WhereNotNull()
         .ToList();
 
@@ -36,7 +36,7 @@ public class AnimeTag(CustomTag tag, AnimeSeries series) : IDaCollectorTagForSer
 
     #region IDaCollectorTagForSeries Implementation
 
-    public int DaCollectorSeriesID => series.AnimeSeriesID;
+    public int DaCollectorSeriesID => series.MediaSeriesID;
 
     public IDaCollectorSeries DaCollectorSeries => series;
 

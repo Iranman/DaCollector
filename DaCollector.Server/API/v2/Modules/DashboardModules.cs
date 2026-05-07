@@ -19,7 +19,7 @@ namespace DaCollector.Server.API.v2.Modules;
 [ApiVersion("2.0")]
 public class DashboardModules : BaseController
 {
-    private readonly AnimeSeries_UserRepository _seriesUsers;
+    private readonly MediaSeries_UserRepository _seriesUsers;
 
     /// <summary>
     /// Return Dictionary with necessary items for Dashboard inside Webui
@@ -42,7 +42,7 @@ public class DashboardModules : BaseController
 
         if (user != null)
         {
-            var series = RepoFactory.AnimeSeries.GetAll().Where(a =>
+            var series = RepoFactory.MediaSeries.GetAll().Where(a =>
                 !a.AniDB_Anime?.GetAllTags().FindInEnumerable(user.GetHideCategories()) ?? false).ToList();
             series_count = series.Count;
 
@@ -56,9 +56,9 @@ public class DashboardModules : BaseController
 
             watched_files = watched.Count;
 
-            watched_series = RepoFactory.AnimeSeries.GetAll().Count(a =>
+            watched_series = RepoFactory.MediaSeries.GetAll().Count(a =>
             {
-                var contract = _seriesUsers.GetByUserAndSeriesID(user.JMMUserID, a.AnimeSeriesID);
+                var contract = _seriesUsers.GetByUserAndSeriesID(user.JMMUserID, a.MediaSeriesID);
                 if (a.MissingEpisodeCount > 0) return false;
                 return contract?.UnwatchedEpisodeCount == 0;
             });
@@ -77,7 +77,7 @@ public class DashboardModules : BaseController
         }
         else
         {
-            var series = RepoFactory.AnimeSeries.GetAll();
+            var series = RepoFactory.MediaSeries.GetAll();
             series_count = series.Count;
 
             var files = series.SelectMany(a => a.AllAnimeEpisodes).SelectMany(a => a.VideoLocals)
@@ -144,7 +144,7 @@ public class DashboardModules : BaseController
         return string.Format("{0:n" + decimalPlaces + "} {1}", adjustedSize, SizeSuffixes[mag]);
     }
 
-    public DashboardModules(ISettingsProvider settingsProvider, AnimeSeries_UserRepository seriesUsers) : base(settingsProvider)
+    public DashboardModules(ISettingsProvider settingsProvider, MediaSeries_UserRepository seriesUsers) : base(settingsProvider)
     {
         _seriesUsers = seriesUsers;
     }

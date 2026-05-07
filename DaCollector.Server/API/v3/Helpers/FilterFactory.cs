@@ -64,7 +64,7 @@ public class FilterFactory
             // Only count top level groups
             : _evaluator.EvaluateFilter(groupFilter, user).Count(a =>
             {
-                var group = RepoFactory.AnimeGroup.GetByID(a.Key);
+                var group = RepoFactory.MediaGroup.GetByID(a.Key);
                 return group is { AnimeGroupParentID: null } && (includeEmpty || group.AllSeries
                     .Any(s => s.AnimeEpisodes.Any(e => e.VideoLocals.Count > 0)));
             });

@@ -43,12 +43,12 @@ public class RepoFactory
     public static AniDB_MessageRepository AniDB_Message;
     public static AniDB_NotifyQueueRepository AniDB_NotifyQueue;
     public static AniDB_TagRepository AniDB_Tag;
-    public static AnimeEpisode_UserRepository AnimeEpisode_User;
-    public static AnimeEpisodeRepository AnimeEpisode;
-    public static AnimeGroup_UserRepository AnimeGroup_User;
-    public static AnimeGroupRepository AnimeGroup;
-    public static AnimeSeries_UserRepository AnimeSeries_User;
-    public static AnimeSeriesRepository AnimeSeries;
+    public static MediaEpisode_UserRepository MediaEpisode_User;
+    public static MediaEpisodeRepository MediaEpisode;
+    public static MediaGroup_UserRepository MediaGroup_User;
+    public static MediaGroupRepository MediaGroup;
+    public static MediaSeries_UserRepository MediaSeries_User;
+    public static MediaSeriesRepository MediaSeries;
     public static AuthTokensRepository AuthTokens;
     public static CrossRef_AniDB_MALRepository CrossRef_AniDB_MAL;
     public static CrossRef_AniDB_TMDB_EpisodeRepository CrossRef_AniDB_TMDB_Episode;
@@ -123,12 +123,12 @@ public class RepoFactory
         AniDB_MessageRepository anidbMessage,
         AniDB_NotifyQueueRepository anidbNotifyQueue,
         AniDB_TagRepository anidbTag,
-        AnimeEpisode_UserRepository animeEpisodeUser,
-        AnimeEpisodeRepository animeEpisode,
-        AnimeGroup_UserRepository animeGroupUser,
-        AnimeGroupRepository animeGroup,
-        AnimeSeries_UserRepository animeSeriesUser,
-        AnimeSeriesRepository animeSeries,
+        MediaEpisode_UserRepository mediaEpisodeUser,
+        MediaEpisodeRepository mediaEpisode,
+        MediaGroup_UserRepository mediaGroupUser,
+        MediaGroupRepository mediaGroup,
+        MediaSeries_UserRepository mediaSeriesUser,
+        MediaSeriesRepository mediaSeries,
         AuthTokensRepository authTokens,
         CrossRef_AniDB_MALRepository crossRefAniDBMal,
         CrossRef_AniDB_TMDB_EpisodeRepository crossRefAniDBTmdbEpisode,
@@ -203,12 +203,12 @@ public class RepoFactory
         AniDB_Message = anidbMessage;
         AniDB_NotifyQueue = anidbNotifyQueue;
         AniDB_Tag = anidbTag;
-        AnimeEpisode = animeEpisode;
-        AnimeEpisode_User = animeEpisodeUser;
-        AnimeGroup = animeGroup;
-        AnimeGroup_User = animeGroupUser;
-        AnimeSeries = animeSeries;
-        AnimeSeries_User = animeSeriesUser;
+        MediaEpisode = mediaEpisode;
+        MediaEpisode_User = mediaEpisodeUser;
+        MediaGroup = mediaGroup;
+        MediaGroup_User = mediaGroupUser;
+        MediaSeries = mediaSeries;
+        MediaSeries_User = mediaSeriesUser;
         AuthTokens = authTokens;
         CrossRef_AniDB_MAL = crossRefAniDBMal;
         CrossRef_AniDB_TMDB_Episode = crossRefAniDBTmdbEpisode;

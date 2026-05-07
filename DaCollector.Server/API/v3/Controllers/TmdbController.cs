@@ -474,7 +474,7 @@ public partial class TmdbController : BaseController
             return NotFound(MovieNotFound);
 
         return movie.CrossReferences
-            .Select(xref => xref.AnimeSeries)
+            .Select(xref => xref.MediaSeries)
             .WhereNotNull()
             .Select(series => new Series(series, User.JMMUserID, randomImages, includeDataFrom))
             .ToList();
@@ -497,7 +497,7 @@ public partial class TmdbController : BaseController
             return NotFound(MovieNotFound);
 
         return movie.CrossReferences
-            .Select(xref => xref.AnimeEpisode)
+            .Select(xref => xref.MediaEpisode)
             .WhereNotNull()
             .Select(episode => new Episode(HttpContext, episode, includeDataFrom))
             .ToList();
@@ -532,7 +532,7 @@ public partial class TmdbController : BaseController
             return NotFound(MovieNotFound);
 
         var videoLocals = movie.CrossReferences
-            .Select(xref => xref.AnimeEpisode)
+            .Select(xref => xref.MediaEpisode)
             .WhereNotNull()
             .SelectMany(xref => xref.VideoLocals)
             .DistinctBy(video => video.VideoLocalID);
@@ -1632,7 +1632,7 @@ public partial class TmdbController : BaseController
             return NotFound(ShowNotFound);
 
         return show.CrossReferences
-            .Select(xref => xref.AnimeSeries)
+            .Select(xref => xref.MediaSeries)
             .WhereNotNull()
             .Select(series => new Series(series, User.JMMUserID, randomImages, includeDataFrom))
             .ToList();
@@ -1669,7 +1669,7 @@ public partial class TmdbController : BaseController
             return NotFound(ShowNotFound);
 
         var videoLocals = show.EpisodeCrossReferences
-            .Select(xref => xref.AnimeEpisode)
+            .Select(xref => xref.MediaEpisode)
             .WhereNotNull()
             .SelectMany(xref => xref.VideoLocals)
             .DistinctBy(video => video.VideoLocalID);
@@ -2262,7 +2262,7 @@ public partial class TmdbController : BaseController
                 .WhereNotNull()
                 .SelectMany(episode => episode.CrossReferences)
                 .DistinctBy(xref => xref.AnidbAnimeID)
-                .Select(xref => xref.AnimeSeries)
+                .Select(xref => xref.MediaSeries)
                 .WhereNotNull()
                 .Select(series => new Series(series, User.JMMUserID, randomImages, includeDataFrom))
                 .ToList();
@@ -2278,7 +2278,7 @@ public partial class TmdbController : BaseController
         return season.TmdbEpisodes
             .SelectMany(episode => episode.CrossReferences)
             .DistinctBy(xref => xref.AnidbAnimeID)
-            .Select(xref => xref.AnimeSeries)
+            .Select(xref => xref.MediaSeries)
             .WhereNotNull()
             .Select(series => new Series(series, User.JMMUserID, randomImages, includeDataFrom))
             .ToList();
@@ -2320,7 +2320,7 @@ public partial class TmdbController : BaseController
                 .Select(altOrderEpisode => altOrderEpisode.TmdbEpisode)
                 .WhereNotNull()
                 .SelectMany(episode => episode.CrossReferences)
-                .Select(xref => xref.AnimeEpisode)
+                .Select(xref => xref.MediaEpisode)
                 .WhereNotNull()
                 .SelectMany(xref => xref.VideoLocals)
                 .DistinctBy(video => video.VideoLocalID);
@@ -2336,7 +2336,7 @@ public partial class TmdbController : BaseController
 
         var videoLocals0 = season.TmdbEpisodes
             .SelectMany(episode => episode.CrossReferences)
-            .Select(xref => xref.AnimeEpisode)
+            .Select(xref => xref.MediaEpisode)
             .WhereNotNull()
             .SelectMany(xref => xref.VideoLocals)
             .DistinctBy(video => video.VideoLocalID);
@@ -2751,7 +2751,7 @@ public partial class TmdbController : BaseController
 
         return episode.CrossReferences
             .DistinctBy(xref => xref.AnidbAnimeID)
-            .Select(xref => xref.AnimeSeries)
+            .Select(xref => xref.MediaSeries)
             .WhereNotNull()
             .Select(dacollectorSeries => new Series(dacollectorSeries, User.JMMUserID, randomImages, includeDataFrom))
             .ToList();
@@ -2771,7 +2771,7 @@ public partial class TmdbController : BaseController
 
         return episode.CrossReferences
             .DistinctBy(xref => xref.AnidbEpisodeID)
-            .Select(xref => xref.AnimeEpisode)
+            .Select(xref => xref.MediaEpisode)
             .WhereNotNull()
             .Select(dacollectorEpisode => new Episode(HttpContext, dacollectorEpisode, includeDataFrom))
             .ToList();
@@ -2808,7 +2808,7 @@ public partial class TmdbController : BaseController
             return NotFound(EpisodeNotFound);
 
         var videoLocals = episode.CrossReferences
-            .Select(xref => xref.AnimeEpisode)
+            .Select(xref => xref.MediaEpisode)
             .WhereNotNull()
             .SelectMany(xref => xref.VideoLocals)
             .DistinctBy(video => video.VideoLocalID);
@@ -3240,7 +3240,7 @@ public partial class TmdbController : BaseController
             if (!addMissingMovies)
                 continue;
 
-            var seriesExists = xref.AnimeSeries is not null;
+            var seriesExists = xref.MediaSeries is not null;
             var tmdbMovieExists = xref.TmdbMovie is not null;
             if (seriesExists && !tmdbMovieExists)
                 moviesToPull.Add(xref.TmdbMovieID);
@@ -3270,7 +3270,7 @@ public partial class TmdbController : BaseController
             if (!addMissingShows)
                 continue;
 
-            var seriesExists = xref.AnimeSeries is not null;
+            var seriesExists = xref.MediaSeries is not null;
             var tmdbSeriesExists = xref.TmdbShow is not null;
             if (seriesExists && !tmdbSeriesExists)
                 showsToPull.Add(xref.TmdbShowID);
@@ -3340,7 +3340,7 @@ public partial class TmdbController : BaseController
             if (!addMissingShows)
                 continue;
 
-            var seriesExists = xref.AnimeSeries is not null;
+            var seriesExists = xref.MediaSeries is not null;
             var tmdbEpisodeExists = xref.TmdbEpisode is not null;
             if (seriesExists && !tmdbEpisodeExists)
                 showsToPull.Add(xref.TmdbShowID);

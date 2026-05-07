@@ -7,7 +7,7 @@ public class Metro_Anime_Detail
 {
     // anime details
     public int AnimeID { get; set; }
-    public int AnimeSeriesID { get; set; }
+    public int MediaSeriesID { get; set; }
     public string AnimeName { get; set; }
     public string AnimeType { get; set; }
     public int BeginYear { get; set; }

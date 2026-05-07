@@ -5,9 +5,9 @@ namespace DaCollector.Server.API.v1.Models;
 
 public class CL_AnimeGroup_User
 {
-    public int AnimeGroup_UserID { get; set; }
+    public int MediaGroup_UserID { get; set; }
     public int JMMUserID { get; set; }
-    public int AnimeGroupID { get; set; }
+    public int MediaGroupID { get; set; }
     public int IsFave { get; set; }
     public int UnwatchedEpisodeCount { get; set; }
     public int WatchedEpisodeCount { get; set; }

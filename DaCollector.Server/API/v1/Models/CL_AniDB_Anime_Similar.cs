@@ -8,5 +8,5 @@ public class CL_AniDB_Anime_Similar
     public int Approval { get; set; }
     public int Total { get; set; }
     public CL_AniDB_Anime AniDB_Anime { get; set; }
-    public CL_AnimeSeries_User AnimeSeries { get; set; }
+    public CL_AnimeSeries_User MediaSeries { get; set; }
 }

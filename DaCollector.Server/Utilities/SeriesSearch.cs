@@ -187,11 +187,11 @@ public static class SeriesSearch
     /// <returns>
     ///     <see cref="List{SearchResult}" />
     /// </returns>
-    public static List<SearchResult<AnimeSeries>> SearchSeries(JMMUser user, string query, int limit, SearchFlags flags,
+    public static List<SearchResult<MediaSeries>> SearchSeries(JMMUser user, string query, int limit, SearchFlags flags,
             TagFilter.Filter tagFilter = TagFilter.Filter.None, bool searchById = false)
     {
         if (string.IsNullOrWhiteSpace(query) || user == null || limit <= 0)
-            return new List<SearchResult<AnimeSeries>>();
+            return new List<SearchResult<MediaSeries>>();
 
         query = query.ToLowerInvariant();
         var forbiddenTags = user.GetHideCategories();
@@ -199,11 +199,11 @@ public static class SeriesSearch
         //search by anime id
         if (searchById && int.TryParse(query, out var animeID))
         {
-            var series = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
+            var series = RepoFactory.MediaSeries.GetByAnimeID(animeID);
             var anime = series?.AniDB_Anime;
             var tags = anime?.GetAllTags();
             if (anime != null && !tags.FindInEnumerable(forbiddenTags))
-                return new List<SearchResult<AnimeSeries>>
+                return new List<SearchResult<MediaSeries>>
                 {
                     new()
                     {
@@ -214,7 +214,7 @@ public static class SeriesSearch
                 };
         }
 
-        var allSeries = !flags.HasFlag(SearchFlags.Titles) ? null : RepoFactory.AnimeSeries.GetAll()
+        var allSeries = !flags.HasFlag(SearchFlags.Titles) ? null : RepoFactory.MediaSeries.GetAll()
             .AsParallel()
             .Where(series =>
             {
@@ -235,15 +235,15 @@ public static class SeriesSearch
             SearchFlags.Fuzzy | SearchFlags.Tags => SearchTagsFuzzy(query, limit, forbiddenTags, allTags),
             SearchFlags.Tags | SearchFlags.Titles => SearchTitleAndTags(query, limit, forbiddenTags, allSeries, allTags),
             SearchFlags.Fuzzy | SearchFlags.Tags | SearchFlags.Titles => SearchTitleAndTagsFuzzy(query, limit, forbiddenTags, allSeries, allTags),
-            _ => new List<SearchResult<AnimeSeries>>(),
+            _ => new List<SearchResult<MediaSeries>>(),
         };
     }
 
-    private static List<SearchResult<AnimeSeries>> SearchTitleAndTags(
+    private static List<SearchResult<MediaSeries>> SearchTitleAndTags(
         string query,
         int limit,
         HashSet<string> forbiddenTags,
-        ParallelQuery<AnimeSeries> allSeries,
+        ParallelQuery<MediaSeries> allSeries,
         ParallelQuery<AniDB_Tag> allTags)
     {
         var titleResult = SearchCollection(allSeries, query, CreateSeriesTitleDelegate(), false, limit)
@@ -254,11 +254,11 @@ public static class SeriesSearch
         return titleResult;
     }
 
-    private static List<SearchResult<AnimeSeries>> SearchTitleAndTagsFuzzy(
+    private static List<SearchResult<MediaSeries>> SearchTitleAndTagsFuzzy(
         string query,
         int limit,
         HashSet<string> forbiddenTags,
-        ParallelQuery<AnimeSeries> allSeries,
+        ParallelQuery<MediaSeries> allSeries,
         ParallelQuery<AniDB_Tag> allTags)
     {
         var titleResult = SearchCollection(allSeries, query, CreateSeriesTitleDelegate(), true, limit)
@@ -269,22 +269,22 @@ public static class SeriesSearch
         return titleResult;
     }
 
-    private static List<SearchResult<AnimeSeries>> SearchTagsExact(string query, int limit,
+    private static List<SearchResult<MediaSeries>> SearchTagsExact(string query, int limit,
         HashSet<string> forbiddenTags, ParallelQuery<AniDB_Tag> allTags)
     {
-        var seriesList = new List<SearchResult<AnimeSeries>>();
+        var seriesList = new List<SearchResult<MediaSeries>>();
         seriesList.AddRange(RepoFactory.CustomTag.GetAll()
             .Where(tag => tag.TagName.Equals(query, StringComparison.InvariantCultureIgnoreCase))
             .SelectMany(tag => RepoFactory.CrossRef_CustomTag.GetByCustomTagID(tag.CustomTagID)
                 .Select(xref =>
                 {
-                    var series = RepoFactory.AnimeSeries.GetByAnimeID(xref.CrossRefID);
+                    var series = RepoFactory.MediaSeries.GetByAnimeID(xref.CrossRefID);
                     var anime = series?.AniDB_Anime;
                     var tags = anime?.GetAllTags();
                     if (anime == null || tags.Count == 0 || tags.FindInEnumerable(forbiddenTags))
                         return null;
 
-                    return new SearchResult<AnimeSeries>
+                    return new SearchResult<MediaSeries>
                     {
                         ExactMatch = true,
                         Match = tag.TagName,
@@ -304,13 +304,13 @@ public static class SeriesSearch
             .SelectMany(tag => RepoFactory.AniDB_Anime_Tag.GetByTagID(tag.TagID)
                 .Select(xref =>
                 {
-                    var series = RepoFactory.AnimeSeries.GetByAnimeID(xref.AnimeID);
+                    var series = RepoFactory.MediaSeries.GetByAnimeID(xref.AnimeID);
                     var anime = series?.AniDB_Anime;
                     var tags = anime?.GetAllTags();
                     if (anime == null || tags.Count == 0 || tags.FindInEnumerable(forbiddenTags))
                         return null;
 
-                    return new SearchResult<AnimeSeries>
+                    return new SearchResult<MediaSeries>
                     {
                         ExactMatch = true,
                         Distance = (600 - xref.Weight) / 600D,
@@ -327,10 +327,10 @@ public static class SeriesSearch
         return seriesList;
     }
 
-    private static List<SearchResult<AnimeSeries>> SearchTagsFuzzy(string query, int limit,
+    private static List<SearchResult<MediaSeries>> SearchTagsFuzzy(string query, int limit,
         HashSet<string> forbiddenTags, ParallelQuery<AniDB_Tag> allTags)
     {
-        var seriesList = new List<SearchResult<AnimeSeries>>();
+        var seriesList = new List<SearchResult<MediaSeries>>();
         var customTags = RepoFactory.CustomTag.GetAll()
             .AsParallel()
             .Select(tag =>
@@ -349,13 +349,13 @@ public static class SeriesSearch
             .SelectMany(tag => RepoFactory.CrossRef_CustomTag.GetByCustomTagID(tag.Result.CustomTagID)
                 .Select(xref =>
                 {
-                    var series = RepoFactory.AnimeSeries.GetByAnimeID(xref.CrossRefID);
+                    var series = RepoFactory.MediaSeries.GetByAnimeID(xref.CrossRefID);
                     var anime = series?.AniDB_Anime;
                     var tags = anime?.GetAllTags();
                     if (anime == null || tags.Count == 0 || tags.FindInEnumerable(forbiddenTags))
                         return null;
 
-                    return new SearchResult<AnimeSeries>
+                    return new SearchResult<MediaSeries>
                     {
                         ExactMatch = tag.ExactMatch,
                         Index = tag.Index,
@@ -387,13 +387,13 @@ public static class SeriesSearch
             .SelectMany(tag => RepoFactory.AniDB_Anime_Tag.GetByTagID(tag.Result.TagID)
                 .Select(xref =>
                 {
-                    var series = RepoFactory.AnimeSeries.GetByAnimeID(xref.AnimeID);
+                    var series = RepoFactory.MediaSeries.GetByAnimeID(xref.AnimeID);
                     var anime = series?.AniDB_Anime;
                     var tags = anime?.GetAllTags();
                     if (anime == null || tags.Count == 0 || tags.FindInEnumerable(forbiddenTags))
                         return null;
 
-                    return new SearchResult<AnimeSeries>
+                    return new SearchResult<MediaSeries>
                     {
                         ExactMatch = tag.ExactMatch,
                         Index = tag.Index,
@@ -412,7 +412,7 @@ public static class SeriesSearch
         return seriesList;
     }
 
-    private static Func<AnimeSeries, IEnumerable<string>> CreateSeriesTitleDelegate()
+    private static Func<MediaSeries, IEnumerable<string>> CreateSeriesTitleDelegate()
     {
         var settings = Utils.SettingsProvider.GetSettings();
         var languages = new HashSet<string> { "en", "x-jat" };

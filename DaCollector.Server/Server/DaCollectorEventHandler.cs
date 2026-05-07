@@ -73,7 +73,7 @@ public class DaCollectorEventHandler
             EpisodeUpdated?.Invoke(null, e);
     }
 
-    public void OnSeriesUpdated(IDaCollectorSeries series, UpdateReason reason, IEnumerable<KeyValuePair<AnimeEpisode, UpdateReason>> episodes)
+    public void OnSeriesUpdated(IDaCollectorSeries series, UpdateReason reason, IEnumerable<KeyValuePair<MediaEpisode, UpdateReason>> episodes)
         => OnSeriesUpdated(series, reason, episodes.Select(e => ((IDaCollectorEpisode)e.Key, e.Value)));
 
     public void OnSeriesUpdated(IDaCollectorSeries series, UpdateReason reason, IEnumerable<(IDaCollectorEpisode episode, UpdateReason reason)>? episodes = null)

@@ -630,7 +630,7 @@ public class AniDB_Anime : IAnidbAnime
 
     AnimeType ISeries.Type => AnimeType;
 
-    IReadOnlyList<int> ISeries.DaCollectorSeriesIDs => RepoFactory.AnimeSeries.GetByAnimeID(AnimeID) is { } series ? [series.AnimeSeriesID] : [];
+    IReadOnlyList<int> ISeries.DaCollectorSeriesIDs => RepoFactory.MediaSeries.GetByAnimeID(AnimeID) is { } series ? [series.MediaSeriesID] : [];
 
     double ISeries.Rating => Rating / 100D;
 
@@ -638,7 +638,7 @@ public class AniDB_Anime : IAnidbAnime
 
     bool ISeries.Restricted => IsRestricted;
 
-    IReadOnlyList<IDaCollectorSeries> ISeries.DaCollectorSeries => RepoFactory.AnimeSeries.GetByAnimeID(AnimeID) is { } series ? [series] : [];
+    IReadOnlyList<IDaCollectorSeries> ISeries.DaCollectorSeries => RepoFactory.MediaSeries.GetByAnimeID(AnimeID) is { } series ? [series] : [];
 
     IImage? ISeries.DefaultPoster => this.GetImageMetadata();
 

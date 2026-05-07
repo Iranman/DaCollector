@@ -36,7 +36,7 @@ public class CustomTag : IDaCollectorTag
     #region IDaCollectorTag Implementation
 
     IReadOnlyList<IDaCollectorSeries> IDaCollectorTag.AllDaCollectorSeries => RepoFactory.CrossRef_CustomTag.GetByCustomTagID(CustomTagID)
-        .Select(xref => RepoFactory.AnimeSeries.GetByAnimeID(xref.CrossRefID))
+        .Select(xref => RepoFactory.MediaSeries.GetByAnimeID(xref.CrossRefID))
         .WhereNotNull()
         .ToList();
 

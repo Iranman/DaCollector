@@ -278,7 +278,7 @@ public partial class WebUIController(
             .Distinct()
             .Select(groupID =>
             {
-                var group = RepoFactory.AnimeGroup.GetByID(groupID);
+                var group = RepoFactory.MediaGroup.GetByID(groupID);
                 if (group is null || !user.AllowedGroup(group))
                 {
                     return null;
@@ -307,7 +307,7 @@ public partial class WebUIController(
     public ActionResult<WebUISeriesExtra> GetSeries([FromRoute, Range(1, int.MaxValue)] int seriesID)
     {
         // Retrieve extra information for the specified series if it exists and the user has permissions.
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series is null)
         {
             return NotFound(SeriesController.SeriesNotFoundWithSeriesID);
@@ -343,7 +343,7 @@ public partial class WebUIController(
         [FromQuery] bool includeMissingFutureEpisodes = false)
     {
         // Retrieve a summary of file information for the specified series if it exists and the user has permissions.
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series is null)
         {
             return NotFound(SeriesController.SeriesNotFoundWithSeriesID);

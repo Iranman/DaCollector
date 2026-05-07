@@ -10,14 +10,14 @@ using DaCollector.Server.Repositories;
 #nullable enable
 namespace DaCollector.Server.Models.DaCollector;
 
-public class AnimeEpisode_User : IEpisodeUserData
+public class MediaEpisode_User : IEpisodeUserData
 {
     #region Server DB columns
 
     /// <summary>
     /// Local DB Row ID.
     /// </summary>
-    public int AnimeEpisode_UserID { get; set; }
+    public int MediaEpisode_UserID { get; set; }
 
     /// <summary>
     /// DaCollector User ID.
@@ -27,12 +27,12 @@ public class AnimeEpisode_User : IEpisodeUserData
     /// <summary>
     /// DaCollector Episode ID.
     /// </summary>
-    public int AnimeEpisodeID { get; set; }
+    public int MediaEpisodeID { get; set; }
 
     /// <summary>
     /// DaCollector Series ID.
     /// </summary>
-    public int AnimeSeriesID { get; set; }
+    public int MediaSeriesID { get; set; }
 
     /// <summary>
     /// The date and time the episode was last watched.
@@ -113,9 +113,9 @@ public class AnimeEpisode_User : IEpisodeUserData
 
     #endregion
 
-    public AnimeSeries? AnimeSeries => RepoFactory.AnimeSeries.GetByID(AnimeSeriesID);
+    public MediaSeries? MediaSeries => RepoFactory.MediaSeries.GetByID(MediaSeriesID);
 
-    public AnimeEpisode? AnimeEpisode => RepoFactory.AnimeEpisode.GetByID(AnimeEpisodeID);
+    public MediaEpisode? MediaEpisode => RepoFactory.MediaEpisode.GetByID(MediaEpisodeID);
 
     #region IUserData Implementation
 
@@ -130,9 +130,9 @@ public class AnimeEpisode_User : IEpisodeUserData
 
     #region IEpisodeUserData Implementation
 
-    int IEpisodeUserData.SeriesID => AnimeSeriesID;
+    int IEpisodeUserData.SeriesID => MediaSeriesID;
 
-    int IEpisodeUserData.EpisodeID => AnimeEpisodeID;
+    int IEpisodeUserData.EpisodeID => MediaEpisodeID;
 
     int IEpisodeUserData.PlaybackCount => WatchedCount;
 
@@ -140,7 +140,7 @@ public class AnimeEpisode_User : IEpisodeUserData
 
     // Skim it at runtime until we decide to cache it in the DB.
     DateTime? IEpisodeUserData.LastVideoPlayedAt
-        => (AnimeEpisode?.VideoLocals ?? [])
+        => (MediaEpisode?.VideoLocals ?? [])
             .Select(video => RepoFactory.VideoLocalUser.GetByUserAndVideoLocalID(JMMUserID, video.VideoLocalID)?.WatchedDate)
             .WhereNotNull()
             .OrderDescending()
@@ -148,7 +148,7 @@ public class AnimeEpisode_User : IEpisodeUserData
 
     // Skim it at runtime until we decide to cache it in the DB.
     DateTime? IEpisodeUserData.LastVideoUpdatedAt
-        => (AnimeEpisode?.VideoLocals ?? [])
+        => (MediaEpisode?.VideoLocals ?? [])
             .Select(video => RepoFactory.VideoLocalUser.GetByUserAndVideoLocalID(JMMUserID, video.VideoLocalID)?.LastUpdated)
             .WhereNotNull()
             .OrderDescending()
@@ -156,9 +156,9 @@ public class AnimeEpisode_User : IEpisodeUserData
 
     IReadOnlyList<string> IEpisodeUserData.UserTags => UserTags;
 
-    IDaCollectorSeries? IEpisodeUserData.Series => AnimeSeries;
+    IDaCollectorSeries? IEpisodeUserData.Series => MediaSeries;
 
-    IDaCollectorEpisode? IEpisodeUserData.Episode => AnimeEpisode;
+    IDaCollectorEpisode? IEpisodeUserData.Episode => MediaEpisode;
 
     #endregion
 }

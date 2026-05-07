@@ -17,7 +17,7 @@ public class AniDB_AnimeBenchmarks
     [Benchmark]
     public List<(int Year, YearlySeason Season)> GetAllSeasons()
     {
-        return AnimeSeriesRepository.GetAllSeasons(_anime).ToList();
+        return MediaSeriesRepository.GetAllSeasons(_anime).ToList();
     }
 
     [Benchmark]

@@ -1115,7 +1115,7 @@ public class FileController(
                     return false;
 
                 var xrefs = file.EpisodeCrossReferences;
-                var series = xrefs.FirstOrDefault(xref => xref.AnimeID is not 0)?.AnimeSeries;
+                var series = xrefs.FirstOrDefault(xref => xref.AnimeID is not 0)?.MediaSeries;
                 return series == null || User.AllowedSeries(series);
             })
             .DistinctBy(file => file.VideoLocalID);
@@ -1165,7 +1165,7 @@ public class FileController(
             .WhereNotNull()
             .Where(a =>
             {
-                var ser = a.AnimeEpisodes.FirstOrDefault()?.AnimeSeries;
+                var ser = a.AnimeEpisodes.FirstOrDefault()?.MediaSeries;
                 return ser == null || User.AllowedSeries(ser);
             }).Select(a => new File(HttpContext, a, true)).ToList();
         return results;
@@ -1201,7 +1201,7 @@ public class FileController(
             .WhereNotNull()
             .Where(a =>
             {
-                var ser = a?.AnimeEpisodes.FirstOrDefault()?.AnimeSeries;
+                var ser = a?.AnimeEpisodes.FirstOrDefault()?.MediaSeries;
                 return ser == null || User.AllowedSeries(ser);
             }).Select(a => new File(HttpContext, a, true)).ToList();
         return results;
@@ -1226,7 +1226,7 @@ public class FileController(
         var episodeList = body.EpisodeIDs
             .Select(episodeID =>
             {
-                var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
+                var episode = RepoFactory.MediaEpisode.GetByID(episodeID);
                 if (episode == null)
                     ModelState.AddModelError(nameof(body.EpisodeIDs), $"Unable to find dacollector episode with id {episodeID}");
                 var anidbEpisode = episode?.AniDB_Episode;
@@ -1267,7 +1267,7 @@ public class FileController(
             return NotFound(FileNotFoundWithFileID);
 
         // Validate that the ranges are in a valid syntax and that the series exists.
-        var series = RepoFactory.AnimeSeries.GetByID(body.SeriesID);
+        var series = RepoFactory.MediaSeries.GetByID(body.SeriesID);
         if (series == null)
             ModelState.AddModelError(nameof(body.SeriesID), $"Unable to find series with id {body.SeriesID}.");
 
@@ -1314,7 +1314,7 @@ public class FileController(
                 continue;
             }
 
-            var episode = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(anidbEpisode.EpisodeID);
+            var episode = RepoFactory.MediaEpisode.GetByAniDBEpisodeID(anidbEpisode.EpisodeID);
             if (episode == null)
             {
                 ModelState.AddModelError("Episodes", $"Could not find the DaCollector entry for the {episodeType.ToString().ToLowerInvariant()} episode {episodeNumber}.");
@@ -1385,7 +1385,7 @@ public class FileController(
         if (body.FileIDs.Length == 0)
             ModelState.AddModelError(nameof(body.FileIDs), "`FileIDs` must contain at least one element.");
 
-        var series = RepoFactory.AnimeSeries.GetByID(body.SeriesID);
+        var series = RepoFactory.MediaSeries.GetByID(body.SeriesID);
         if (series == null)
             ModelState.AddModelError(nameof(body.SeriesID), $"Unable to find series with id {body.SeriesID}.");
 
@@ -1428,7 +1428,7 @@ public class FileController(
                 continue;
             }
 
-            var episode = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(anidbEpisode.EpisodeID);
+            var episode = RepoFactory.MediaEpisode.GetByAniDBEpisodeID(anidbEpisode.EpisodeID);
             if (episode == null)
             {
                 ModelState.AddModelError("Episodes", $"Could not find the DaCollector entry for the {episodeType.ToString().ToLowerInvariant()} episode {episodeNumber}.");
@@ -1513,7 +1513,7 @@ public class FileController(
         if (body.FileIDs.Length == 0)
             ModelState.AddModelError(nameof(body.FileIDs), "`FileIDs` must contain at least one element.");
 
-        var episode = RepoFactory.AnimeEpisode.GetByID(body.EpisodeID);
+        var episode = RepoFactory.MediaEpisode.GetByID(body.EpisodeID);
         if (episode == null)
             ModelState.AddModelError(nameof(body.EpisodeID), $"Unable to find episode with id {body.EpisodeID}.");
 

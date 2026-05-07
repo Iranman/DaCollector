@@ -42,7 +42,7 @@ public class SyncAniDBMyListJob : BaseJob
     private readonly ISchedulerFactory _schedulerFactory;
     private readonly ISettingsProvider _settingsProvider;
     private IServerSettings _settings => _settingsProvider.GetSettings();
-    private readonly AnimeSeriesService _seriesService;
+    private readonly MediaSeriesService _seriesService;
     private readonly VideoLocal_UserRepository _vlUsers;
     private readonly IUserDataService _userDataService;
 
@@ -92,7 +92,7 @@ public class SyncAniDBMyListJob : BaseJob
         var missingFiles = await AddMissingFiles(localFiles, onlineFiles);
 
         var aniDBUser = RepoFactory.JMMUser.GetAniDBUser();
-        var modifiedSeries = new LinkedHashSet<AnimeSeries>();
+        var modifiedSeries = new LinkedHashSet<MediaSeries>();
 
         // Remove Missing Files and update watched states (single loop)
         var filesToRemove = new HashSet<int>();
@@ -189,7 +189,7 @@ public class SyncAniDBMyListJob : BaseJob
     }
 
     private async Task<int> ProcessStates(JMMUser? aniDBUser, VideoLocal video, ResponseMyList myItem,
-        int modifiedItems, ISet<AnimeSeries> modifiedSeries)
+        int modifiedItems, ISet<MediaSeries> modifiedSeries)
     {
         // check watched states, read the states if needed, and update differences
         // aggregate and assume if one AniDB User has watched it, it should be marked
@@ -216,8 +216,8 @@ public class SyncAniDBMyListJob : BaseJob
                     LastUpdatedAt = myItem.UpdatedAt,
                 }, "AniDB", false).ConfigureAwait(false);
                 video.AnimeEpisodes
-                    .DistinctBy(a => a.AnimeSeriesID)
-                    .Select(a => a.AnimeSeries)
+                    .DistinctBy(a => a.MediaSeriesID)
+                    .Select(a => a.MediaSeries)
                     .WhereNotNull()
                     .ForEach(a => modifiedSeries.Add(a));
             }
@@ -235,8 +235,8 @@ public class SyncAniDBMyListJob : BaseJob
                     LastUpdatedAt = myItem.UpdatedAt,
                 }, "AniDB", false).ConfigureAwait(false);
                 video.AnimeEpisodes
-                    .DistinctBy(a => a.AnimeSeriesID)
-                    .Select(a => a.AnimeSeries)
+                    .DistinctBy(a => a.MediaSeriesID)
+                    .Select(a => a.MediaSeries)
                     .WhereNotNull()
                     .ForEach(a => modifiedSeries.Add(a));
             }
@@ -334,7 +334,7 @@ public class SyncAniDBMyListJob : BaseJob
         return fileID != 0;
     }
 
-    public SyncAniDBMyListJob(IRequestFactory requestFactory, ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider, AnimeSeriesService seriesService, VideoLocal_UserRepository vlUsers, IUserDataService userDataService)
+    public SyncAniDBMyListJob(IRequestFactory requestFactory, ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider, MediaSeriesService seriesService, VideoLocal_UserRepository vlUsers, IUserDataService userDataService)
     {
         _requestFactory = requestFactory;
         _schedulerFactory = schedulerFactory;

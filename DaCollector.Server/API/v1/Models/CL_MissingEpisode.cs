@@ -10,5 +10,5 @@ public class CL_MissingEpisode
     public string GroupFileSummary { get; set; }
     public string GroupFileSummarySimple { get; set; }
 
-    public CL_AnimeSeries_User AnimeSeries { get; set; }
+    public CL_AnimeSeries_User MediaSeries { get; set; }
 }

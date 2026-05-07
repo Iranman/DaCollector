@@ -26,10 +26,10 @@ public class DaCollectorServiceImplementationService(
     AniDB_Anime_TitleRepository _titles,
     AniDB_CharacterRepository _characters,
     AniDB_TagRepository _aniDBTags,
-    AnimeEpisode_UserRepository epUsers,
-    AnimeSeries_UserRepository _seriesUsers,
-    AnimeSeries_UserRepository seriesUsers,
-    AnimeGroup_UserRepository _groupUsers,
+    MediaEpisode_UserRepository epUsers,
+    MediaSeries_UserRepository _seriesUsers,
+    MediaSeries_UserRepository seriesUsers,
+    MediaGroup_UserRepository _groupUsers,
     StoredReleaseInfoRepository _storedReleaseInfo,
     VideoLocal_UserRepository _vlUsers,
     VideoLocalRepository _videoLocals
@@ -93,8 +93,8 @@ public class DaCollectorServiceImplementationService(
         }
 
         if (
-            RepoFactory.AnimeSeries.GetByAnimeID(anime.AnimeID) is { } series &&
-            RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(userid, series.AnimeSeriesID) is { HasUserRating: true } userData
+            RepoFactory.MediaSeries.GetByAnimeID(anime.AnimeID) is { } series &&
+            RepoFactory.MediaSeries_User.GetByUserAndSeriesID(userid, series.MediaSeriesID) is { HasUserRating: true } userData
         )
             cl.UserVote = new()
             {
@@ -159,14 +159,14 @@ public class DaCollectorServiceImplementationService(
     }
 
     [return: NotNullIfNotNull(nameof(series))]
-    public CL_AnimeSeries_User? GetV1UserContract(AnimeSeries? series, int userid)
+    public CL_AnimeSeries_User? GetV1UserContract(MediaSeries? series, int userid)
     {
         if (series == null) return null;
         var contract = new CL_AnimeSeries_User
         {
             AniDB_ID = series.AniDB_ID,
-            AnimeGroupID = series.AnimeGroupID,
-            AnimeSeriesID = series.AnimeSeriesID,
+            MediaGroupID = series.MediaGroupID,
+            MediaSeriesID = series.MediaSeriesID,
             DateTimeUpdated = series.DateTimeUpdated,
             DateTimeCreated = series.DateTimeCreated,
             DefaultAudioLanguage = series.DefaultAudioLanguage,
@@ -204,7 +204,7 @@ public class DaCollectorServiceImplementationService(
         try
         {
 
-            var rr = _seriesUsers.GetByUserAndSeriesID(userid, series.AnimeSeriesID);
+            var rr = _seriesUsers.GetByUserAndSeriesID(userid, series.MediaSeriesID);
             if (rr is not null)
             {
                 contract.UnwatchedEpisodeCount = rr.UnwatchedEpisodeCount;
@@ -228,7 +228,7 @@ public class DaCollectorServiceImplementationService(
         return contract;
     }
 
-    public List<CL_VideoDetailed> GetV1VideoDetailedContracts(AnimeEpisode? ep, int userID)
+    public List<CL_VideoDetailed> GetV1VideoDetailedContracts(MediaEpisode? ep, int userID)
         => ep?.FileCrossReferences
             .Select(xref => xref.VideoLocal)
             .WhereNotNull()
@@ -237,17 +237,17 @@ public class DaCollectorServiceImplementationService(
             .ToList() ?? [];
 
     [return: NotNullIfNotNull(nameof(ep))]
-    public CL_AnimeEpisode_User? GetV1Contract(AnimeEpisode? ep, int userID)
+    public CL_AnimeEpisode_User? GetV1Contract(MediaEpisode? ep, int userID)
     {
         if (ep == null) return null;
         var anidbEpisode = ep.AniDB_Episode ?? throw new NullReferenceException($"Unable to find AniDB Episode with id {ep.AniDB_EpisodeID} locally while generating user contract for dacollector episode.");
-        var seriesUserRecord = seriesUsers.GetByUserAndSeriesID(userID, ep.AnimeSeriesID);
-        var episodeUserRecord = epUsers.GetByUserAndEpisodeID(userID, ep.AnimeEpisodeID);
+        var seriesUserRecord = seriesUsers.GetByUserAndSeriesID(userID, ep.MediaSeriesID);
+        var episodeUserRecord = epUsers.GetByUserAndEpisodeID(userID, ep.MediaEpisodeID);
         var contract = new CL_AnimeEpisode_User
         {
             AniDB_EpisodeID = ep.AniDB_EpisodeID,
-            AnimeEpisodeID = ep.AnimeEpisodeID,
-            AnimeSeriesID = ep.AnimeSeriesID,
+            MediaEpisodeID = ep.MediaEpisodeID,
+            MediaSeriesID = ep.MediaSeriesID,
             DateTimeCreated = ep.DateTimeCreated,
             DateTimeUpdated = ep.DateTimeUpdated,
             PlayedCount = episodeUserRecord?.PlayedCount ?? 0,
@@ -333,7 +333,7 @@ public class DaCollectorServiceImplementationService(
             Percentage = xrefs[0].Percentage,
             EpisodeOrder = xrefs[0].EpisodeOrder,
             CrossRefSource = 0,
-            AnimeEpisodeID = xrefs[0].EpisodeID,
+            MediaEpisodeID = xrefs[0].EpisodeID,
             VideoLocal_FileName = vl.FileName,
             VideoLocal_Hash = vl.Hash,
             VideoLocal_FileSize = vl.FileSize,
@@ -389,19 +389,19 @@ public class DaCollectorServiceImplementationService(
     }
 
     [return: NotNullIfNotNull(nameof(group))]
-    public CL_AnimeGroup_User? GetV1Contract(AnimeGroup? group, int userid)
+    public CL_AnimeGroup_User? GetV1Contract(MediaGroup? group, int userid)
     {
         if (group == null) return null;
         var groupSeries = group.AllSeries;
         var mainSeries = group.MainSeries ?? groupSeries.FirstOrDefault();
         var userDict = groupSeries
-            .Select(a => _seriesUsers.GetByUserAndSeriesID(userid, a.AnimeSeriesID))
+            .Select(a => _seriesUsers.GetByUserAndSeriesID(userid, a.MediaSeriesID))
             .WhereNotNull()
-            .ToDictionary(a => a.AnimeSeriesID);
+            .ToDictionary(a => a.MediaSeriesID);
         var votesByAnime = userDict.Values
             .Where(x => x.HasUserRating)
-            .ToDictionary(a => a.AnimeSeriesID);
-        var isFavorite = mainSeries is not null && userDict.TryGetValue(mainSeries.AnimeSeriesID, out var mainSeriesUser) && mainSeriesUser.IsFavorite;
+            .ToDictionary(a => a.MediaSeriesID);
+        var isFavorite = mainSeries is not null && userDict.TryGetValue(mainSeries.MediaSeriesID, out var mainSeriesUser) && mainSeriesUser.IsFavorite;
         var contract = GetContract(group);
         var allVoteTotal = 0D;
         var permVoteTotal = 0D;
@@ -411,7 +411,7 @@ public class DaCollectorServiceImplementationService(
         var tempVoteCount = 0;
         foreach (var series in groupSeries)
         {
-            if (votesByAnime.TryGetValue(series.AnimeSeriesID, out var seriesUserData))
+            if (votesByAnime.TryGetValue(series.MediaSeriesID, out var seriesUserData))
             {
                 allVoteCount++;
                 allVoteTotal += seriesUserData.UserRating!.Value;
@@ -429,7 +429,7 @@ public class DaCollectorServiceImplementationService(
                 }
             }
         }
-        var groupUserData = _groupUsers.GetByUserAndGroupID(userid, group.AnimeGroupID);
+        var groupUserData = _groupUsers.GetByUserAndGroupID(userid, group.MediaGroupID);
         if (groupUserData is not null)
         {
             contract.UnwatchedEpisodeCount = groupUserData.UnwatchedEpisodeCount;
@@ -447,24 +447,24 @@ public class DaCollectorServiceImplementationService(
         return contract;
     }
 
-    [return: NotNullIfNotNull(nameof(animeGroup))]
-    public CL_AnimeGroup_User? GetContract(AnimeGroup? animeGroup)
+    [return: NotNullIfNotNull(nameof(MediaGroup))]
+    public CL_AnimeGroup_User? GetContract(MediaGroup? MediaGroup)
     {
-        if (animeGroup == null) return null;
+        if (MediaGroup == null) return null;
         var now = DateTime.Now;
 
         var contract = new CL_AnimeGroup_User
         {
-            AnimeGroupID = animeGroup.AnimeGroupID,
-            AnimeGroupParentID = animeGroup.AnimeGroupParentID,
-            DefaultAnimeSeriesID = animeGroup.DefaultAnimeSeriesID,
-            GroupName = animeGroup.GroupName,
-            Description = animeGroup.Description,
-            LatestEpisodeAirDate = animeGroup.LatestEpisodeAirDate,
-            SortName = animeGroup.GroupName.ToSortName(),
-            EpisodeAddedDate = animeGroup.EpisodeAddedDate,
-            OverrideDescription = animeGroup.OverrideDescription,
-            DateTimeUpdated = animeGroup.DateTimeUpdated,
+            MediaGroupID = MediaGroup.MediaGroupID,
+            AnimeGroupParentID = MediaGroup.AnimeGroupParentID,
+            DefaultAnimeSeriesID = MediaGroup.DefaultAnimeSeriesID,
+            GroupName = MediaGroup.GroupName,
+            Description = MediaGroup.Description,
+            LatestEpisodeAirDate = MediaGroup.LatestEpisodeAirDate,
+            SortName = MediaGroup.GroupName.ToSortName(),
+            EpisodeAddedDate = MediaGroup.EpisodeAddedDate,
+            OverrideDescription = MediaGroup.OverrideDescription,
+            DateTimeUpdated = MediaGroup.DateTimeUpdated,
             IsFave = 0,
             UnwatchedEpisodeCount = 0,
             WatchedEpisodeCount = 0,
@@ -472,11 +472,11 @@ public class DaCollectorServiceImplementationService(
             PlayedCount = 0,
             WatchedCount = 0,
             StoppedCount = 0,
-            MissingEpisodeCount = animeGroup.MissingEpisodeCount,
-            MissingEpisodeCountGroups = animeGroup.MissingEpisodeCountGroups
+            MissingEpisodeCount = MediaGroup.MissingEpisodeCount,
+            MissingEpisodeCountGroups = MediaGroup.MissingEpisodeCountGroups
         };
 
-        var allSeriesForGroup = animeGroup.AllSeries;
+        var allSeriesForGroup = MediaGroup.AllSeries;
         var allIDs = allSeriesForGroup.Select(a => a.AniDB_ID).ToArray();
 
         DateTime? airDateMin = null;
@@ -701,9 +701,9 @@ public class DaCollectorServiceImplementationService(
 
         contract.Stat_AllYears = allYears;
         contract.Stat_AllSeasons = allSeasons;
-        contract.Stat_AllTags = animeGroup.Tags.Select(a => a.TagName.Trim()).ToHashSet(StringComparer.InvariantCultureIgnoreCase);
-        contract.Stat_AllCustomTags = animeGroup.CustomTags.Select(a => a.TagName).ToHashSet(StringComparer.InvariantCultureIgnoreCase);
-        contract.Stat_AllTitles = animeGroup.Titles.Select(a => a.Title).ToHashSet(StringComparer.InvariantCultureIgnoreCase);
+        contract.Stat_AllTags = MediaGroup.Tags.Select(a => a.TagName.Trim()).ToHashSet(StringComparer.InvariantCultureIgnoreCase);
+        contract.Stat_AllCustomTags = MediaGroup.CustomTags.Select(a => a.TagName).ToHashSet(StringComparer.InvariantCultureIgnoreCase);
+        contract.Stat_AllTitles = MediaGroup.Titles.Select(a => a.Title).ToHashSet(StringComparer.InvariantCultureIgnoreCase);
         contract.Stat_AnimeTypes = allSeriesForGroup.Select(a => a.AniDB_Anime!.AnimeType.ToString().Replace('_', ' ')).WhereNotNull().ToHashSet(StringComparer.InvariantCultureIgnoreCase);
         contract.Stat_AllVideoQuality = allVidQualByGroup;
         contract.Stat_IsComplete = isComplete;
@@ -721,20 +721,20 @@ public class DaCollectorServiceImplementationService(
         contract.Stat_AirDate_Max = airDateMax;
         contract.Stat_EndDate = groupEndDate;
         contract.Stat_SeriesCreatedDate = seriesCreatedDate;
-        contract.Stat_AniDBRating = animeGroup.AniDBRating;
-        contract.Stat_AudioLanguages = animeGroup.AllSeries
+        contract.Stat_AniDBRating = MediaGroup.AniDBRating;
+        contract.Stat_AudioLanguages = MediaGroup.AllSeries
             .Select(a => a.AniDB_Anime)
             .WhereNotNull()
             .SelectMany(a => _storedReleaseInfo.GetByAnidbAnimeID(a.AnimeID))
             .SelectMany(a => a.AudioLanguages?.Select(b => b.GetString()) ?? [])
             .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
-        contract.Stat_SubtitleLanguages = animeGroup.AllSeries
+        contract.Stat_SubtitleLanguages = MediaGroup.AllSeries
             .Select(a => a.AniDB_Anime)
             .WhereNotNull()
             .SelectMany(a => _storedReleaseInfo.GetByAnidbAnimeID(a.AnimeID))
             .SelectMany(a => a.SubtitleLanguages?.Select(b => b.GetString()) ?? [])
             .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
-        contract.LatestEpisodeAirDate = animeGroup.LatestEpisodeAirDate;
+        contract.LatestEpisodeAirDate = MediaGroup.LatestEpisodeAirDate;
 
         return contract;
     }

@@ -3,15 +3,15 @@ using System;
 #nullable enable
 namespace DaCollector.Server.Models.DaCollector;
 
-public class AnimeGroup_User
+public class MediaGroup_User
 {
     #region DB Columns
 
-    public int AnimeGroup_UserID { get; set; }
+    public int MediaGroup_UserID { get; set; }
 
     public int JMMUserID { get; set; }
 
-    public int AnimeGroupID { get; set; }
+    public int MediaGroupID { get; set; }
 
     public int UnwatchedEpisodeCount { get; set; }
 

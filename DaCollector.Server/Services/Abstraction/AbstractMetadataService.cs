@@ -22,11 +22,11 @@ namespace DaCollector.Server.Services.Abstraction;
 
 public partial class AbstractMetadataService : IMetadataService
 {
-    private readonly AnimeGroupRepository _groupRepository;
+    private readonly MediaGroupRepository _groupRepository;
 
-    private readonly AnimeSeriesRepository _seriesRepository;
+    private readonly MediaSeriesRepository _seriesRepository;
 
-    private readonly AnimeEpisodeRepository _episodeRepository;
+    private readonly MediaEpisodeRepository _episodeRepository;
 
     private readonly CustomTagRepository _customTagRepository;
 
@@ -49,9 +49,9 @@ public partial class AbstractMetadataService : IMetadataService
     private readonly TMDB_MovieRepository _tmdbMovieRepository;
 
     public AbstractMetadataService(
-        AnimeGroupRepository groupRepository,
-        AnimeSeriesRepository seriesRepository,
-        AnimeEpisodeRepository episodeRepository,
+        MediaGroupRepository groupRepository,
+        MediaSeriesRepository seriesRepository,
+        MediaEpisodeRepository episodeRepository,
         AniDB_AnimeRepository anidbSeriesRepository,
         AniDB_EpisodeRepository anidbEpisodeRepository,
         CustomTagRepository customTagRepository,

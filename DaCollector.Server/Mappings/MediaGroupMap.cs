@@ -3,13 +3,13 @@ using DaCollector.Server.Models.DaCollector;
 
 namespace DaCollector.Server.Mappings;
 
-public class AnimeGroupMap : ClassMap<AnimeGroup>
+public class MediaGroupMap : ClassMap<MediaGroup>
 {
-    public AnimeGroupMap()
+    public MediaGroupMap()
     {
-        Table("AnimeGroup");
+        Table("MediaGroup");
         Not.LazyLoad();
-        Id(x => x.AnimeGroupID);
+        Id(x => x.MediaGroupID);
         Map(x => x.AnimeGroupParentID);
         Map(x => x.DefaultAnimeSeriesID);
         Map(x => x.MainAniDBAnimeID);

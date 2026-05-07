@@ -315,10 +315,10 @@ public class LegacyMappings
         {
             if (!int.TryParse(a, out var groupID))
             {
-                if (RepoFactory.AnimeGroup.GetAll().Any(b => b.GroupName.Equals(a, StringComparison.InvariantCultureIgnoreCase))) return a;
+                if (RepoFactory.MediaGroup.GetAll().Any(b => b.GroupName.Equals(a, StringComparison.InvariantCultureIgnoreCase))) return a;
                 throw new ArgumentOutOfRangeException(nameof(op), $@"ID {a} not found for Group");
             }
-            var group = RepoFactory.AnimeGroup.GetByID(groupID);
+            var group = RepoFactory.MediaGroup.GetByID(groupID);
             if (group == null) throw new ArgumentOutOfRangeException(nameof(op), $@"ID {a} not found for Group");
             return group.GroupName;
         }).ToArray();
@@ -350,7 +350,7 @@ public class LegacyMappings
                 if (groups.Length > 1) throw new ArgumentOutOfRangeException(nameof(op), $@"ConditionOperator {op} not applicable for Group Name and more than one value");
 
                 if (!int.TryParse(groups[0], out var groupID)) throw new ArgumentOutOfRangeException(nameof(op), $@"ID {groups[0]} not found for Group");
-                var group = RepoFactory.AnimeGroup.GetByID(groupID);
+                var group = RepoFactory.MediaGroup.GetByID(groupID);
                 if (group == null) throw new ArgumentOutOfRangeException(nameof(op), $@"ID {groups[0]} not found for Group");
 
                 return new NotExpression(new HasNameExpression(groups[0]));

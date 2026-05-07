@@ -339,9 +339,9 @@ public class FilterController(ISettingsProvider settingsProvider, FilterFactory 
         if (!results.Any()) return new ListResult<Group>();
 
         var groups = results
-            .Select(group => RepoFactory.AnimeGroup.GetByID(group.Key)?.TopLevelAnimeGroup)
+            .Select(group => RepoFactory.MediaGroup.GetByID(group.Key)?.TopLevelAnimeGroup)
             .WhereNotNull()
-            .DistinctBy(group => group.AnimeGroupID)
+            .DistinctBy(group => group.MediaGroupID)
             .Where(group => includeEmpty || group.AllSeries.Any(s => s.AnimeEpisodes.Any(e => e.VideoLocals.Count > 0)));
 
         if (orderByName)
@@ -374,9 +374,9 @@ public class FilterController(ISettingsProvider settingsProvider, FilterFactory 
             return new Dictionary<char, int>();
 
         return results
-            .Select(group => RepoFactory.AnimeGroup.GetByID(group.Key)?.TopLevelAnimeGroup)
+            .Select(group => RepoFactory.MediaGroup.GetByID(group.Key)?.TopLevelAnimeGroup)
             .WhereNotNull()
-            .DistinctBy(group => group.AnimeGroupID)
+            .DistinctBy(group => group.MediaGroupID)
             .Where(group => includeEmpty || group.AllSeries.Any(s => s.AnimeEpisodes.Any(e => e.VideoLocals.Count > 0)))
             .GroupBy(group => group.SortName[0])
             .OrderBy(groupList => groupList.Key)
@@ -410,7 +410,7 @@ public class FilterController(ISettingsProvider settingsProvider, FilterFactory 
             return new ListResult<Series>();
 
         // We don't need separate logic for ApplyAtSeriesLevel, as the FilterEvaluator handles that
-        return results.SelectMany(a => a.Select(id => RepoFactory.AnimeSeries.GetByID(id)))
+        return results.SelectMany(a => a.Select(id => RepoFactory.MediaSeries.GetByID(id)))
             .Where(series => series != null && (includeMissing || series.VideoLocals.Count > 0))
             .OrderBy(series => series.Title.ToLowerInvariant())
             .ToListResult(series => new Series(series, User.JMMUserID, randomImages), page, pageSize);
@@ -454,7 +454,7 @@ public class FilterController(ISettingsProvider settingsProvider, FilterFactory 
         if (!ModelState.IsValid) return ValidationProblem(ModelState);
 
         // Check if the group exists.
-        var group = RepoFactory.AnimeGroup.GetByID(groupID);
+        var group = RepoFactory.MediaGroup.GetByID(groupID);
         if (group == null)
             return NotFound(GroupController.GroupNotFound);
 
@@ -472,7 +472,7 @@ public class FilterController(ISettingsProvider settingsProvider, FilterFactory 
 
         // Subgroups are weird. We'll take the group, build a set of all subgroup IDs, and use that to determine if a group should be included
         // This should maintain the order of results, but have every group in the tree for those results
-        var orderedGroups = results.SelectMany(a => RepoFactory.AnimeGroup.GetByID(a.Key).TopLevelAnimeGroup.AllChildren.Select(b => b.AnimeGroupID)).ToArray();
+        var orderedGroups = results.SelectMany(a => RepoFactory.MediaGroup.GetByID(a.Key).TopLevelAnimeGroup.AllChildren.Select(b => b.MediaGroupID)).ToArray();
         var groups = orderedGroups.ToHashSet();
 
         return group.Children
@@ -488,9 +488,9 @@ public class FilterController(ISettingsProvider settingsProvider, FilterFactory 
                         .Any(s => s.AnimeEpisodes.Any(e => e.VideoLocals.Count > 0)))
                     return false;
 
-                return groups.Contains(subGroup.AnimeGroupID);
+                return groups.Contains(subGroup.MediaGroupID);
             })
-            .OrderBy(a => Array.IndexOf(orderedGroups, a.AnimeGroupID))
+            .OrderBy(a => Array.IndexOf(orderedGroups, a.MediaGroupID))
             .Select(g => new Group(g, User.JMMUserID, randomImages))
             .ToList();
     }
@@ -514,7 +514,7 @@ public class FilterController(ISettingsProvider settingsProvider, FilterFactory 
         if (!ModelState.IsValid) return ValidationProblem(ModelState);
 
         // Check if the group exists.
-        var group = RepoFactory.AnimeGroup.GetByID(groupID);
+        var group = RepoFactory.MediaGroup.GetByID(groupID);
         if (group == null)
             return NotFound(GroupController.GroupNotFound);
 
@@ -540,10 +540,10 @@ public class FilterController(ISettingsProvider settingsProvider, FilterFactory 
 
         var seriesIDs = results.FirstOrDefault(a => a.Key == groupID)?.ToList();
         seriesIDs ??= recursive
-            ? group.AllChildren.SelectMany(a => results.FirstOrDefault(b => b.Key == a.AnimeGroupID)?.ToList() ?? []).ToList()
+            ? group.AllChildren.SelectMany(a => results.FirstOrDefault(b => b.Key == a.MediaGroupID)?.ToList() ?? []).ToList()
             : results.FirstOrDefault(a => a.Key == groupID)?.ToList();
 
-        var series = seriesIDs?.Select(RepoFactory.AnimeSeries.GetByID).Where(a => includeMissing || ((a?.VideoLocals.Count ?? 0) != 0)) ?? [];
+        var series = seriesIDs?.Select(RepoFactory.MediaSeries.GetByID).Where(a => includeMissing || ((a?.VideoLocals.Count ?? 0) != 0)) ?? [];
         return series
             .Select(a => new Series(a, User.JMMUserID, randomImages, includeDataFrom))
             .ToList();

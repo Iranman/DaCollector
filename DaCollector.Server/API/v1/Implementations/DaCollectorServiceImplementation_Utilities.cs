@@ -74,7 +74,7 @@ public partial class DaCollectorServiceImplementation
         return value.CompactWhitespaces();
     }
 
-    private static double GetLowestLevenshteinDistance(IList<string> languagePreference, AnimeSeries a, string query)
+    private static double GetLowestLevenshteinDistance(IList<string> languagePreference, MediaSeries a, string query)
     {
         var titles = a.AniDB_Anime.GetAllTitles();
         if ((titles?.Count ?? 0) == 0) return 1;
@@ -111,7 +111,7 @@ public partial class DaCollectorServiceImplementation
         if (user == null) return [];
 
         var languagePreference = _settingsProvider.GetSettings().Language.SeriesTitleLanguageOrder;
-        var animeResults = RepoFactory.AnimeSeries.GetAll()
+        var animeResults = RepoFactory.MediaSeries.GetAll()
             .AsParallel().Select(a => (a, GetLowestLevenshteinDistance(languagePreference, a, input))).OrderBy(a => a.Item2)
             .ThenBy(a => a.Item1.PreferredTitle)
             .Select(a => a.Item1.AniDB_Anime).ToList();
@@ -133,7 +133,7 @@ public partial class DaCollectorServiceImplementation
         {
             var epContracts = GetAllEpisodesWithMultipleFiles(userID, false, true);
             var eps =
-                epContracts.Select(a => RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(a.AniDB_EpisodeID))
+                epContracts.Select(a => RepoFactory.MediaEpisode.GetByAniDBEpisodeID(a.AniDB_EpisodeID))
                     .WhereNotNull()
                     .ToList();
 
@@ -182,7 +182,7 @@ public partial class DaCollectorServiceImplementation
     {
         var epContracts = GetAllEpisodesWithMultipleFiles(userID, false, true);
         var eps =
-            epContracts.Select(a => RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(a.AniDB_EpisodeID))
+            epContracts.Select(a => RepoFactory.MediaEpisode.GetByAniDBEpisodeID(a.AniDB_EpisodeID))
                 .WhereNotNull()
                 .ToList();
 
@@ -208,7 +208,7 @@ public partial class DaCollectorServiceImplementation
     {
         var epContracts = GetAllEpisodesWithMultipleFiles(userID, false, true);
         var eps =
-            epContracts.Select(a => RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(a.AniDB_EpisodeID))
+            epContracts.Select(a => RepoFactory.MediaEpisode.GetByAniDBEpisodeID(a.AniDB_EpisodeID))
                 .WhereNotNull()
                 .ToList();
 
@@ -366,11 +366,11 @@ public partial class DaCollectorServiceImplementation
                 };
 
                 // check for existing series and group details
-                var ser = RepoFactory.AnimeSeries.GetByAnimeID(anime.AnimeID);
+                var ser = RepoFactory.MediaSeries.GetByAnimeID(anime.AnimeID);
                 if (ser != null)
                 {
                     res.SeriesExists = true;
-                    res.AnimeSeriesID = ser.AnimeSeriesID;
+                    res.MediaSeriesID = ser.MediaSeriesID;
                     res.AnimeSeriesName = anime.Title;
                 }
                 else
@@ -390,11 +390,11 @@ public partial class DaCollectorServiceImplementation
                 };
 
                 // check for existing series and group details
-                var ser = RepoFactory.AnimeSeries.GetByAnimeID(tit.AnimeID);
+                var ser = RepoFactory.MediaSeries.GetByAnimeID(tit.AnimeID);
                 if (ser != null)
                 {
                     res.SeriesExists = true;
-                    res.AnimeSeriesID = ser.AnimeSeriesID;
+                    res.MediaSeriesID = ser.MediaSeriesID;
                     res.AnimeSeriesName = ser.AniDB_Anime.Title;
                 }
                 else
@@ -431,7 +431,7 @@ public partial class DaCollectorServiceImplementation
 
         try
         {
-            var allSeries = RepoFactory.AnimeSeries.GetAll();
+            var allSeries = RepoFactory.MediaSeries.GetAll();
             var temp = allSeries.AsParallel().SelectMany(ser =>
             {
                 var missingEps = ser.MissingEpisodeCount;
@@ -478,7 +478,7 @@ public partial class DaCollectorServiceImplementation
                     .Select(aniep => new CL_MissingEpisode
                     {
                         AnimeID = ser.AniDB_ID,
-                        AnimeSeries = _legacyV1Service.GetV1UserContract(ser, userID),
+                        MediaSeries = _legacyV1Service.GetV1UserContract(ser, userID),
                         AnimeTitle = anime.MainTitle,
                         EpisodeID = aniep.EpisodeID,
                         EpisodeNumber = aniep.EpisodeNumber,
@@ -505,7 +505,7 @@ public partial class DaCollectorServiceImplementation
         // TODO maybe rework this
         var contracts = new List<CL_MissingFile>();
         var animeCache = new Dictionary<int, AniDB_Anime>();
-        var animeSeriesCache = new Dictionary<int, AnimeSeries>();
+        var animeSeriesCache = new Dictionary<int, MediaSeries>();
 
         try
         {
@@ -573,12 +573,12 @@ public partial class DaCollectorServiceImplementation
                                 animeCache[myitem.AnimeID.Value] = anime;
                             }
 
-                            AnimeSeries ser;
+                            MediaSeries ser;
                             if (animeSeriesCache.ContainsKey(myitem.AnimeID.Value))
                                 ser = animeSeriesCache[myitem.AnimeID.Value];
                             else
                             {
-                                ser = RepoFactory.AnimeSeries.GetByAnimeID(myitem.AnimeID.Value);
+                                ser = RepoFactory.MediaSeries.GetByAnimeID(myitem.AnimeID.Value);
                                 animeSeriesCache[myitem.AnimeID.Value] = ser;
                             }
 
@@ -597,7 +597,7 @@ public partial class DaCollectorServiceImplementation
 
                             missingFile.FileID = myitem.FileID ?? 0;
 
-                            missingFile.AnimeSeries = ser == null ? null : _legacyV1Service.GetV1UserContract(ser, userID);
+                            missingFile.MediaSeries = ser == null ? null : _legacyV1Service.GetV1UserContract(ser, userID);
                             contracts.Add(missingFile);
                         }
                     }
@@ -641,7 +641,7 @@ public partial class DaCollectorServiceImplementation
 
         try
         {
-            foreach (var ser in RepoFactory.AnimeSeries.GetAll())
+            foreach (var ser in RepoFactory.MediaSeries.GetAll())
             {
                 if (RepoFactory.VideoLocal.GetByAniDBAnimeID(ser.AniDB_ID).Count == 0)
                 {
@@ -666,7 +666,7 @@ public partial class DaCollectorServiceImplementation
             var user = RepoFactory.JMMUser.GetByID(userID);
             if (user != null)
                 return
-                    RepoFactory.AnimeSeries.GetWithMissingEpisodes()
+                    RepoFactory.MediaSeries.GetWithMissingEpisodes()
                         .Select(a => _legacyV1Service.GetV1UserContract(a, userID))
                         .WhereNotNull()
                         .ToList();
@@ -836,9 +836,9 @@ public partial class DaCollectorServiceImplementation
 
             if (onlyFinishedSeries)
             {
-                var allSeries = RepoFactory.AnimeSeries.GetAll();
+                var allSeries = RepoFactory.MediaSeries.GetAll();
                 foreach (var ser in allSeries)
-                    dictSeriesAnime[ser.AnimeSeriesID] = ser.AniDB_ID;
+                    dictSeriesAnime[ser.MediaSeriesID] = ser.AniDB_ID;
 
                 var allAnime = RepoFactory.AniDB_Anime.GetAll();
                 foreach (var anime in allAnime)
@@ -851,13 +851,13 @@ public partial class DaCollectorServiceImplementation
                 }
             }
 
-            foreach (var ep in RepoFactory.AnimeEpisode.GetWithMultipleReleases(ignoreVariations))
+            foreach (var ep in RepoFactory.MediaEpisode.GetWithMultipleReleases(ignoreVariations))
             {
                 if (onlyFinishedSeries)
                 {
                     var finishedAiring = false;
-                    if (dictSeriesFinishedAiring.ContainsKey(ep.AnimeSeriesID))
-                        finishedAiring = dictSeriesFinishedAiring[ep.AnimeSeriesID];
+                    if (dictSeriesFinishedAiring.ContainsKey(ep.MediaSeriesID))
+                        finishedAiring = dictSeriesFinishedAiring[ep.MediaSeriesID];
 
                     if (!finishedAiring) continue;
                 }

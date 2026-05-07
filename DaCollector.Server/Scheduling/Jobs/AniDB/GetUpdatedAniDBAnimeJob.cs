@@ -142,7 +142,7 @@ public class GetUpdatedAniDBAnimeJob : BaseJob
             // update the group status
             // this will allow us to determine which anime has missing episodes
             // we only get by an anime where we also have an associated series
-            var ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
+            var ser = RepoFactory.MediaSeries.GetByAnimeID(animeID);
             if (ser is null) continue;
 
             await _anidbService.ScheduleRefreshOfAnimeByID(animeID, AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful).ConfigureAwait(false);

@@ -647,7 +647,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries, ITmdbShow, IT
 
     #region ISeries Implementation
 
-    IReadOnlyList<int> ISeries.DaCollectorSeriesIDs => CrossReferences.Select(xref => xref.AnimeSeries?.AnimeSeriesID).WhereNotNull().Distinct().ToList();
+    IReadOnlyList<int> ISeries.DaCollectorSeriesIDs => CrossReferences.Select(xref => xref.MediaSeries?.MediaSeriesID).WhereNotNull().Distinct().ToList();
 
     AnimeType ISeries.Type => AnimeType.TVSeries;
 
@@ -664,7 +664,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries, ITmdbShow, IT
     IImage? ISeries.DefaultPoster => DefaultPoster;
 
     IReadOnlyList<IDaCollectorSeries> ISeries.DaCollectorSeries => CrossReferences
-        .Select(xref => xref.AnimeSeries)
+        .Select(xref => xref.MediaSeries)
         .WhereNotNull()
         .ToList();
 

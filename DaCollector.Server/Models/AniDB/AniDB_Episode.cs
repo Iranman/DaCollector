@@ -175,9 +175,9 @@ public class AniDB_Episode : IEpisode, IAnidbEpisode
 
     #region DaCollector
 
-    public AnimeSeries? AnimeSeries => RepoFactory.AnimeSeries.GetByAnimeID(AnimeID);
+    public MediaSeries? MediaSeries => RepoFactory.MediaSeries.GetByAnimeID(AnimeID);
 
-    public AnimeEpisode? AnimeEpisode => RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(EpisodeID);
+    public MediaEpisode? MediaEpisode => RepoFactory.MediaEpisode.GetByAniDBEpisodeID(EpisodeID);
 
     #endregion
 
@@ -317,7 +317,7 @@ public class AniDB_Episode : IEpisode, IAnidbEpisode
 
     ISeries? IEpisode.Series => AniDB_Anime;
 
-    IReadOnlyList<IDaCollectorEpisode> IEpisode.DaCollectorEpisodes => AnimeEpisode is IDaCollectorEpisode dacollectorEpisode ? [dacollectorEpisode] : [];
+    IReadOnlyList<IDaCollectorEpisode> IEpisode.DaCollectorEpisodes => MediaEpisode is IDaCollectorEpisode dacollectorEpisode ? [dacollectorEpisode] : [];
 
     IReadOnlyList<IVideoCrossReference> IEpisode.CrossReferences =>
         RepoFactory.CrossRef_File_Episode.GetByEpisodeID(EpisodeID);
@@ -329,7 +329,7 @@ public class AniDB_Episode : IEpisode, IAnidbEpisode
             .WhereNotNull()
             .ToList();
 
-    IReadOnlyList<int> IEpisode.DaCollectorEpisodeIDs => RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(EpisodeID) is { } episode ? [episode.AnimeEpisodeID] : [];
+    IReadOnlyList<int> IEpisode.DaCollectorEpisodeIDs => RepoFactory.MediaEpisode.GetByAniDBEpisodeID(EpisodeID) is { } episode ? [episode.MediaEpisodeID] : [];
 
     #endregion
 

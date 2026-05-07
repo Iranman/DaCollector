@@ -8,9 +8,9 @@ public class CL_AnimeSearch
     public string MainTitle { get; set; }
     public HashSet<string> Titles { get; set; }
     public bool SeriesExists { get; set; }
-    public int? AnimeSeriesID { get; set; }
+    public int? MediaSeriesID { get; set; }
     public string AnimeSeriesName { get; set; }
-    public int? AnimeGroupID { get; set; }
+    public int? MediaGroupID { get; set; }
     public string AnimeGroupName { get; set; }
 
     public override string ToString()

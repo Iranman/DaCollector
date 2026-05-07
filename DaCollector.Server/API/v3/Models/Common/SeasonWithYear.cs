@@ -7,13 +7,13 @@ using DaCollector.Abstractions.Metadata.Enums;
 
 namespace DaCollector.Server.API.v3.Models.Common;
 
-public class SeasonWithYear(int year, YearlySeason animeSeason) : IComparable<SeasonWithYear>
+public class SeasonWithYear(int year, YearlySeason MediaSeason) : IComparable<SeasonWithYear>
 {
     [Required]
     public int Year { get; } = year;
 
     [Required, JsonConverter(typeof(StringEnumConverter))]
-    public YearlySeason AnimeSeason { get; } = animeSeason;
+    public YearlySeason MediaSeason { get; } = MediaSeason;
 
     public int CompareTo(SeasonWithYear other)
     {
@@ -38,6 +38,6 @@ public class SeasonWithYear(int year, YearlySeason animeSeason) : IComparable<Se
             return yearComparison;
         }
 
-        return AnimeSeason.CompareTo(other.AnimeSeason);
+        return MediaSeason.CompareTo(other.MediaSeason);
     }
 }

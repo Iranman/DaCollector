@@ -15,11 +15,11 @@ using DaCollector.Server.Repositories;
 #nullable enable
 namespace DaCollector.Server.Models.DaCollector;
 
-public class AnimeGroup : IDaCollectorGroup
+public class MediaGroup : IDaCollectorGroup
 {
     #region Server DB Columns
 
-    public int AnimeGroupID { get; set; }
+    public int MediaGroupID { get; set; }
 
     public int? AnimeGroupParentID { get; set; }
 
@@ -65,17 +65,17 @@ public class AnimeGroup : IDaCollectorGroup
         }
     }
 
-    public AnimeGroup? Parent => AnimeGroupParentID.HasValue ? RepoFactory.AnimeGroup.GetByID(AnimeGroupParentID.Value) : null;
+    public MediaGroup? Parent => AnimeGroupParentID.HasValue ? RepoFactory.MediaGroup.GetByID(AnimeGroupParentID.Value) : null;
 
-    public List<AnimeGroup> AllGroupsAbove
+    public List<MediaGroup> AllGroupsAbove
     {
         get
         {
-            var allGroupsAbove = new List<AnimeGroup>();
+            var allGroupsAbove = new List<MediaGroup>();
             var groupID = AnimeGroupParentID;
             while (groupID.HasValue && groupID.Value != 0)
             {
-                var grp = RepoFactory.AnimeGroup.GetByID(groupID.Value);
+                var grp = RepoFactory.MediaGroup.GetByID(groupID.Value);
                 if (grp != null)
                 {
                     allGroupsAbove.Add(grp);
@@ -92,7 +92,7 @@ public class AnimeGroup : IDaCollectorGroup
     }
 
     public List<AniDB_Anime> Anime =>
-        RepoFactory.AnimeSeries.GetByGroupID(AnimeGroupID).Select(s => s.AniDB_Anime).WhereNotNull().ToList();
+        RepoFactory.MediaSeries.GetByGroupID(MediaGroupID).Select(s => s.AniDB_Anime).WhereNotNull().ToList();
 
     public decimal AniDBRating
     {
@@ -124,13 +124,13 @@ public class AnimeGroup : IDaCollectorGroup
         }
     }
 
-    public List<AnimeGroup> Children => RepoFactory.AnimeGroup.GetByParentID(AnimeGroupID);
+    public List<MediaGroup> Children => RepoFactory.MediaGroup.GetByParentID(MediaGroupID);
 
-    public IEnumerable<AnimeGroup> AllChildren
+    public IEnumerable<MediaGroup> AllChildren
     {
         get
         {
-            var stack = new Stack<AnimeGroup>();
+            var stack = new Stack<MediaGroup>();
             foreach (var child in Children)
             {
                 stack.Push(child);
@@ -145,13 +145,13 @@ public class AnimeGroup : IDaCollectorGroup
         }
     }
 
-    public AnimeSeries? MainSeries
+    public MediaSeries? MainSeries
     {
         get
         {
             if (DefaultAnimeSeriesID.HasValue)
             {
-                var series = RepoFactory.AnimeSeries.GetByID(DefaultAnimeSeriesID.Value);
+                var series = RepoFactory.MediaSeries.GetByID(DefaultAnimeSeriesID.Value);
                 if (series != null)
                     return series;
             }
@@ -159,7 +159,7 @@ public class AnimeGroup : IDaCollectorGroup
             // Auto selected main series.
             if (MainAniDBAnimeID.HasValue)
             {
-                var series = RepoFactory.AnimeSeries.GetByAnimeID(MainAniDBAnimeID.Value);
+                var series = RepoFactory.MediaSeries.GetByAnimeID(MainAniDBAnimeID.Value);
                 if (series != null)
                     return series;
             }
@@ -168,12 +168,12 @@ public class AnimeGroup : IDaCollectorGroup
         }
     }
 
-    public List<AnimeSeries> Series
+    public List<MediaSeries> Series
     {
         get
         {
-            var seriesList = RepoFactory.AnimeSeries
-                .GetByGroupID(AnimeGroupID)
+            var seriesList = RepoFactory.MediaSeries
+                .GetByGroupID(MediaGroupID)
                 .OrderBy(a => a.AirDate ?? DateTime.MaxValue)
                 .ToList();
 
@@ -188,12 +188,12 @@ public class AnimeGroup : IDaCollectorGroup
         }
     }
 
-    public List<AnimeSeries> AllSeries
+    public List<MediaSeries> AllSeries
     {
         get
         {
-            var seriesList = new List<AnimeSeries>();
-            var stack = new Stack<AnimeGroup>();
+            var seriesList = new List<MediaSeries>();
+            var stack = new Stack<MediaGroup>();
             stack.Push(this);
 
             while (stack.Count > 0)
@@ -218,9 +218,9 @@ public class AnimeGroup : IDaCollectorGroup
             // within the group.
             if (DefaultAnimeSeriesID.HasValue || MainAniDBAnimeID.HasValue)
             {
-                AnimeSeries? mainSeries = null;
+                MediaSeries? mainSeries = null;
                 if (DefaultAnimeSeriesID.HasValue)
-                    mainSeries = seriesList.FirstOrDefault(ser => ser.AnimeSeriesID == DefaultAnimeSeriesID.Value);
+                    mainSeries = seriesList.FirstOrDefault(ser => ser.MediaSeriesID == DefaultAnimeSeriesID.Value);
 
                 if (mainSeries == null && MainAniDBAnimeID.HasValue)
                     mainSeries = seriesList.FirstOrDefault(ser => ser.AniDB_ID == MainAniDBAnimeID.Value);
@@ -265,9 +265,9 @@ public class AnimeGroup : IDaCollectorGroup
         .ToList();
 
     public override string ToString()
-        => $"Group: {GroupName} ({AnimeGroupID})";
+        => $"Group: {GroupName} ({MediaGroupID})";
 
-    public AnimeGroup TopLevelAnimeGroup
+    public MediaGroup TopLevelAnimeGroup
     {
         get
         {
@@ -302,7 +302,7 @@ public class AnimeGroup : IDaCollectorGroup
         var parent = Parent;
         while (parent != null)
         {
-            if (idSet.Contains(parent.AnimeGroupID))
+            if (idSet.Contains(parent.MediaGroupID))
                 return true;
 
             parent = parent.Parent;
@@ -315,9 +315,9 @@ public class AnimeGroup : IDaCollectorGroup
 
     DataSource IMetadata.Source => DataSource.DaCollector;
 
-    string IMetadata<string>.ID => AnimeGroupID.ToString();
+    string IMetadata<string>.ID => MediaGroupID.ToString();
 
-    int IMetadata<int>.ID => AnimeGroupID;
+    int IMetadata<int>.ID => MediaGroupID;
 
     #endregion
 
@@ -453,11 +453,11 @@ public class AnimeGroup : IDaCollectorGroup
 
     #region IDaCollectorGroup Implementation
 
-    int IDaCollectorGroup.ID => AnimeGroupID;
+    int IDaCollectorGroup.ID => MediaGroupID;
 
     int? IDaCollectorGroup.ParentGroupID => AnimeGroupParentID;
 
-    int IDaCollectorGroup.TopLevelGroupID => TopLevelAnimeGroup.AnimeGroupID;
+    int IDaCollectorGroup.TopLevelGroupID => TopLevelAnimeGroup.MediaGroupID;
 
     int IDaCollectorGroup.MainSeriesID => (this as IDaCollectorGroup).MainSeries.ID;
 
@@ -476,7 +476,7 @@ public class AnimeGroup : IDaCollectorGroup
     IReadOnlyList<IDaCollectorGroup> IDaCollectorGroup.AllGroups => AllChildren.ToList();
 
     IDaCollectorSeries IDaCollectorGroup.MainSeries => MainSeries ?? AllSeries.FirstOrDefault() ??
-        throw new NullReferenceException($"Unable to get main series for group {AnimeGroupID} when accessed through IDaCollectorGroup.MainSeries");
+        throw new NullReferenceException($"Unable to get main series for group {MediaGroupID} when accessed through IDaCollectorGroup.MainSeries");
 
     IReadOnlyList<IDaCollectorSeries> IDaCollectorGroup.Series => Series;
 

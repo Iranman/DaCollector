@@ -3,17 +3,17 @@ using DaCollector.Server.Models.DaCollector;
 
 namespace DaCollector.Server.Mappings;
 
-public class AnimeEpisodeMap : ClassMap<AnimeEpisode>
+public class MediaEpisodeMap : ClassMap<MediaEpisode>
 {
-    public AnimeEpisodeMap()
+    public MediaEpisodeMap()
     {
-        Table("AnimeEpisode");
+        Table("MediaEpisode");
 
         Not.LazyLoad();
-        Id(x => x.AnimeEpisodeID);
+        Id(x => x.MediaEpisodeID);
 
         Map(x => x.AniDB_EpisodeID).Not.Nullable();
-        Map(x => x.AnimeSeriesID).Not.Nullable();
+        Map(x => x.MediaSeriesID).Not.Nullable();
         Map(x => x.DateTimeCreated).Not.Nullable();
         Map(x => x.DateTimeUpdated).Not.Nullable();
         Map(x => x.IsHidden).Not.Nullable();

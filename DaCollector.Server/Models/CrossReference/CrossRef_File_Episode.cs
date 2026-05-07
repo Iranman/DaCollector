@@ -51,11 +51,11 @@ public class CrossRef_File_Episode : IVideoCrossReference
 
     public AniDB_Episode? AniDBEpisode => RepoFactory.AniDB_Episode.GetByEpisodeID(EpisodeID);
 
-    public AnimeEpisode? AnimeEpisode => RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(EpisodeID);
+    public MediaEpisode? MediaEpisode => RepoFactory.MediaEpisode.GetByAniDBEpisodeID(EpisodeID);
 
     public AniDB_Anime? AniDBAnime => AnimeID is 0 ? null : RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
 
-    public AnimeSeries? AnimeSeries => AnimeID is 0 ? null : RepoFactory.AnimeSeries.GetByAnimeID(AnimeID);
+    public MediaSeries? MediaSeries => AnimeID is 0 ? null : RepoFactory.MediaSeries.GetByAnimeID(AnimeID);
 
     public StoredReleaseInfo? ReleaseInfo => RepoFactory.StoredReleaseInfo.GetByEd2kAndFileSize(Hash, FileSize);
 
@@ -183,9 +183,9 @@ public class CrossRef_File_Episode : IVideoCrossReference
 
     IAnidbAnime? IVideoCrossReference.AnidbAnime => AniDBAnime;
 
-    IDaCollectorEpisode? IVideoCrossReference.DaCollectorEpisode => AnimeEpisode;
+    IDaCollectorEpisode? IVideoCrossReference.DaCollectorEpisode => MediaEpisode;
 
-    IDaCollectorSeries? IVideoCrossReference.DaCollectorSeries => AnimeSeries;
+    IDaCollectorSeries? IVideoCrossReference.DaCollectorSeries => MediaSeries;
 
     IReadOnlyList<ITmdbShowCrossReference> IVideoCrossReference.TmdbShowCrossReferences =>
         RepoFactory.CrossRef_AniDB_TMDB_Show.GetByAnidbAnimeID(AnimeID);

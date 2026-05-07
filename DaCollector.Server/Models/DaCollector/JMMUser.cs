@@ -276,7 +276,7 @@ public class JMMUser : IIdentity, IUser
     /// </summary>
     /// <param name="ser"></param>
     /// <returns></returns>
-    public bool AllowedSeries(AnimeSeries ser)
+    public bool AllowedSeries(MediaSeries ser)
     {
         if (GetHideCategories().Count == 0) return true;
         var anime = ser?.AniDB_Anime;
@@ -295,7 +295,7 @@ public class JMMUser : IIdentity, IUser
         return !GetHideCategories().FindInEnumerable(anime.Tags.Select(a => a.TagName));
     }
 
-    public bool AllowedGroup(AnimeGroup grp)
+    public bool AllowedGroup(MediaGroup grp)
     {
         if (GetHideCategories().Count == 0) return true;
         return !GetHideCategories().FindInEnumerable(grp.Tags.Select(a => a.TagName));

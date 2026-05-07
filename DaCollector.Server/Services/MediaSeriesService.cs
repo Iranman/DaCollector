@@ -27,16 +27,16 @@ using EpisodeType = DaCollector.Abstractions.Metadata.Enums.EpisodeType;
 #nullable enable
 namespace DaCollector.Server.Services;
 
-public class AnimeSeriesService
+public class MediaSeriesService
 {
-    private readonly ILogger<AnimeSeriesService> _logger;
+    private readonly ILogger<MediaSeriesService> _logger;
     private readonly VideoLocal_UserRepository _vlUsers;
-    private readonly AnimeGroupService _groupService;
+    private readonly MediaGroupService _groupService;
     private readonly ISchedulerFactory _schedulerFactory;
     private readonly IVideoReleaseService _videoReleaseService;
     private readonly UserDataService _userDataService;
 
-    public AnimeSeriesService(ILogger<AnimeSeriesService> logger, ISchedulerFactory schedulerFactory, AnimeGroupService groupService, VideoLocal_UserRepository vlUsers, IVideoReleaseService videoReleaseService, IUserDataService userDataService)
+    public MediaSeriesService(ILogger<MediaSeriesService> logger, ISchedulerFactory schedulerFactory, MediaGroupService groupService, VideoLocal_UserRepository vlUsers, IVideoReleaseService videoReleaseService, IUserDataService userDataService)
     {
         _logger = logger;
         _schedulerFactory = schedulerFactory;
@@ -46,14 +46,14 @@ public class AnimeSeriesService
         _userDataService = (UserDataService)userDataService;
     }
 
-    public async Task<(bool, Dictionary<AnimeEpisode, UpdateReason>)> CreateAnimeEpisodes(AnimeSeries series)
+    public async Task<(bool, Dictionary<MediaEpisode, UpdateReason>)> CreateAnimeEpisodes(MediaSeries series)
     {
         var anime = series.AniDB_Anime;
         if (anime == null)
             return (false, []);
         var anidbEpisodes = anime.AniDBEpisodes;
         // Cleanup deleted episodes
-        var epsToRemove = RepoFactory.AnimeEpisode.GetBySeriesID(series.AnimeSeriesID)
+        var epsToRemove = RepoFactory.MediaEpisode.GetBySeriesID(series.MediaSeriesID)
             .Where(a => a.AniDB_Episode is null)
             .ToList();
         var filesToUpdate = epsToRemove
@@ -78,7 +78,7 @@ public class AnimeSeriesService
         var oneForth = (int)Math.Round(anidbEpisodes.Count / 4D, 0, MidpointRounding.AwayFromZero);
         var oneHalf = (int)Math.Round(anidbEpisodes.Count / 2D, 0, MidpointRounding.AwayFromZero);
         var threeFourths = (int)Math.Round(anidbEpisodes.Count * 3 / 4D, 0, MidpointRounding.AwayFromZero);
-        var episodeDict = new Dictionary<AnimeEpisode, UpdateReason>();
+        var episodeDict = new Dictionary<MediaEpisode, UpdateReason>();
         for (var i = 0; i < anidbEpisodes.Count; i++)
         {
             if (i == oneForth)
@@ -102,12 +102,12 @@ public class AnimeSeriesService
             }
 
             var anidbEpisode = anidbEpisodes[i];
-            var (dacollectorEpisode, isNew, isUpdated) = CreateAnimeEpisode(anidbEpisode, series.AnimeSeriesID);
+            var (dacollectorEpisode, isNew, isUpdated) = CreateAnimeEpisode(anidbEpisode, series.MediaSeriesID);
             if (isUpdated)
                 episodeDict.Add(dacollectorEpisode, isNew ? UpdateReason.Added : UpdateReason.Updated);
         }
 
-        RepoFactory.AnimeEpisode.Delete(epsToRemove);
+        RepoFactory.MediaEpisode.Delete(epsToRemove);
 
         // Add removed episodes to the dictionary.
         foreach (var episode in epsToRemove)
@@ -119,43 +119,43 @@ public class AnimeSeriesService
         );
     }
 
-    private (AnimeEpisode episode, bool isNew, bool isUpdated) CreateAnimeEpisode(AniDB_Episode episode, int animeSeriesID)
+    private (MediaEpisode episode, bool isNew, bool isUpdated) CreateAnimeEpisode(AniDB_Episode episode, int MediaSeriesID)
     {
         // check if there is an existing episode for this EpisodeID
-        var existingEp = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(episode.EpisodeID);
+        var existingEp = RepoFactory.MediaEpisode.GetByAniDBEpisodeID(episode.EpisodeID);
         var isNew = existingEp is null;
         existingEp ??= new();
-        if (existingEp.AnimeEpisodeID is 0)
+        if (existingEp.MediaEpisodeID is 0)
             existingEp.DateTimeCreated = existingEp.DateTimeUpdated = DateTime.Now;
 
         var old = existingEp.DeepClone();
-        existingEp.AnimeSeriesID = animeSeriesID;
+        existingEp.MediaSeriesID = MediaSeriesID;
         existingEp.AniDB_EpisodeID = episode.EpisodeID;
 
         var updated = !old.Equals(existingEp);
         if (isNew || updated)
-            RepoFactory.AnimeEpisode.Save(existingEp);
+            RepoFactory.MediaEpisode.Save(existingEp);
 
         _userDataService.CreateUserRecordsForNewEpisode(existingEp);
 
         return (existingEp, isNew, updated);
     }
 
-    public void MoveSeries(AnimeSeries series, AnimeGroup newGroup, bool updateGroupStats = true, bool updateEvent = true)
+    public void MoveSeries(MediaSeries series, MediaGroup newGroup, bool updateGroupStats = true, bool updateEvent = true)
     {
         // Skip moving series if it's already part of the group.
-        if (series.AnimeGroupID == newGroup.AnimeGroupID)
+        if (series.MediaGroupID == newGroup.MediaGroupID)
             return;
 
-        var oldGroupID = series.AnimeGroupID;
+        var oldGroupID = series.MediaGroupID;
         // Update the stats for the series and group.
-        series.AnimeGroupID = newGroup.AnimeGroupID;
+        series.MediaGroupID = newGroup.MediaGroupID;
         series.DateTimeUpdated = DateTime.Now;
         UpdateStats(series, true, true);
         if (updateGroupStats)
             _groupService.UpdateStatsFromTopLevel(newGroup.TopLevelAnimeGroup, true, true);
 
-        var oldGroup = RepoFactory.AnimeGroup.GetByID(oldGroupID);
+        var oldGroup = RepoFactory.MediaGroup.GetByID(oldGroupID);
         if (oldGroup is not null)
         {
             // This was the only one series in the group so delete the now orphan group.
@@ -166,7 +166,7 @@ public class AnimeSeriesService
             else
             {
                 var updatedOldGroup = false;
-                if (oldGroup.DefaultAnimeSeriesID.HasValue && oldGroup.DefaultAnimeSeriesID.Value == series.AnimeSeriesID)
+                if (oldGroup.DefaultAnimeSeriesID.HasValue && oldGroup.DefaultAnimeSeriesID.Value == series.MediaSeriesID)
                 {
                     oldGroup.DefaultAnimeSeriesID = null;
                     updatedOldGroup = true;
@@ -179,12 +179,12 @@ public class AnimeSeriesService
                 }
 
                 if (updatedOldGroup)
-                    RepoFactory.AnimeGroup.Save(oldGroup);
+                    RepoFactory.MediaGroup.Save(oldGroup);
             }
 
             // Update the top group
             var topGroup = oldGroup.TopLevelAnimeGroup;
-            if (topGroup.AnimeGroupID != oldGroup.AnimeGroupID)
+            if (topGroup.MediaGroupID != oldGroup.MediaGroupID)
             {
                 _groupService.UpdateStatsFromTopLevel(topGroup, true, true);
             }
@@ -194,14 +194,14 @@ public class AnimeSeriesService
             DaCollectorEventHandler.Instance.OnSeriesUpdated(series, UpdateReason.Updated);
     }
 
-    public async Task QueueUpdateStats(AnimeSeries series)
+    public async Task QueueUpdateStats(MediaSeries series)
     {
         if (series == null) return;
         var scheduler = await _schedulerFactory.GetScheduler();
         await scheduler.StartJob<RefreshAnimeStatsJob>(c => c.AnimeID = series.AniDB_ID);
     }
 
-    public void UpdateStats(AnimeSeries? series, bool watchedStats, bool missingEpsStats)
+    public void UpdateStats(MediaSeries? series, bool watchedStats, bool missingEpsStats)
     {
         if (series == null) return;
         lock (this)
@@ -227,7 +227,7 @@ public class AnimeSeriesService
             if (missingEpsStats) UpdateMissingEpisodeStats(series, eps, name, ref start);
 
             // Skip group filters if we are doing group stats, as the group stats will regenerate group filters
-            RepoFactory.AnimeSeries.Save(series, false, false);
+            RepoFactory.MediaSeries.Save(series, false, false);
             var ts = DateTime.Now - start;
             _logger.LogTrace("Saved stats for SERIES {Name} in {Elapsed}ms", name, ts.TotalMilliseconds);
 
@@ -236,7 +236,7 @@ public class AnimeSeriesService
         }
     }
 
-    private void UpdateWatchedStats(AnimeSeries series, IReadOnlyList<AnimeEpisode> eps, string name, ref DateTime start)
+    private void UpdateWatchedStats(MediaSeries series, IReadOnlyList<MediaEpisode> eps, string name, ref DateTime start)
     {
         _userDataService.UpdateWatchedStats(series, eps);
         var ts = DateTime.Now - start;
@@ -244,7 +244,7 @@ public class AnimeSeriesService
         start = DateTime.Now;
     }
 
-    private void UpdateMissingEpisodeStats(AnimeSeries series, IReadOnlyList<AnimeEpisode> eps, string name, ref DateTime start)
+    private void UpdateMissingEpisodeStats(MediaSeries series, IReadOnlyList<MediaEpisode> eps, string name, ref DateTime start)
     {
         var animeType = series.AniDB_Anime?.AnimeType ?? AnimeType.TVSeries;
 
@@ -419,10 +419,10 @@ public class AnimeSeriesService
         start = DateTime.Now;
     }
 
-    public Dictionary<AnimeSeries, AniDB_Anime_Staff> SearchSeriesByStaff(string staffName, bool fuzzy = false)
+    public Dictionary<MediaSeries, AniDB_Anime_Staff> SearchSeriesByStaff(string staffName, bool fuzzy = false)
     {
-        var allSeries = RepoFactory.AnimeSeries.GetAll();
-        var results = new Dictionary<AnimeSeries, AniDB_Anime_Staff>();
+        var allSeries = RepoFactory.MediaSeries.GetAll();
+        var results = new Dictionary<MediaSeries, AniDB_Anime_Staff>();
         var stringsToSearchFor = new List<string>();
         if (staffName.Contains(' '))
         {
@@ -478,7 +478,7 @@ public class AnimeSeriesService
         return results;
     }
 
-    public async Task DeleteSeries(AnimeSeries series, bool deleteFiles, bool updateGroups, bool completelyRemove = false, bool removeFromMylist = true)
+    public async Task DeleteSeries(MediaSeries series, bool deleteFiles, bool updateGroups, bool completelyRemove = false, bool removeFromMylist = true)
     {
         var service = Utils.ServiceContainer.GetRequiredService<IVideoService>();
         foreach (var ep in series.AllAnimeEpisodes)
@@ -486,9 +486,9 @@ public class AnimeSeriesService
             foreach (var place in series.VideoLocals.SelectMany(a => a.Places).WhereNotNull())
                 await service.DeleteVideoFile(place, removeFile: deleteFiles);
 
-            RepoFactory.AnimeEpisode.Delete(ep.AnimeEpisodeID);
+            RepoFactory.MediaEpisode.Delete(ep.MediaEpisodeID);
         }
-        RepoFactory.AnimeSeries.Delete(series);
+        RepoFactory.MediaSeries.Delete(series);
 
         if (!updateGroups)
         {
@@ -496,7 +496,7 @@ public class AnimeSeriesService
         }
 
         // finally update stats
-        var grp = series.AnimeGroup;
+        var grp = series.MediaGroup;
         if (grp is not null)
         {
             if (!grp.AllSeries.Any())
@@ -582,7 +582,7 @@ public class AnimeSeriesService
     /// <param name="includeSpecials">Include specials when searching.</param>
     /// <param name="includeOthers">Include other type episodes when searching.</param>
     /// <returns></returns>
-    public AnimeEpisode GetActiveEpisode(AnimeSeries series, int userID, bool includeSpecials = true, bool includeOthers = false)
+    public MediaEpisode GetActiveEpisode(MediaSeries series, int userID, bool includeSpecials = true, bool includeOthers = false)
     {
         // Filter the episodes to only normal or special episodes and order them in rising order.
         var order = includeOthers ? new List<EpisodeType> { EpisodeType.Episode, EpisodeType.Other, EpisodeType.Special } : null;
@@ -675,7 +675,7 @@ public class AnimeSeriesService
     /// <param name="userID">User ID</param>
     /// <param name="options">Next-up query options.</param>
     /// <returns></returns>
-    public AnimeEpisode? GetNextUpEpisode(AnimeSeries series, int userID, NextUpQuerySingleOptions options)
+    public MediaEpisode? GetNextUpEpisode(MediaSeries series, int userID, NextUpQuerySingleOptions options)
     {
         var episodeList = series.AnimeEpisodes
             .Select(dacollector => (dacollector, anidb: dacollector.AniDB_Episode!))
@@ -732,7 +732,7 @@ public class AnimeSeriesService
             if (lastWatchedEpisode is not null)
             {
                 // Return `null` if we're on the last episode in the list.
-                var nextIndex = episodeList.FindIndex(tuple => tuple.dacollector.AnimeEpisodeID == lastWatchedEpisode.AnimeEpisodeID) + 1;
+                var nextIndex = episodeList.FindIndex(tuple => tuple.dacollector.MediaEpisodeID == lastWatchedEpisode.MediaEpisodeID) + 1;
                 if (nextIndex == episodeList.Count)
                     return null;
 
@@ -762,7 +762,7 @@ public class AnimeSeriesService
         return unwatchedEpisode;
     }
 
-    public IReadOnlyList<AnimeEpisode> GetNextUpEpisodes(AnimeSeries series, int userID, NextUpQueryOptions options)
+    public IReadOnlyList<MediaEpisode> GetNextUpEpisodes(MediaSeries series, int userID, NextUpQueryOptions options)
     {
         var firstEpisode = GetNextUpEpisode(series, userID, new(options));
         if (firstEpisode is null)
@@ -782,7 +782,7 @@ public class AnimeSeriesService
             .OrderBy(tuple => order.IndexOf(tuple.anidb.EpisodeType))
             .ThenBy(tuple => tuple.anidb.EpisodeNumber)
             .ToList();
-        var index = allEpisodes.FindIndex(tuple => tuple.dacollector.AnimeEpisodeID == firstEpisode.AnimeEpisodeID);
+        var index = allEpisodes.FindIndex(tuple => tuple.dacollector.MediaEpisodeID == firstEpisode.MediaEpisodeID);
         if (index == -1)
             return [];
 
@@ -809,7 +809,7 @@ public class AnimeSeriesService
 
         private readonly Regex remmultispace = new("\\s+");
 
-        public void Add(AnimeEpisode ep, bool available)
+        public void Add(MediaEpisode ep, bool available)
         {
             if (AnimeType == AnimeType.OVA || AnimeType == AnimeType.Movie)
             {
@@ -905,7 +905,7 @@ public class AnimeSeriesService
                 public int PartCount { get; set; }
                 public EpType EpisodeType { get; set; }
                 public required bool Available { get; set; }
-                public required AnimeEpisode Episode { get; set; }
+                public required MediaEpisode Episode { get; set; }
             }
 
             public bool Available

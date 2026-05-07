@@ -25,9 +25,9 @@ namespace DaCollector.Server.API.v3.Controllers;
 [Authorize]
 public class GroupController : BaseController
 {
-    private readonly AnimeGroupCreator _groupCreator;
-    private readonly AnimeSeriesService _seriesService;
-    private readonly AnimeGroupService _groupService;
+    private readonly MediaGroupCreator _groupCreator;
+    private readonly MediaSeriesService _seriesService;
+    private readonly MediaGroupService _groupService;
 
     #region Return messages
 
@@ -58,7 +58,7 @@ public class GroupController : BaseController
     {
         startsWith = startsWith.ToLowerInvariant();
         var user = User;
-        return RepoFactory.AnimeGroup.GetAll()
+        return RepoFactory.MediaGroup.GetAll()
             .Where(group =>
             {
                 if (topLevelOnly && group.AnimeGroupParentID.HasValue)
@@ -96,7 +96,7 @@ public class GroupController : BaseController
     public ActionResult<Dictionary<char, int>> GetGroupNameLetters([FromQuery] bool includeEmpty = false, [FromQuery] bool topLevelOnly = true)
     {
         var user = User;
-        return RepoFactory.AnimeGroup.GetAll()
+        return RepoFactory.MediaGroup.GetAll()
             .Where(group =>
             {
                 if (topLevelOnly && group.AnimeGroupParentID.HasValue)
@@ -131,7 +131,7 @@ public class GroupController : BaseController
     [HttpPost]
     public ActionResult<Group> CreateGroup([FromBody] Group.Input.CreateOrUpdateGroupBody body)
     {
-        var animeGroup = new AnimeGroup
+        var MediaGroup = new MediaGroup
         {
             GroupName = string.Empty,
             Description = string.Empty,
@@ -142,13 +142,13 @@ public class GroupController : BaseController
             MissingEpisodeCountGroups = 0,
             OverrideDescription = 0,
         };
-        var group = body.MergeWithExisting(animeGroup, User.JMMUserID, ModelState);
+        var group = body.MergeWithExisting(MediaGroup, User.JMMUserID, ModelState);
         if (!ModelState.IsValid)
         {
             return ValidationProblem(ModelState);
         }
 
-        return Created($"/api/v3/Group/{animeGroup.AnimeGroupID}", group);
+        return Created($"/api/v3/Group/{MediaGroup.MediaGroupID}", group);
     }
 
     #endregion
@@ -163,7 +163,7 @@ public class GroupController : BaseController
     [HttpGet("{groupID}")]
     public ActionResult<Group> GetGroup([FromRoute, Range(1, int.MaxValue)] int groupID)
     {
-        var group = RepoFactory.AnimeGroup.GetByID(groupID);
+        var group = RepoFactory.MediaGroup.GetByID(groupID);
         if (group == null)
         {
             return NotFound(GroupNotFound);
@@ -190,18 +190,18 @@ public class GroupController : BaseController
     [HttpPut("{groupID}")]
     public ActionResult<Group> PutGroup([FromRoute, Range(1, int.MaxValue)] int groupID, [FromBody] Group.Input.CreateOrUpdateGroupBody body)
     {
-        var animeGroup = RepoFactory.AnimeGroup.GetByID(groupID);
-        if (animeGroup == null)
+        var MediaGroup = RepoFactory.MediaGroup.GetByID(groupID);
+        if (MediaGroup == null)
         {
             return NotFound(GroupNotFound);
         }
 
-        if (!User.AllowedGroup(animeGroup))
+        if (!User.AllowedGroup(MediaGroup))
         {
             return Forbid(GroupForbiddenForUser);
         }
 
-        var group = body.MergeWithExisting(animeGroup, User.JMMUserID, ModelState);
+        var group = body.MergeWithExisting(MediaGroup, User.JMMUserID, ModelState);
         if (!ModelState.IsValid)
         {
             return ValidationProblem(ModelState);
@@ -225,26 +225,26 @@ public class GroupController : BaseController
     [HttpPatch("{groupID}")]
     public ActionResult<Group> PatchGroup([FromRoute, Range(1, int.MaxValue)] int groupID, [FromBody] JsonPatchDocument<Group.Input.CreateOrUpdateGroupBody> patchDocument)
     {
-        var animeGroup = RepoFactory.AnimeGroup.GetByID(groupID);
-        if (animeGroup == null)
+        var MediaGroup = RepoFactory.MediaGroup.GetByID(groupID);
+        if (MediaGroup == null)
         {
             return NotFound(GroupNotFound);
         }
 
-        if (!User.AllowedGroup(animeGroup))
+        if (!User.AllowedGroup(MediaGroup))
         {
             return Forbid(GroupForbiddenForUser);
         }
 
         // Patch the body with the existing model.
-        var body = new Group.Input.CreateOrUpdateGroupBody(animeGroup);
+        var body = new Group.Input.CreateOrUpdateGroupBody(MediaGroup);
         patchDocument.ApplyTo(body, ModelState);
         if (!ModelState.IsValid)
         {
             return ValidationProblem(ModelState);
         }
 
-        var group = body.MergeWithExisting(animeGroup, User.JMMUserID, ModelState);
+        var group = body.MergeWithExisting(MediaGroup, User.JMMUserID, ModelState);
         if (!ModelState.IsValid)
         {
             return ValidationProblem(ModelState);
@@ -267,7 +267,7 @@ public class GroupController : BaseController
     public ActionResult<List<SeriesRelation>> GetDaCollectorRelationsBySeriesID([FromRoute, Range(1, int.MaxValue)] int groupID,
         [FromQuery] bool recursive = false)
     {
-        var group = RepoFactory.AnimeGroup.GetByID(groupID);
+        var group = RepoFactory.MediaGroup.GetByID(groupID);
         if (group == null)
         {
             return NotFound(GroupNotFound);
@@ -289,7 +289,7 @@ public class GroupController : BaseController
         return RepoFactory.AniDB_Anime_Relation.GetByAnimeID(animeIds).OfType<IRelatedMetadata>()
             .Concat(RepoFactory.AniDB_Anime_Relation.GetByRelatedAnimeID(animeIds).OfType<IRelatedMetadata>().Select(a => a.Reversed))
             .Distinct()
-            .Select(relation => (relation, relatedSeries: RepoFactory.AnimeSeries.GetByAnimeID(relation.RelatedID)))
+            .Select(relation => (relation, relatedSeries: RepoFactory.MediaSeries.GetByAnimeID(relation.RelatedID)))
             .Where(tuple => tuple.relatedSeries != null && animeIds.Contains(tuple.relatedSeries.AniDB_ID))
             .OrderBy(tuple => tuple.relation.BaseID)
             .ThenBy(tuple => tuple.relation.RelatedID)
@@ -315,7 +315,7 @@ public class GroupController : BaseController
     [HttpDelete("{groupID}")]
     public async Task<ActionResult> DeleteGroup([FromRoute, Range(1, int.MaxValue)] int groupID, bool deleteSeries = false, bool deleteFiles = false)
     {
-        var group = RepoFactory.AnimeGroup.GetByID(groupID);
+        var group = RepoFactory.MediaGroup.GetByID(groupID);
         if (group == null)
         {
             return NotFound(GroupNotFound);
@@ -350,7 +350,7 @@ public class GroupController : BaseController
     [HttpPost("{groupID}/Recalculate")]
     public async Task<ActionResult> RecalculateStats([FromRoute, Range(1, int.MaxValue)] int groupID)
     {
-        var group = RepoFactory.AnimeGroup.GetByID(groupID);
+        var group = RepoFactory.MediaGroup.GetByID(groupID);
         if (group == null)
         {
             return NotFound(GroupNotFound);
@@ -362,7 +362,7 @@ public class GroupController : BaseController
 
     #endregion
 
-    public GroupController(ISettingsProvider settingsProvider, AnimeGroupCreator groupCreator, AnimeSeriesService seriesService, AnimeGroupService groupService) : base(settingsProvider)
+    public GroupController(ISettingsProvider settingsProvider, MediaGroupCreator groupCreator, MediaSeriesService seriesService, MediaGroupService groupService) : base(settingsProvider)
     {
         _groupCreator = groupCreator;
         _seriesService = seriesService;

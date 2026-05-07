@@ -55,9 +55,9 @@ public class SeriesController : BaseController
 {
     private readonly ActionService _actionService;
 
-    private readonly AnimeSeriesService _seriesService;
+    private readonly MediaSeriesService _seriesService;
 
-    private readonly AnimeGroupService _groupService;
+    private readonly MediaGroupService _groupService;
 
     private readonly AniDBTitleHelper _titleHelper;
 
@@ -80,8 +80,8 @@ public class SeriesController : BaseController
     public SeriesController(
         ISettingsProvider settingsProvider,
         ActionService actionService,
-        AnimeSeriesService seriesService,
-        AnimeGroupService groupService,
+        MediaSeriesService seriesService,
+        MediaGroupService groupService,
         AniDBTitleHelper titleHelper,
         ISchedulerFactory schedulerFactory,
         TmdbLinkingService tmdbLinkingService,
@@ -148,7 +148,7 @@ public class SeriesController : BaseController
     {
         startsWith = startsWith.ToLowerInvariant();
         var user = User;
-        return RepoFactory.AnimeSeries.GetAll()
+        return RepoFactory.MediaSeries.GetAll()
             .Select(series => (series, seriesName: series.Title.ToLowerInvariant()))
             .Where(tuple =>
             {
@@ -176,7 +176,7 @@ public class SeriesController : BaseController
     public ActionResult<Series> GetSeries([FromRoute, Range(1, int.MaxValue)] int seriesID, [FromQuery] bool randomImages = false,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType>? includeDataFrom = null)
     {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
         {
             return NotFound(SeriesNotFoundWithSeriesID);
@@ -201,7 +201,7 @@ public class SeriesController : BaseController
     [HttpDelete("{seriesID}")]
     public async Task<ActionResult> DeleteSeries([FromRoute, Range(1, int.MaxValue)] int seriesID, [FromQuery] bool deleteFiles = false, [FromQuery] bool completelyRemove = false)
     {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
 
@@ -220,7 +220,7 @@ public class SeriesController : BaseController
     [HttpPost("{seriesID}/OverrideTitle")]
     public ActionResult OverrideSeriesTitle([FromRoute, Range(1, int.MaxValue)] int seriesID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Series.Input.TitleOverrideBody body)
     {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
 
@@ -233,7 +233,7 @@ public class SeriesController : BaseController
             series.ResetPreferredTitle();
             series.ResetAnimeTitles();
 
-            RepoFactory.AnimeSeries.Save(series, true);
+            RepoFactory.MediaSeries.Save(series, true);
 
             DaCollectorEventHandler.Instance.OnSeriesUpdated(series, UpdateReason.Updated);
         }
@@ -250,7 +250,7 @@ public class SeriesController : BaseController
     [HttpGet("{seriesID}/AutoMatchSettings")]
     public ActionResult<Series.AutoMatchSettings> GetAutoMatchSettingsBySeriesID([FromRoute, Range(1, int.MaxValue)] int seriesID)
     {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
 
@@ -271,7 +271,7 @@ public class SeriesController : BaseController
     [HttpPatch("{seriesID}/AutoMatchSettings")]
     public ActionResult<Series.AutoMatchSettings> PatchAutoMatchSettingsBySeriesID([FromRoute, Range(1, int.MaxValue)] int seriesID, [FromBody] JsonPatchDocument<Series.AutoMatchSettings> patchDocument)
     {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
 
@@ -299,7 +299,7 @@ public class SeriesController : BaseController
     [HttpPut("{seriesID}/AutoMatchSettings")]
     public ActionResult<Series.AutoMatchSettings> PutAutoMatchSettingsBySeriesID([FromRoute, Range(1, int.MaxValue)] int seriesID, [FromBody] Series.AutoMatchSettings autoMatchSettings)
     {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
 
@@ -319,7 +319,7 @@ public class SeriesController : BaseController
     [HttpGet("{seriesID}/UserData")]
     public ActionResult<Series.SeriesUserData> GetSeriesUserData([FromRoute, Range(1, int.MaxValue)] int seriesID)
     {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
 
@@ -337,7 +337,7 @@ public class SeriesController : BaseController
     [HttpPut("{seriesID}/UserData")]
     public ActionResult<Series.SeriesUserData> PutSeriesUserData([FromRoute, Range(1, int.MaxValue)] int seriesID, [FromBody] Series.SeriesUserData seriesUserStats)
     {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
 
@@ -357,7 +357,7 @@ public class SeriesController : BaseController
     [HttpPatch("{seriesID}/UserData")]
     public ActionResult<Series.SeriesUserData> PatchSeriesUserData([FromRoute, Range(1, int.MaxValue)] int seriesID, [FromBody] JsonPatchDocument<Series.SeriesUserData> patchDocument)
     {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
 
@@ -385,7 +385,7 @@ public class SeriesController : BaseController
     [HttpGet("{seriesID}/Relations")]
     public ActionResult<List<SeriesRelation>> GetDaCollectorRelationsBySeriesID([FromRoute, Range(1, int.MaxValue)] int seriesID)
     {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
         {
             return NotFound(SeriesNotFoundWithSeriesID);
@@ -400,7 +400,7 @@ public class SeriesController : BaseController
         return RepoFactory.AniDB_Anime_Relation.GetByAnimeID(series.AniDB_ID).OfType<IRelatedMetadata>()
             .Concat(RepoFactory.AniDB_Anime_Relation.GetByRelatedAnimeID(series.AniDB_ID).OfType<IRelatedMetadata>().Select(a => a.Reversed))
             .Distinct()
-            .Select(relation => (relation, relatedSeries: RepoFactory.AnimeSeries.GetByAnimeID(relation.RelatedID)))
+            .Select(relation => (relation, relatedSeries: RepoFactory.MediaSeries.GetByAnimeID(relation.RelatedID)))
             .Where(tuple => tuple.relatedSeries != null)
             .OrderBy(tuple => tuple.relation.BaseID)
             .ThenBy(tuple => tuple.relation.RelatedID)
@@ -425,7 +425,7 @@ public class SeriesController : BaseController
         [FromQuery] bool fuzzy = true)
     {
         var user = User;
-        var query = RepoFactory.AnimeSeries.GetAll()
+        var query = RepoFactory.MediaSeries.GetAll()
             .Where(series => user.AllowedSeries(series) && series.VideoLocals.Count == 0);
         if (!string.IsNullOrWhiteSpace(search))
         {
@@ -468,7 +468,7 @@ public class SeriesController : BaseController
         [FromQuery] bool fuzzy = true)
     {
         var user = User;
-        var query = RepoFactory.AnimeSeries.GetAll()
+        var query = RepoFactory.MediaSeries.GetAll()
             .Where(series => user.AllowedSeries(series) && series.FileCrossReferences.Any(xref => xref.IsManuallyLinked));
         if (!string.IsNullOrWhiteSpace(search))
         {
@@ -557,7 +557,7 @@ public class SeriesController : BaseController
     [HttpGet("{seriesID}/AniDB")]
     public ActionResult<AnidbAnime> GetSeriesAnidbBySeriesID([FromRoute, Range(1, int.MaxValue)] int seriesID)
     {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
         {
             return NotFound(SeriesNotFoundWithSeriesID);
@@ -585,7 +585,7 @@ public class SeriesController : BaseController
     [HttpGet("{seriesID}/AniDB/Similar")]
     public ActionResult<List<AnidbAnime>> GetAnidbSimilarBySeriesID([FromRoute, Range(1, int.MaxValue)] int seriesID)
     {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
         {
             return NotFound(SeriesNotFoundWithSeriesID);
@@ -615,7 +615,7 @@ public class SeriesController : BaseController
     [HttpGet("{seriesID}/AniDB/Related")]
     public ActionResult<List<AnidbAnime>> GetAnidbRelatedBySeriesID([FromRoute, Range(1, int.MaxValue)] int seriesID)
     {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
         {
             return NotFound(SeriesNotFoundWithSeriesID);
@@ -650,7 +650,7 @@ public class SeriesController : BaseController
     [HttpGet("{seriesID}/AniDB/Relations")]
     public ActionResult<List<SeriesRelation>> GetAnidbRelationsBySeriesID([FromRoute, Range(1, int.MaxValue)] int seriesID)
     {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
         {
             return NotFound(SeriesNotFoundWithSeriesID);
@@ -787,10 +787,10 @@ public class SeriesController : BaseController
             .WhereNotNull()
             .Select(file => file.EpisodeCrossReferences.OrderBy(xref => xref.EpisodeOrder).ThenBy(xref => xref.Percentage).FirstOrDefault())
             .WhereNotNull()
-            .Select(xref => xref.AnimeEpisode)
+            .Select(xref => xref.MediaEpisode)
             .WhereNotNull()
-            .DistinctBy(episode => episode.AnimeSeriesID)
-            .Select(episode => episode.AnimeSeries?.AniDB_Anime)
+            .DistinctBy(episode => episode.MediaSeriesID)
+            .Select(episode => episode.MediaSeries?.AniDB_Anime)
             .WhereNotNull()
             .Where(anime => user.AllowedAnime(anime) && (includeRestricted || !anime.IsRestricted))
             .ToList();
@@ -805,7 +805,7 @@ public class SeriesController : BaseController
     /// <param name="watchedAnime">Optional. Re-use an existing list of the watched anime.</param>
     /// <returns>The unwatched anime for the user.</returns>
     [NonAction]
-    private static Dictionary<int, (AniDB_Anime, AnimeSeries?)> GetUnwatchedAnime(
+    private static Dictionary<int, (AniDB_Anime, MediaSeries?)> GetUnwatchedAnime(
         JMMUser user,
         bool showAll,
         bool includeRestricted = false,
@@ -820,15 +820,15 @@ public class SeriesController : BaseController
         {
             return RepoFactory.AniDB_Anime.GetAll()
                 .Where(anime => user.AllowedAnime(anime) && !watchedSeriesSet.Contains(anime.AnimeID) && (includeRestricted || !anime.IsRestricted))
-                .ToDictionary<AniDB_Anime, int, (AniDB_Anime, AnimeSeries?)>(anime => anime.AnimeID,
+                .ToDictionary<AniDB_Anime, int, (AniDB_Anime, MediaSeries?)>(anime => anime.AnimeID,
                     anime => (anime, null));
         }
 
-        return RepoFactory.AnimeSeries.GetAll()
+        return RepoFactory.MediaSeries.GetAll()
             .Where(series => user.AllowedSeries(series) && !watchedSeriesSet.Contains(series.AniDB_ID))
             .Select(series => (anime: series.AniDB_Anime, series))
             .Where(tuple => tuple.anime is not null && (includeRestricted || !tuple.anime.IsRestricted))
-            .ToDictionary<(AniDB_Anime? anime, AnimeSeries series), int, (AniDB_Anime, AnimeSeries?)>(tuple => tuple.anime!.AnimeID, tuple => (tuple.anime!, tuple.series));
+            .ToDictionary<(AniDB_Anime? anime, MediaSeries series), int, (AniDB_Anime, MediaSeries?)>(tuple => tuple.anime!.AnimeID, tuple => (tuple.anime!, tuple.series));
     }
 
     #endregion
@@ -938,7 +938,7 @@ public class SeriesController : BaseController
     public ActionResult<Series> GetSeriesByAnidbID([FromRoute] int anidbID, [FromQuery] bool randomImages = false,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType>? includeDataFrom = null)
     {
-        var series = RepoFactory.AnimeSeries.GetByAnimeID(anidbID);
+        var series = RepoFactory.MediaSeries.GetByAnimeID(anidbID);
         if (series == null)
         {
             return NotFound(SeriesNotFoundWithAnidbID);
@@ -1010,7 +1010,7 @@ public class SeriesController : BaseController
             createSeriesEntry = settings.AniDb.AutomaticallyImportSeries;
         }
 
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
         {
             return NotFound(SeriesNotFoundWithSeriesID);
@@ -1047,7 +1047,7 @@ public class SeriesController : BaseController
         [FromRoute, Range(1, int.MaxValue)] int seriesID
     )
     {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
 
@@ -1056,7 +1056,7 @@ public class SeriesController : BaseController
 
         var anime = series.AniDB_Anime;
         if (anime is null)
-            return InternalError($"Unable to get AnidbAnime with ID {series.AniDB_ID} for Series with ID {series.AnimeSeriesID}!");
+            return InternalError($"Unable to get AnidbAnime with ID {series.AniDB_ID} for Series with ID {series.MediaSeriesID}!");
 
         var results = await _tmdbSearchService.SearchForAutoMatch(anime);
 
@@ -1076,7 +1076,7 @@ public class SeriesController : BaseController
         [FromQuery] bool force = false
     )
     {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
 
@@ -1104,7 +1104,7 @@ public class SeriesController : BaseController
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null
     )
     {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
 
@@ -1138,7 +1138,7 @@ public class SeriesController : BaseController
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Series.Input.LinkMovieBody body
     )
     {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
 
@@ -1173,7 +1173,7 @@ public class SeriesController : BaseController
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] Series.Input.UnlinkMovieBody body
     )
     {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
 
@@ -1214,7 +1214,7 @@ public class SeriesController : BaseController
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] TmdbRefreshMovieBody body
     )
     {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
 
@@ -1256,7 +1256,7 @@ public class SeriesController : BaseController
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] TmdbDownloadImagesBody body
     )
     {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
 
@@ -1287,7 +1287,7 @@ public class SeriesController : BaseController
         [FromRoute, Range(1, int.MaxValue)] int seriesID
     )
     {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
 
@@ -1318,7 +1318,7 @@ public class SeriesController : BaseController
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null
     )
     {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
 
@@ -1350,7 +1350,7 @@ public class SeriesController : BaseController
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Series.Input.LinkShowBody body
     )
     {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
 
@@ -1367,7 +1367,7 @@ public class SeriesController : BaseController
         series.ResetAnimeTitles();
         series.ResetPreferredTitle();
         series.ResetPreferredOverview();
-        _groupService.UpdateStatsFromTopLevel(series?.AnimeGroup?.TopLevelAnimeGroup, false, false);
+        _groupService.UpdateStatsFromTopLevel(series?.MediaGroup?.TopLevelAnimeGroup, false, false);
 
         return NoContent();
     }
@@ -1385,7 +1385,7 @@ public class SeriesController : BaseController
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] Series.Input.UnlinkCommonBody body
     )
     {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
 
@@ -1401,7 +1401,7 @@ public class SeriesController : BaseController
         series.ResetAnimeTitles();
         series.ResetPreferredTitle();
         series.ResetPreferredOverview();
-        _groupService.UpdateStatsFromTopLevel(series?.AnimeGroup?.TopLevelAnimeGroup, false, false);
+        _groupService.UpdateStatsFromTopLevel(series?.MediaGroup?.TopLevelAnimeGroup, false, false);
 
 
         return NoContent();
@@ -1423,7 +1423,7 @@ public class SeriesController : BaseController
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] TmdbRefreshShowBody body
     )
     {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
 
@@ -1470,7 +1470,7 @@ public class SeriesController : BaseController
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] TmdbDownloadImagesBody body
     )
     {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
 
@@ -1501,7 +1501,7 @@ public class SeriesController : BaseController
         [FromRoute, Range(1, int.MaxValue)] int seriesID
     )
     {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
 
@@ -1533,7 +1533,7 @@ public class SeriesController : BaseController
         [FromQuery, Range(1, int.MaxValue)] int page = 1
     )
     {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(TmdbNotFoundForSeriesID);
 
@@ -1575,7 +1575,7 @@ public class SeriesController : BaseController
             body.Mapping = body.Mapping.DistinctBy(x => (x.AniDBID, x.TmdbID)).ToList();
         }
 
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(TmdbNotFoundForSeriesID);
 
@@ -1591,14 +1591,14 @@ public class SeriesController : BaseController
         var mapping = new List<(Series.Input.OverrideTmdbEpisodeLinkBody link, AniDB_Episode aniDBEpisode)>();
         foreach (var link in body.Mapping)
         {
-            var dacollectorEpisode = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(link.AniDBID);
+            var dacollectorEpisode = RepoFactory.MediaEpisode.GetByAniDBEpisodeID(link.AniDBID);
             var anidbEpisode = dacollectorEpisode?.AniDB_Episode;
             if (anidbEpisode is null)
             {
                 ModelState.AddModelError("Mapping", $"Unable to find an AniDB Episode with id '{link.AniDBID}'");
                 continue;
             }
-            if (dacollectorEpisode is null || dacollectorEpisode.AnimeSeriesID != series.AnimeSeriesID)
+            if (dacollectorEpisode is null || dacollectorEpisode.MediaSeriesID != series.MediaSeriesID)
             {
                 ModelState.AddModelError("Mapping", $"The AniDB Episode with id '{link.AniDBID}' is not part of the series.");
                 continue;
@@ -1680,7 +1680,7 @@ public class SeriesController : BaseController
         [FromQuery, Range(1, int.MaxValue)] int page = 1
     )
     {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(TmdbNotFoundForSeriesID);
 
@@ -1729,7 +1729,7 @@ public class SeriesController : BaseController
     )
     {
         body ??= new();
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(TmdbNotFoundForSeriesID);
 
@@ -1791,7 +1791,7 @@ public class SeriesController : BaseController
         [FromRoute, Range(1, int.MaxValue)] int seriesID
     )
     {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(TmdbNotFoundForSeriesID);
 
@@ -1821,7 +1821,7 @@ public class SeriesController : BaseController
         [FromQuery, Range(1, int.MaxValue)] int page = 1
     )
     {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(TmdbNotFoundForSeriesID);
 
@@ -1861,7 +1861,7 @@ public class SeriesController : BaseController
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null
     )
     {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(TmdbNotFoundForSeriesID);
 
@@ -1906,7 +1906,7 @@ public class SeriesController : BaseController
             return BadRequest("Trakt account is not linked!");
         }
 
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
         {
             return NotFound(SeriesNotFoundWithSeriesID);
@@ -1929,7 +1929,7 @@ public class SeriesController : BaseController
         }
 
         var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob<SendSeriesWatchStatesToTraktJob>(c => c.AnimeSeriesID = seriesID);
+        await scheduler.StartJob<SendSeriesWatchStatesToTraktJob>(c => c.MediaSeriesID = seriesID);
         return Ok();
     }
 
@@ -1947,7 +1947,7 @@ public class SeriesController : BaseController
             return BadRequest("Trakt account is not linked!");
         }
 
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
         {
             return NotFound(SeriesNotFoundWithSeriesID);
@@ -1970,7 +1970,7 @@ public class SeriesController : BaseController
         }
 
         var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob<GetSeriesWatchStatesFromTraktJob>(c => c.AnimeSeriesID = seriesID);
+        await scheduler.StartJob<GetSeriesWatchStatesFromTraktJob>(c => c.MediaSeriesID = seriesID);
         return Ok();
     }
 
@@ -2025,7 +2025,7 @@ public class SeriesController : BaseController
         [FromQuery] bool fuzzy = true
     )
     {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
 
@@ -2063,7 +2063,7 @@ public class SeriesController : BaseController
         [FromQuery] string? search = null,
         [FromQuery] bool fuzzy = true)
     {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
 
@@ -2082,8 +2082,8 @@ public class SeriesController : BaseController
     }
 
     [NonAction]
-    public ParallelQuery<AnimeEpisode> GetEpisodesInternal(
-        AnimeSeries series,
+    public ParallelQuery<MediaEpisode> GetEpisodesInternal(
+        MediaSeries series,
         IncludeOnlyFilter includeMissing,
         IncludeOnlyFilter includeUnaired,
         IncludeOnlyFilter includeHidden,
@@ -2174,7 +2174,7 @@ public class SeriesController : BaseController
                     // If we should hide voted episodes and the episode is voted, then hide it.
                     // Or if we should only show voted episodes and the episode is not voted, then hide it.
                     var shouldHideVoted = includeVoted == IncludeOnlyFilter.False;
-                    var isVoted = RepoFactory.AnimeEpisode_User.GetByUserAndEpisodeID(user.JMMUserID, dacollector.AniDB_EpisodeID) is { HasUserRating: true };
+                    var isVoted = RepoFactory.MediaEpisode_User.GetByUserAndEpisodeID(user.JMMUserID, dacollector.AniDB_EpisodeID) is { HasUserRating: true };
                     if (shouldHideVoted == isVoted)
                         return false;
                 }
@@ -2250,7 +2250,7 @@ public class SeriesController : BaseController
         var hasSearch = !string.IsNullOrWhiteSpace(search);
         var episodes = anidbSeries.AniDBEpisodes
             .AsParallel()
-            .Select(episode => new { DaCollector = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(episode.EpisodeID), AniDB = episode })
+            .Select(episode => new { DaCollector = RepoFactory.MediaEpisode.GetByAniDBEpisodeID(episode.EpisodeID), AniDB = episode })
             .Where(both =>
             {
                 // Make sure we have an anidb entry for the episode, otherwise,
@@ -2375,7 +2375,7 @@ public class SeriesController : BaseController
         [FromQuery] bool includeXRefs = false,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType>? includeDataFrom = null)
     {
-        if (RepoFactory.AnimeSeries.GetByID(seriesID) is not { } series)
+        if (RepoFactory.MediaSeries.GetByID(seriesID) is not { } series)
             return NotFound(SeriesNotFoundWithSeriesID);
 
         var user = User;
@@ -2410,7 +2410,7 @@ public class SeriesController : BaseController
     [HttpPost("{seriesID}/File/Rescan")]
     public async Task<ActionResult> RescanSeriesFiles([FromRoute, Range(1, int.MaxValue)] int seriesID, [FromQuery] bool priority = false)
     {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
 
@@ -2435,7 +2435,7 @@ public class SeriesController : BaseController
     [HttpPost("{seriesID}/File/Rehash")]
     public async Task<ActionResult> RehashSeriesFiles([FromRoute, Range(1, int.MaxValue)] int seriesID)
     {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
 
@@ -2467,7 +2467,7 @@ public class SeriesController : BaseController
     [HttpPost("{seriesID}/File/Relocate")]
     public async Task<ActionResult> RelocateSeriesFiles([FromRoute, Range(1, int.MaxValue)] int seriesID)
     {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
 
@@ -2508,7 +2508,7 @@ public class SeriesController : BaseController
     [HttpPost("{seriesID}/Vote")]
     public async Task<ActionResult> PostSeriesUserVote([FromRoute, Range(1, int.MaxValue)] int seriesID, [FromBody] Vote vote)
     {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
 
@@ -2554,7 +2554,7 @@ public class SeriesController : BaseController
     [HttpGet("{seriesID}/Images")]
     public ActionResult<Images> GetSeriesImages([FromRoute, Range(1, int.MaxValue)] int seriesID, [FromQuery] bool includeDisabled)
     {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
         {
             return NotFound(SeriesNotFoundWithSeriesID);
@@ -2585,7 +2585,7 @@ public class SeriesController : BaseController
         if (!_allowedImageTypes.Contains(imageType))
             return BadRequest(InvalidImageTypeForSeries);
 
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
 
@@ -2629,7 +2629,7 @@ public class SeriesController : BaseController
         if (!_allowedImageTypes.Contains(imageType))
             return BadRequest(InvalidImageTypeForSeries);
 
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
 
@@ -2657,7 +2657,7 @@ public class SeriesController : BaseController
         RepoFactory.AniDB_Anime_PreferredImage.Save(defaultImage);
 
         // Update the contract data (used by DaCollector Desktop).
-        RepoFactory.AnimeSeries.Save(series, false);
+        RepoFactory.MediaSeries.Save(series, false);
 
         DaCollectorEventHandler.Instance.OnSeriesUpdated(series, isNew ? UpdateReason.ImageAdded : UpdateReason.ImageUpdated);
 
@@ -2678,7 +2678,7 @@ public class SeriesController : BaseController
             return BadRequest(InvalidImageTypeForSeries);
 
         // Check if the series exists and if the user can access the series.
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
 
@@ -2695,7 +2695,7 @@ public class SeriesController : BaseController
         RepoFactory.AniDB_Anime_PreferredImage.Delete(defaultImage);
 
         // Update the contract data (used by DaCollector Desktop).
-        RepoFactory.AnimeSeries.Save(series, false);
+        RepoFactory.MediaSeries.Save(series, false);
 
         DaCollectorEventHandler.Instance.OnSeriesUpdated(series, UpdateReason.ImageRemoved);
 
@@ -2728,7 +2728,7 @@ public class SeriesController : BaseController
         [FromQuery] bool onlyVerified = true,
         [FromQuery] bool includeCount = false)
     {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
         {
             return NotFound(SeriesNotFoundWithSeriesID);
@@ -2775,7 +2775,7 @@ public class SeriesController : BaseController
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Series.Input.AddOrRemoveUserTagsBody body
     )
     {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
         {
             return NotFound(SeriesNotFoundWithSeriesID);
@@ -2809,7 +2809,7 @@ public class SeriesController : BaseController
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Series.Input.AddOrRemoveUserTagsBody body
     )
     {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
         {
             return NotFound(SeriesNotFoundWithSeriesID);
@@ -2844,7 +2844,7 @@ public class SeriesController : BaseController
     public ActionResult<List<Role>> GetSeriesCast([FromRoute, Range(1, int.MaxValue)] int seriesID,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<CreatorRoleType>? roleType = null)
     {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
         {
             return NotFound(SeriesNotFoundWithSeriesID);
@@ -2872,14 +2872,14 @@ public class SeriesController : BaseController
     [HttpPatch("{seriesID}/Move/{groupID}")]
     public ActionResult MoveSeries([FromRoute, Range(1, int.MaxValue)] int seriesID, [FromRoute, Range(1, int.MaxValue)] int groupID)
     {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
 
         if (!User.AllowedSeries(series))
             return Forbid(SeriesForbiddenForUser);
 
-        var group = RepoFactory.AnimeGroup.GetByID(groupID);
+        var group = RepoFactory.MediaGroup.GetByID(groupID);
         if (group == null)
             return ValidationProblem("No Group entry for the given groupID", "groupID");
 
@@ -3010,7 +3010,7 @@ public class SeriesController : BaseController
                 .OrderBy(anime => anime.AnimeID)
                 .Select(result =>
                 {
-                    var series = RepoFactory.AnimeSeries.GetByAnimeID(result.AnimeID);
+                    var series = RepoFactory.MediaSeries.GetByAnimeID(result.AnimeID);
                     if (local.HasValue && series is null == local.Value)
                         return null;
 
@@ -3023,7 +3023,7 @@ public class SeriesController : BaseController
         return _titleHelper.SearchTitle(query, fuzzy)
             .Select(result =>
             {
-                var series = RepoFactory.AnimeSeries.GetByAnimeID(result.Result.AnimeID);
+                var series = RepoFactory.MediaSeries.GetByAnimeID(result.Result.AnimeID);
                 if (local.HasValue && series is null == local.Value)
                     return null;
 
@@ -3047,8 +3047,8 @@ public class SeriesController : BaseController
         query = query.ToLowerInvariant();
 
         var seriesList = new List<Series.SearchResult>();
-        var tempSeries = new ConcurrentDictionary<AnimeSeries, string>();
-        var allSeries = RepoFactory.AnimeSeries.GetAll()
+        var tempSeries = new ConcurrentDictionary<MediaSeries, string>();
+        var allSeries = RepoFactory.MediaSeries.GetAll()
             .Where(user.AllowedSeries)
             .AsParallel();
 
@@ -3101,9 +3101,9 @@ public class SeriesController : BaseController
                 var dir = Path.GetDirectoryName(a.Path);
                 return dir != null && dir.EndsWith(query, StringComparison.OrdinalIgnoreCase);
             })
-            .SelectMany(a => a.VideoLocal?.AnimeEpisodes ?? Enumerable.Empty<AnimeEpisode>())
-            .DistinctBy(a => a.AnimeSeriesID)
-            .Select(a => a.AnimeSeries)
+            .SelectMany(a => a.VideoLocal?.AnimeEpisodes ?? Enumerable.Empty<MediaEpisode>())
+            .DistinctBy(a => a.MediaSeriesID)
+            .Select(a => a.MediaSeries)
             .WhereNotNull()
             .Where(user.AllowedSeries)
             .Select(a => new Series(a, User.JMMUserID))
@@ -3113,8 +3113,8 @@ public class SeriesController : BaseController
     #region Helpers
 
     [NonAction]
-    private static void CheckTitlesStartsWith(AnimeSeries a, string query,
-        ref ConcurrentDictionary<AnimeSeries, string> series, int limit)
+    private static void CheckTitlesStartsWith(MediaSeries a, string query,
+        ref ConcurrentDictionary<MediaSeries, string> series, int limit)
     {
         if (series.Count >= limit)
         {
@@ -3158,7 +3158,7 @@ public class SeriesController : BaseController
     /// <returns></returns>
     [HttpGet("Years")]
     public ActionResult<IEnumerable<int>> GetAllYears()
-        => RepoFactory.AnimeSeries.GetAllYears().ToList();
+        => RepoFactory.MediaSeries.GetAllYears().ToList();
 
     /// <summary>
     /// Get a list of all years and seasons (2024 Winter) that series that you have aired in. One Piece would return every Season from 1999 Fall to preset (assuming it's still airing *today*)
@@ -3166,5 +3166,5 @@ public class SeriesController : BaseController
     /// <returns></returns>
     [HttpGet("Seasons")]
     public ActionResult<IEnumerable<SeasonWithYear>> GetAllSeasons()
-        => RepoFactory.AnimeSeries.GetAllSeasons().Select(a => new SeasonWithYear(a.Year, a.Season)).Order().ToList();
+        => RepoFactory.MediaSeries.GetAllSeasons().Select(a => new SeasonWithYear(a.Year, a.Season)).Order().ToList();
 }

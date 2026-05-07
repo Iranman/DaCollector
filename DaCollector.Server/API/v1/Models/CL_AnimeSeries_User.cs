@@ -5,14 +5,14 @@ namespace DaCollector.Server.API.v1.Models;
 
 public class CL_AnimeSeries_User
 {
-    public int AnimeSeriesID { get; set; }
+    public int MediaSeriesID { get; set; }
     public int UnwatchedEpisodeCount { get; set; }
     public int WatchedEpisodeCount { get; set; }
     public DateTime? WatchedDate { get; set; }
     public int PlayedCount { get; set; }
     public int WatchedCount { get; set; }
     public int StoppedCount { get; set; }
-    public int AnimeGroupID { get; set; }
+    public int MediaGroupID { get; set; }
     public int AniDB_ID { get; set; }
     public DateTime DateTimeUpdated { get; set; }
     public DateTime DateTimeCreated { get; set; }

@@ -108,14 +108,14 @@ public class AnidbAnime
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public RelationType? Relation { get; set; }
 
-    private AnidbAnime(int animeId, bool includeTitles, AnimeSeries? series = null, AniDB_Anime? anime = null, ResponseAniDBTitles.Anime? result = null)
+    private AnidbAnime(int animeId, bool includeTitles, MediaSeries? series = null, AniDB_Anime? anime = null, ResponseAniDBTitles.Anime? result = null)
     {
         ID = animeId;
         if ((anime ??= (series is not null ? series.AniDB_Anime : RepoFactory.AniDB_Anime.GetByAnimeID(animeId))) is not null)
         {
             ArgumentNullException.ThrowIfNull(anime);
-            series ??= RepoFactory.AnimeSeries.GetByAnimeID(animeId);
-            DaCollectorID = series?.AnimeSeriesID;
+            series ??= RepoFactory.MediaSeries.GetByAnimeID(animeId);
+            DaCollectorID = series?.MediaSeriesID;
             Type = anime.AnimeType.ToV3Dto();
             Title = series?.Title ?? anime.Title;
             Titles = includeTitles
@@ -165,13 +165,13 @@ public class AnidbAnime
         }
     }
 
-    public AnidbAnime(AniDB_Anime anime, AnimeSeries? series = null, bool includeTitles = true)
+    public AnidbAnime(AniDB_Anime anime, MediaSeries? series = null, bool includeTitles = true)
         : this(anime.AnimeID, includeTitles, series, anime) { }
 
-    public AnidbAnime(ResponseAniDBTitles.Anime result, AnimeSeries? series = null, bool includeTitles = true)
+    public AnidbAnime(ResponseAniDBTitles.Anime result, MediaSeries? series = null, bool includeTitles = true)
         : this(result.AnimeID, includeTitles, series) { }
 
-    public AnidbAnime(IRelatedMetadata relation, AnimeSeries? series = null, bool includeTitles = true)
+    public AnidbAnime(IRelatedMetadata relation, MediaSeries? series = null, bool includeTitles = true)
         : this(relation.RelatedID, includeTitles, series)
     {
         Relation = relation.RelationType;
@@ -180,7 +180,7 @@ public class AnidbAnime
             Restricted = RepoFactory.AniDB_Anime.GetByAnimeID(relation.BaseID) is { IsRestricted: true };
     }
 
-    public AnidbAnime(AniDB_Anime_Similar similar, AnimeSeries? series = null, bool includeTitles = true)
+    public AnidbAnime(AniDB_Anime_Similar similar, MediaSeries? series = null, bool includeTitles = true)
         : this(similar.SimilarAnimeID, includeTitles, series)
     {
         UserApproval = new()

@@ -570,7 +570,7 @@ public class VideoService : IVideoService
         await RemoveRecord(place, updateMyList);
     }
 
-    public async Task RemoveAndDeleteFileWithOpenTransaction(ISession session, VideoLocal_Place place, HashSet<AnimeSeries> seriesToUpdate, bool deleteFolders = true, bool updateMyList = true)
+    public async Task RemoveAndDeleteFileWithOpenTransaction(ISession session, VideoLocal_Place place, HashSet<MediaSeries> seriesToUpdate, bool deleteFolders = true, bool updateMyList = true)
     {
         try
         {
@@ -646,7 +646,7 @@ public class VideoService : IVideoService
     public async Task RemoveRecord(VideoLocal_Place place, bool updateMyListStatus = true)
     {
         _logger.LogInformation("Removing VideoLocal_Place record for: {Place}", place.Path ?? place.ID.ToString());
-        var seriesToUpdate = new List<AnimeSeries>();
+        var seriesToUpdate = new List<MediaSeries>();
         var v = place.VideoLocal;
         var scheduler = await _schedulerFactory.GetScheduler();
 
@@ -674,8 +674,8 @@ public class VideoService : IVideoService
                     seriesToUpdate.AddRange(
                         v
                             .AnimeEpisodes
-                            .DistinctBy(a => a.AnimeSeriesID)
-                            .Select(a => a.AnimeSeries)
+                            .DistinctBy(a => a.MediaSeriesID)
+                            .Select(a => a.MediaSeries)
                             .WhereNotNull()
                     );
                     _videoLocalRepository.DeleteWithOpenTransaction(s, v);
@@ -708,7 +708,7 @@ public class VideoService : IVideoService
         await Task.WhenAll(seriesToUpdate.Select(a => scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID)));
     }
 
-    public async Task RemoveRecordWithOpenTransaction(ISession session, VideoLocal_Place place, ICollection<AnimeSeries> seriesToUpdate,
+    public async Task RemoveRecordWithOpenTransaction(ISession session, VideoLocal_Place place, ICollection<MediaSeries> seriesToUpdate,
         bool updateMyListStatus = true)
     {
         _logger.LogInformation("Removing VideoLocal_Place record for: {Place}", place.Path ?? place.ID.ToString());
@@ -720,7 +720,7 @@ public class VideoService : IVideoService
                 await ScheduleRemovalFromMyList(v);
 
             var eps = v.AnimeEpisodes?.WhereNotNull().ToList();
-            eps?.DistinctBy(a => a.AnimeSeriesID).Select(a => a.AnimeSeries).WhereNotNull().ToList().ForEach(seriesToUpdate.Add);
+            eps?.DistinctBy(a => a.MediaSeriesID).Select(a => a.MediaSeries).WhereNotNull().ToList().ForEach(seriesToUpdate.Add);
 
             try
             {
@@ -898,7 +898,7 @@ public class VideoService : IVideoService
         var videos = _videoLocalPlaceRepository.GetByManagedFolderID(folder.ID);
         _logger.LogInformation("Deleting {VidsCount} video local records", videos.Count);
 
-        var affectedSeries = new HashSet<AnimeSeries>();
+        var affectedSeries = new HashSet<MediaSeries>();
         using var session = _databaseFactory.SessionFactory.OpenSession();
         foreach (var vid in videos)
             await RemoveRecordWithOpenTransaction(session, vid, affectedSeries, removeMyList);

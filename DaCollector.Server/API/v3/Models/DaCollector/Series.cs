@@ -124,21 +124,21 @@ public class Series : BaseModel
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public TmdbData? TMDB { get; set; }
 
-    public Series(AnimeSeries ser, int userId = 0, bool randomizeImages = false, HashSet<DataSourceType>? includeDataFrom = null)
+    public Series(MediaSeries ser, int userId = 0, bool randomizeImages = false, HashSet<DataSourceType>? includeDataFrom = null)
     {
         var anime = ser.AniDB_Anime ??
-            throw new NullReferenceException($"Unable to get AniDB Anime {ser.AniDB_ID} for AnimeSeries {ser.AnimeSeriesID}");
+            throw new NullReferenceException($"Unable to get AniDB Anime {ser.AniDB_ID} for MediaSeries {ser.MediaSeriesID}");
         var animeType = anime.AnimeType.ToV3Dto();
         var allEpisodes = ser.AllAnimeEpisodes;
-        var userData = RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(userId, ser.AnimeSeriesID);
+        var userData = RepoFactory.MediaSeries_User.GetByUserAndSeriesID(userId, ser.MediaSeriesID);
         var tmdbMovieXRefs = ser.TmdbMovieCrossReferences;
         var tmdbShowXRefs = ser.TmdbShowCrossReferences;
         var sizes = ModelHelper.GenerateSeriesSizes(allEpisodes, userId);
         IDs = new()
         {
-            ID = ser.AnimeSeriesID,
-            ParentGroup = ser.AnimeGroupID,
-            TopLevelGroup = ser.TopLevelAnimeGroup?.AnimeGroupID ?? 0,
+            ID = ser.MediaSeriesID,
+            ParentGroup = ser.MediaGroupID,
+            TopLevelGroup = ser.TopLevelAnimeGroup?.MediaGroupID ?? 0,
             AniDB = ser.AniDB_ID,
             TvDB = tmdbShowXRefs.Select(xref => xref.TmdbShow?.TvdbShowID).WhereNotNull().Distinct().ToList(),
             IMDB = tmdbMovieXRefs
@@ -213,7 +213,7 @@ public class Series : BaseModel
     /// <param name="animeEpisodes">Optionally pass in the episodes so we don't have to fetch them.</param>
     /// <param name="includeThreshold">Threshold of episodes to include in the calculation.</param>
     /// <returns></returns>
-    private static List<DayOfWeek> GetAirsOnDaysOfWeek(IEnumerable<AnimeEpisode> animeEpisodes, int includeThreshold = 24)
+    private static List<DayOfWeek> GetAirsOnDaysOfWeek(IEnumerable<MediaEpisode> animeEpisodes, int includeThreshold = 24)
     {
         var now = DateTime.Now;
         var filteredEpisodes = animeEpisodes
@@ -357,7 +357,7 @@ public class Series : BaseModel
             // Kitsu = false;
         }
 
-        public AutoMatchSettings(AnimeSeries series)
+        public AutoMatchSettings(MediaSeries series)
         {
             TMDB = !series.IsTMDBAutoMatchingDisabled;
             // MAL = !series.IsMALAutoMatchingDisabled;
@@ -366,7 +366,7 @@ public class Series : BaseModel
             // Kitsu = !series.IsKitsuAutoMatchingDisabled;
         }
 
-        public AutoMatchSettings MergeWithExisting(AnimeSeries series)
+        public AutoMatchSettings MergeWithExisting(MediaSeries series)
         {
             series.IsTMDBAutoMatchingDisabled = !TMDB;
             // series.IsMALAutoMatchingDisabled = !MAL;
@@ -374,7 +374,7 @@ public class Series : BaseModel
             // series.IsAnimeshonAutoMatchingDisabled = !Animeshon;
             // series.IsKitsuAutoMatchingDisabled = !Kitsu;
 
-            RepoFactory.AnimeSeries.Save(series, false, true);
+            RepoFactory.MediaSeries.Save(series, false, true);
 
             return new AutoMatchSettings(series);
         }
@@ -564,7 +564,7 @@ public class Series : BaseModel
             _userRatingVoteType = userData.UserRatingVoteType;
         }
 
-        public SeriesUserData MergeWithExisting(JMMUser user, AnimeSeries series)
+        public SeriesUserData MergeWithExisting(JMMUser user, MediaSeries series)
         {
             var userDataService = Utils.ServiceContainer.GetRequiredService<IUserDataService>();
             var userData = userDataService.SaveSeriesUserData(series, user, new()
@@ -777,7 +777,7 @@ public class Series : BaseModel
         [Required]
         public string Match { get; set; } = string.Empty;
 
-        public SearchResult(SeriesSearch.SearchResult<AnimeSeries> result, int userId = 0, bool randomizeImages = false, HashSet<DataSourceType>? includeDataFrom = null)
+        public SearchResult(SeriesSearch.SearchResult<MediaSeries> result, int userId = 0, bool randomizeImages = false, HashSet<DataSourceType>? includeDataFrom = null)
             : base(result.Result, userId, randomizeImages, includeDataFrom)
         {
             ExactMatch = result.ExactMatch;
@@ -799,7 +799,7 @@ public class Series : BaseModel
         [Required]
         public int EpisodeCount { get; set; }
 
-        public WithEpisodeCount(int episodeCount, AnimeSeries ser, int userId = 0, HashSet<DataSourceType>? includeDataFrom = null)
+        public WithEpisodeCount(int episodeCount, MediaSeries ser, int userId = 0, HashSet<DataSourceType>? includeDataFrom = null)
             : base(ser, userId, false, includeDataFrom)
         {
             EpisodeCount = episodeCount;

@@ -30,13 +30,13 @@ using DaCollector.Server.Utilities;
 #nullable enable
 namespace DaCollector.Server.Models.DaCollector;
 
-public class AnimeSeries : IDaCollectorSeries
+public class MediaSeries : IDaCollectorSeries
 {
     #region DB Columns
 
-    public int AnimeSeriesID { get; set; }
+    public int MediaSeriesID { get; set; }
 
-    public int AnimeGroupID { get; set; }
+    public int MediaGroupID { get; set; }
 
     public int AniDB_ID { get; set; }
 
@@ -218,7 +218,7 @@ public class AnimeSeries : IDaCollectorSeries
                         : TVDB_MovieID.HasValue ? $"<TVDB Movie {TVDB_MovieID}>"
                         : TMDB_ShowID.HasValue ? $"<TMDB Show {TMDB_ShowID}>"
                         : TMDB_MovieID.HasValue ? $"<TMDB Movie {TMDB_MovieID}>"
-                        : $"<Series {AnimeSeriesID}>",
+                        : $"<Series {MediaSeriesID}>",
                     Source = DataSource.None,
                 };
             }
@@ -526,11 +526,11 @@ public class AnimeSeries : IDaCollectorSeries
 
     public IReadOnlyList<VideoLocal> VideoLocals => RepoFactory.VideoLocal.GetByAniDBAnimeID(AniDB_ID);
 
-    public IReadOnlyList<AnimeSeason> AnimeSeasons => RepoFactory.AnimeEpisode.GetBySeriesID(AnimeSeriesID).Any(e => e.EpisodeType is EpisodeType.Special)
-        ? [new AnimeSeason(this, EpisodeType.Episode, 1), new AnimeSeason(this, EpisodeType.Special, 0)]
-        : [new AnimeSeason(this, EpisodeType.Episode, 1)];
+    public IReadOnlyList<MediaSeason> AnimeSeasons => RepoFactory.MediaEpisode.GetBySeriesID(MediaSeriesID).Any(e => e.EpisodeType is EpisodeType.Special)
+        ? [new MediaSeason(this, EpisodeType.Episode, 1), new MediaSeason(this, EpisodeType.Special, 0)]
+        : [new MediaSeason(this, EpisodeType.Episode, 1)];
 
-    public IReadOnlyList<AnimeEpisode> AnimeEpisodes => RepoFactory.AnimeEpisode.GetBySeriesID(AnimeSeriesID)
+    public IReadOnlyList<MediaEpisode> AnimeEpisodes => RepoFactory.MediaEpisode.GetBySeriesID(MediaSeriesID)
         .Where(episode => !episode.IsHidden)
         .Select(episode => (episode, anidbEpisode: episode.AniDB_Episode))
         .OrderBy(tuple => tuple.anidbEpisode?.EpisodeType)
@@ -538,7 +538,7 @@ public class AnimeSeries : IDaCollectorSeries
         .Select(tuple => tuple.episode)
         .ToList();
 
-    public IReadOnlyList<AnimeEpisode> AllAnimeEpisodes => RepoFactory.AnimeEpisode.GetBySeriesID(AnimeSeriesID)
+    public IReadOnlyList<MediaEpisode> AllAnimeEpisodes => RepoFactory.MediaEpisode.GetBySeriesID(MediaSeriesID)
         .Select(episode => (episode, anidbEpisode: episode.AniDB_Episode))
         .OrderBy(tuple => tuple.anidbEpisode?.EpisodeType)
         .ThenBy(tuple => tuple.anidbEpisode?.EpisodeNumber)
@@ -711,40 +711,40 @@ public class AnimeSeries : IDaCollectorSeries
     }
 
     /// <summary>
-    /// Gets the direct parent AnimeGroup this series belongs to
+    /// Gets the direct parent MediaGroup this series belongs to
     /// </summary>
-    public AnimeGroup AnimeGroup => RepoFactory.AnimeGroup.GetByID(AnimeGroupID);
+    public MediaGroup MediaGroup => RepoFactory.MediaGroup.GetByID(MediaGroupID);
 
     /// <summary>
-    /// Gets the very top level AnimeGroup which this series belongs to
+    /// Gets the very top level MediaGroup which this series belongs to
     /// </summary>
-    public AnimeGroup TopLevelAnimeGroup
+    public MediaGroup TopLevelAnimeGroup
     {
         get
         {
-            var parentGroup = RepoFactory.AnimeGroup.GetByID(AnimeGroupID) ??
-                throw new NullReferenceException($"Unable to find parent AnimeGroup {AnimeGroupID} for AnimeSeries {AnimeSeriesID}");
+            var parentGroup = RepoFactory.MediaGroup.GetByID(MediaGroupID) ??
+                throw new NullReferenceException($"Unable to find parent MediaGroup {MediaGroupID} for MediaSeries {MediaSeriesID}");
 
             int parentID;
             while ((parentID = parentGroup.AnimeGroupParentID ?? 0) != 0)
             {
-                parentGroup = RepoFactory.AnimeGroup.GetByID(parentID) ??
-                    throw new NullReferenceException($"Unable to find parent AnimeGroup {parentGroup.AnimeGroupParentID} for AnimeGroup {parentGroup.AnimeGroupID}");
+                parentGroup = RepoFactory.MediaGroup.GetByID(parentID) ??
+                    throw new NullReferenceException($"Unable to find parent MediaGroup {parentGroup.AnimeGroupParentID} for MediaGroup {parentGroup.MediaGroupID}");
             }
 
             return parentGroup;
         }
     }
 
-    public List<AnimeGroup> AllGroupsAbove
+    public List<MediaGroup> AllGroupsAbove
     {
         get
         {
-            var grps = new List<AnimeGroup>();
-            var groupID = AnimeGroupID;
+            var grps = new List<MediaGroup>();
+            var groupID = MediaGroupID;
             while (groupID != 0)
             {
-                var grp = RepoFactory.AnimeGroup.GetByID(groupID);
+                var grp = RepoFactory.MediaGroup.GetByID(groupID);
                 if (grp != null)
                 {
                     grps.Add(grp);
@@ -762,7 +762,7 @@ public class AnimeSeries : IDaCollectorSeries
 
     public override string ToString()
     {
-        return $"Series: {AniDB_Anime?.MainTitle} ({AnimeSeriesID})";
+        return $"Series: {AniDB_Anime?.MainTitle} ({MediaSeriesID})";
         //return string.Empty;
     }
 
@@ -770,7 +770,7 @@ public class AnimeSeries : IDaCollectorSeries
 
     DataSource IMetadata.Source => DataSource.DaCollector;
 
-    int IMetadata<int>.ID => AnimeSeriesID;
+    int IMetadata<int>.ID => MediaSeriesID;
 
     #endregion
 
@@ -887,7 +887,7 @@ public class AnimeSeries : IDaCollectorSeries
 
     AnimeType ISeries.Type => AniDB_Anime?.AnimeType ?? AnimeType.Unknown;
 
-    IReadOnlyList<int> ISeries.DaCollectorSeriesIDs => [AnimeSeriesID];
+    IReadOnlyList<int> ISeries.DaCollectorSeriesIDs => [MediaSeriesID];
 
     double ISeries.Rating => (AniDB_Anime?.Rating ?? 0) / 100D;
 
@@ -925,9 +925,9 @@ public class AnimeSeries : IDaCollectorSeries
 
     int IDaCollectorSeries.AnidbAnimeID => AniDB_ID;
 
-    int IDaCollectorSeries.ParentGroupID => AnimeGroupID;
+    int IDaCollectorSeries.ParentGroupID => MediaGroupID;
 
-    int IDaCollectorSeries.TopLevelGroupID => TopLevelAnimeGroup.AnimeGroupID;
+    int IDaCollectorSeries.TopLevelGroupID => TopLevelAnimeGroup.MediaGroupID;
 
     IReadOnlyList<IDaCollectorTagForSeries> IDaCollectorSeries.Tags => RepoFactory.CustomTag.GetByAnimeID(AniDB_ID)
         .Select(x => new AnimeTag(x, this))
@@ -942,7 +942,7 @@ public class AnimeSeries : IDaCollectorSeries
 
     int IDaCollectorSeries.HiddenMissingCollectingEpisodeCount => HiddenMissingEpisodeCountGroups;
 
-    IDaCollectorGroup IDaCollectorSeries.ParentGroup => AnimeGroup;
+    IDaCollectorGroup IDaCollectorSeries.ParentGroup => MediaGroup;
 
     IDaCollectorGroup IDaCollectorSeries.TopLevelGroup => TopLevelAnimeGroup;
 
@@ -1014,10 +1014,10 @@ public class AnimeSeries : IDaCollectorSeries
         ArgumentNullException.ThrowIfNull(user);
         if (user.ID is 0 || RepoFactory.JMMUser.GetByID(user.ID) is null)
             throw new ArgumentException("User is not stored in the database!", nameof(user));
-        var userData = RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(user.ID, AnimeSeriesID)
-            ?? new() { JMMUserID = user.ID, AnimeSeriesID = AnimeSeriesID };
-        if (userData.AnimeSeries_UserID is 0)
-            RepoFactory.AnimeSeries_User.Save(userData);
+        var userData = RepoFactory.MediaSeries_User.GetByUserAndSeriesID(user.ID, MediaSeriesID)
+            ?? new() { JMMUserID = user.ID, MediaSeriesID = MediaSeriesID };
+        if (userData.MediaSeries_UserID is 0)
+            RepoFactory.MediaSeries_User.Save(userData);
         return userData;
     }
 

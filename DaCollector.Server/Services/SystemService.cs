@@ -401,8 +401,8 @@ public class SystemService : ISystemService
             services.AddSingleton<IFilterEvaluator, FilterEvaluator>();
             services.AddSingleton<LegacyFilterConverter>();
             services.AddSingleton<ActionService>();
-            services.AddSingleton<AnimeSeriesService>();
-            services.AddSingleton<AnimeGroupService>();
+            services.AddSingleton<MediaSeriesService>();
+            services.AddSingleton<MediaGroupService>();
             services.AddSingleton<CssThemeService>();
             services.AddSingleton<ISystemUpdateService, SystemUpdateService>();
             services.AddSingleton<IMetadataService, AbstractMetadataService>();
@@ -415,7 +415,7 @@ public class SystemService : ISystemService
             services.AddSingleton<IUserDataService, UserDataService>();
             services.AddSingleton<IImageManager, AbstractImageManager>();
             services.AddSingleton<IConnectivityService, ConnectivityService>();
-            services.AddScoped<AnimeGroupCreator>();
+            services.AddScoped<MediaGroupCreator>();
 
             services.AddRepositories();
             services.AddSentryConfig(settingsProvider);

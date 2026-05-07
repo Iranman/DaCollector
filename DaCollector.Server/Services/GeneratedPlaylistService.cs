@@ -25,9 +25,9 @@ namespace DaCollector.Server.Services;
 public class GeneratedPlaylistService(
     ISystemService systemService,
     IHttpContextAccessor contextAccessor,
-    AnimeSeriesService animeSeriesService,
-    AnimeSeriesRepository seriesRepository,
-    AnimeEpisodeRepository episodeRepository,
+    MediaSeriesService MediaSeriesService,
+    MediaSeriesRepository seriesRepository,
+    MediaEpisodeRepository episodeRepository,
     VideoLocalRepository videoRepository,
     AuthTokensRepository authTokensRepository
 )
@@ -289,13 +289,13 @@ public class GeneratedPlaylistService(
         return playlist;
     }
 
-    private IEnumerable<(IReadOnlyList<IDaCollectorEpisode> episodes, IReadOnlyList<IVideo> videos)> GetListForSeries(IDaCollectorSeries series, int? releaseGroupID = null, AnimeSeriesService.NextUpQueryOptions? options = null)
+    private IEnumerable<(IReadOnlyList<IDaCollectorEpisode> episodes, IReadOnlyList<IVideo> videos)> GetListForSeries(IDaCollectorSeries series, int? releaseGroupID = null, MediaSeriesService.NextUpQueryOptions? options = null)
     {
         options ??= new();
         options.IncludeMissing = false;
         options.IncludeUnaired = false;
         var user = contextAccessor.HttpContext.GetUser();
-        var episodes = animeSeriesService.GetNextUpEpisodes((series as AnimeSeries)!, user.JMMUserID, options);
+        var episodes = MediaSeriesService.GetNextUpEpisodes((series as MediaSeries)!, user.JMMUserID, options);
 
         // Make sure the release group is in the list, otherwise pick the most used group.
         var xrefs = FileCrossReference.From(series.CrossReferences).FirstOrDefault(seriesXRef => seriesXRef.SeriesID.ID == series.ID)?.EpisodeIDs ?? [];

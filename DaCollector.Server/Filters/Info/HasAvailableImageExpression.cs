@@ -20,7 +20,7 @@ public class HasAvailableImageExpression : FilterExpression<bool>, IWithStringPa
 
     public ImageEntityType Parameter { get; set; }
     public override string HelpDescription => "This condition passes if any of the anime has the available image type.";
-    public override string[] HelpPossibleParameters => RepoFactory.AnimeSeries.GetAllImageTypes().Select(a => a.ToString()).ToArray();
+    public override string[] HelpPossibleParameters => RepoFactory.MediaSeries.GetAllImageTypes().Select(a => a.ToString()).ToArray();
 
     string IWithStringParameter.Parameter
     {

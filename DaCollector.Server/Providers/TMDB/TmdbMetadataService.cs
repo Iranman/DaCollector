@@ -127,7 +127,7 @@ public class TmdbMetadataService : ITmdbMetadataService
 
     private readonly TmdbLinkingService _linkingService;
 
-    private readonly AnimeSeriesRepository _animeSeries;
+    private readonly MediaSeriesRepository _animeSeries;
 
     private readonly TMDB_AlternateOrderingRepository _tmdbAlternateOrdering;
 
@@ -244,7 +244,7 @@ public class TmdbMetadataService : ITmdbMetadataService
         ISettingsProvider settingsProvider,
         TmdbImageService imageService,
         TmdbLinkingService linkingService,
-        AnimeSeriesRepository animeSeries,
+        MediaSeriesRepository MediaSeries,
         TMDB_AlternateOrderingRepository tmdbAlternateOrdering,
         TMDB_AlternateOrdering_EpisodeRepository tmdbAlternateOrderingEpisodes,
         TMDB_AlternateOrdering_SeasonRepository tmdbAlternateOrderingSeasons,
@@ -275,7 +275,7 @@ public class TmdbMetadataService : ITmdbMetadataService
         _settingsProvider = settingsProvider;
         _imageService = imageService;
         _linkingService = linkingService;
-        _animeSeries = animeSeries;
+        _animeSeries = MediaSeries;
         _tmdbAlternateOrdering = tmdbAlternateOrdering;
         _tmdbAlternateOrderingEpisodes = tmdbAlternateOrderingEpisodes;
         _tmdbAlternateOrderingSeasons = tmdbAlternateOrderingSeasons;
@@ -442,7 +442,7 @@ public class TmdbMetadataService : ITmdbMetadataService
         var scheduler = await _schedulerFactory.GetScheduler();
         foreach (var xref in allXRefs)
         {
-            if (xref.AnimeSeries is null)
+            if (xref.MediaSeries is null)
                 continue;
 
             await scheduler.StartJob<UpdateTmdbMovieJob>(
@@ -517,7 +517,7 @@ public class TmdbMetadataService : ITmdbMetadataService
 
             foreach (var xref in _xrefAnidbTmdbMovies.GetByTmdbMovieID(movieId))
             {
-                if ((titlesUpdated || overviewsUpdated) && xref.AnimeSeries is { } series)
+                if ((titlesUpdated || overviewsUpdated) && xref.MediaSeries is { } series)
                 {
                     if (titlesUpdated)
                     {
@@ -1002,7 +1002,7 @@ public class TmdbMetadataService : ITmdbMetadataService
             if (xref.TmdbShowID is 0)
                 continue;
 
-            if (xref.AnimeSeries is null)
+            if (xref.MediaSeries is null)
                 continue;
 
             await scheduler.StartJob<UpdateTmdbShowJob>(
@@ -1116,7 +1116,7 @@ public class TmdbMetadataService : ITmdbMetadataService
                 if (!quickRefresh)
                     _linkingService.MatchAnidbToTmdbEpisodes(xref.AnidbAnimeID, xref.TmdbShowID, null, true, true);
 
-                if ((titlesUpdated || overviewsUpdated) && xref.AnimeSeries is { } series)
+                if ((titlesUpdated || overviewsUpdated) && xref.MediaSeries is { } series)
                 {
                     if (titlesUpdated)
                     {

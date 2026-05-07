@@ -11,12 +11,12 @@ using DaCollector.Server.Repositories;
 #nullable enable
 namespace DaCollector.Server.Models.DaCollector;
 
-public class AnimeSeries_User : ISeriesUserData
+public class MediaSeries_User : ISeriesUserData
 {
     /// <summary>
     ///   Local DB Row ID.
     /// </summary>
-    public int AnimeSeries_UserID { get; set; }
+    public int MediaSeries_UserID { get; set; }
 
     /// <summary>
     ///   DaCollector User ID.
@@ -26,12 +26,12 @@ public class AnimeSeries_User : ISeriesUserData
     /// <summary>
     ///   DaCollector Series ID.
     /// </summary>
-    public int AnimeSeriesID { get; set; }
+    public int MediaSeriesID { get; set; }
 
     /// <summary>
     ///   AniDB Anime ID, if available.
     /// </summary>
-    public int? AnidbAnimeID => RepoFactory.AnimeSeries.GetByID(AnimeSeriesID)?.AniDB_ID;
+    public int? AnidbAnimeID => RepoFactory.MediaSeries.GetByID(MediaSeriesID)?.AniDB_ID;
 
     /// <inheritdoc />
     public bool IsFavorite { get; set; }
@@ -153,7 +153,7 @@ public class AnimeSeries_User : ISeriesUserData
     /// <summary>
     ///   The DaCollector Series, if available.
     /// </summary>
-    public AnimeSeries? AnimeSeries => RepoFactory.AnimeSeries.GetByID(AnimeSeriesID);
+    public MediaSeries? MediaSeries => RepoFactory.MediaSeries.GetByID(MediaSeriesID);
 
     #region IUserData Implementation
 
@@ -168,7 +168,7 @@ public class AnimeSeries_User : ISeriesUserData
 
     #region ISeriesUserData Implementation
 
-    int ISeriesUserData.SeriesID => AnimeSeriesID;
+    int ISeriesUserData.SeriesID => MediaSeriesID;
 
     int ISeriesUserData.VideoPlaybackCount => WatchedCount;
 
@@ -176,7 +176,7 @@ public class AnimeSeries_User : ISeriesUserData
 
     // Skim it at runtime until we decide to cache it in the DB.
     DateTime? ISeriesUserData.LastVideoPlayedAt
-        => (AnimeSeries?.VideoLocals ?? [])
+        => (MediaSeries?.VideoLocals ?? [])
             .Select(video => RepoFactory.VideoLocalUser.GetByUserAndVideoLocalID(JMMUserID, video.VideoLocalID)?.WatchedDate)
             .WhereNotNull()
             .OrderDescending()
@@ -186,7 +186,7 @@ public class AnimeSeries_User : ISeriesUserData
 
     IReadOnlyList<string> ISeriesUserData.UserTags => UserTags;
 
-    IDaCollectorSeries? ISeriesUserData.Series => AnimeSeries;
+    IDaCollectorSeries? ISeriesUserData.Series => MediaSeries;
 
     #endregion
 }

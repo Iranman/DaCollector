@@ -11,26 +11,26 @@ using DaCollector.Server.Repositories.NHibernate;
 #nullable enable
 namespace DaCollector.Server.Repositories.Cached;
 
-public class AnimeGroupRepository : BaseCachedRepository<AnimeGroup, int>
+public class MediaGroupRepository : BaseCachedRepository<MediaGroup, int>
 {
-    private readonly ILogger<AnimeGroupRepository> _logger;
+    private readonly ILogger<MediaGroupRepository> _logger;
 
-    private PocoIndex<int, AnimeGroup, int>? _parentIDs;
+    private PocoIndex<int, MediaGroup, int>? _parentIDs;
 
     private readonly ChangeTracker<int> _changes = new();
 
-    public AnimeGroupRepository(ILogger<AnimeGroupRepository> logger, DatabaseFactory databaseFactory) : base(databaseFactory)
+    public MediaGroupRepository(ILogger<MediaGroupRepository> logger, DatabaseFactory databaseFactory) : base(databaseFactory)
     {
         _logger = logger;
         BeginDeleteCallback = cr =>
         {
-            RepoFactory.AnimeGroup_User.Delete(RepoFactory.AnimeGroup_User.GetByGroupID(cr.AnimeGroupID));
+            RepoFactory.MediaGroup_User.Delete(RepoFactory.MediaGroup_User.GetByGroupID(cr.MediaGroupID));
         };
         EndDeleteCallback = cr =>
         {
             if (cr.AnimeGroupParentID.HasValue && cr.AnimeGroupParentID.Value > 0)
             {
-                _logger.LogTrace("Updating group stats by group from AnimeGroupRepository.Delete: {Count}", cr.AnimeGroupParentID.Value);
+                _logger.LogTrace("Updating group stats by group from MediaGroupRepository.Delete: {Count}", cr.AnimeGroupParentID.Value);
                 var parentGroup = GetByID(cr.AnimeGroupParentID.Value);
                 if (parentGroup != null)
                 {
@@ -40,8 +40,8 @@ public class AnimeGroupRepository : BaseCachedRepository<AnimeGroup, int>
         };
     }
 
-    protected override int SelectKey(AnimeGroup entity)
-        => entity.AnimeGroupID;
+    protected override int SelectKey(MediaGroup entity)
+        => entity.MediaGroupID;
 
     public override void PopulateIndexes()
     {
@@ -49,16 +49,16 @@ public class AnimeGroupRepository : BaseCachedRepository<AnimeGroup, int>
         _parentIDs = Cache.CreateIndex(a => a.AnimeGroupParentID ?? 0);
     }
 
-    public override void Save(AnimeGroup obj)
+    public override void Save(MediaGroup obj)
         => Save(obj, true);
 
-    public void Save(AnimeGroup group, bool recursive)
+    public void Save(MediaGroup group, bool recursive)
     {
         using var session = _databaseFactory.SessionFactory.OpenSession();
         Lock(session, s =>
         {
-            //We are creating one, and we need the AnimeGroupID before Update the contracts
-            if (group.AnimeGroupID == 0)
+            //We are creating one, and we need the MediaGroupID before Update the contracts
+            if (group.MediaGroupID == 0)
             {
                 using var transaction = s.BeginTransaction();
                 s.SaveOrUpdate(group);
@@ -74,21 +74,21 @@ public class AnimeGroupRepository : BaseCachedRepository<AnimeGroup, int>
             transaction.Commit();
         });
 
-        _changes.AddOrUpdate(group.AnimeGroupID);
+        _changes.AddOrUpdate(group.MediaGroupID);
 
         if (group.AnimeGroupParentID.HasValue && recursive)
         {
             var parentGroup = GetByID(group.AnimeGroupParentID.Value);
             // This will avoid the recursive error that would be possible, it won't update it, but that would be
             // the least of the issues
-            if (parentGroup != null && parentGroup.AnimeGroupParentID == group.AnimeGroupID)
+            if (parentGroup != null && parentGroup.AnimeGroupParentID == group.MediaGroupID)
             {
                 Save(parentGroup, true);
             }
         }
     }
 
-    public async Task InsertBatch(ISessionWrapper session, IReadOnlyCollection<AnimeGroup> groups)
+    public async Task InsertBatch(ISessionWrapper session, IReadOnlyCollection<MediaGroup> groups)
     {
         ArgumentNullException.ThrowIfNull(session);
         ArgumentNullException.ThrowIfNull(groups);
@@ -102,10 +102,10 @@ public class AnimeGroupRepository : BaseCachedRepository<AnimeGroup, int>
 
         await trans.CommitAsync();
 
-        _changes.AddOrUpdateRange(groups.Select(g => g.AnimeGroupID));
+        _changes.AddOrUpdateRange(groups.Select(g => g.MediaGroupID));
     }
 
-    public async Task UpdateBatch(ISessionWrapper session, IReadOnlyCollection<AnimeGroup> groups)
+    public async Task UpdateBatch(ISessionWrapper session, IReadOnlyCollection<MediaGroup> groups)
     {
         ArgumentNullException.ThrowIfNull(session);
         ArgumentNullException.ThrowIfNull(groups);
@@ -119,17 +119,17 @@ public class AnimeGroupRepository : BaseCachedRepository<AnimeGroup, int>
 
         await trans.CommitAsync();
 
-        _changes.AddOrUpdateRange(groups.Select(g => g.AnimeGroupID));
+        _changes.AddOrUpdateRange(groups.Select(g => g.MediaGroupID));
     }
 
     /// <summary>
-    /// Deletes all AnimeGroup records.
+    /// Deletes all MediaGroup records.
     /// </summary>
     /// <remarks>
     /// This method also makes sure that the cache is cleared.
     /// </remarks>
     /// <param name="session">The NHibernate session.</param>
-    /// <param name="excludeGroupId">The ID of the AnimeGroup to exclude from deletion.</param>
+    /// <param name="excludeGroupId">The ID of the MediaGroup to exclude from deletion.</param>
     /// <exception cref="ArgumentNullException"><paramref name="session"/> is <c>null</c>.</exception>
     public async Task DeleteAll(ISessionWrapper session, int? excludeGroupId = null)
     {
@@ -143,25 +143,25 @@ public class AnimeGroupRepository : BaseCachedRepository<AnimeGroup, int>
             // Then, actually delete the AnimeGroups
             if (excludeGroupId != null)
             {
-                await session.CreateSQLQuery("DELETE FROM AnimeGroup WHERE AnimeGroupID <> :excludeId")
+                await session.CreateSQLQuery("DELETE FROM MediaGroup WHERE MediaGroupID <> :excludeId")
                     .SetInt32("excludeId", excludeGroupId.Value)
                     .ExecuteUpdateAsync();
             }
             else
             {
-                await session.CreateSQLQuery("DELETE FROM AnimeGroup WHERE AnimeGroupID > 0")
+                await session.CreateSQLQuery("DELETE FROM MediaGroup WHERE MediaGroupID > 0")
                     .ExecuteUpdateAsync();
             }
         });
 
         if (excludeGroupId != null)
         {
-            _changes.RemoveRange(allGroups.Select(g => g.AnimeGroupID)
+            _changes.RemoveRange(allGroups.Select(g => g.MediaGroupID)
                 .Where(id => id != excludeGroupId.Value));
         }
         else
         {
-            _changes.RemoveRange(allGroups.Select(g => g.AnimeGroupID));
+            _changes.RemoveRange(allGroups.Select(g => g.MediaGroupID));
         }
 
         // Finally, we need to clear the cache so that it is in sync with the database
@@ -170,7 +170,7 @@ public class AnimeGroupRepository : BaseCachedRepository<AnimeGroup, int>
         // If we're excluding a group from deletion, and it was in the cache originally, then re-add it back in
         if (excludeGroupId != null)
         {
-            var excludedGroup = allGroups.FirstOrDefault(g => g.AnimeGroupID == excludeGroupId.Value);
+            var excludedGroup = allGroups.FirstOrDefault(g => g.MediaGroupID == excludeGroupId.Value);
 
             if (excludedGroup != null)
             {
@@ -179,10 +179,10 @@ public class AnimeGroupRepository : BaseCachedRepository<AnimeGroup, int>
         }
     }
 
-    public List<AnimeGroup> GetByParentID(int parentID)
+    public List<MediaGroup> GetByParentID(int parentID)
         => ReadLock(() => _parentIDs!.GetMultiple(parentID));
 
-    public List<AnimeGroup> GetAllTopLevelGroups()
+    public List<MediaGroup> GetAllTopLevelGroups()
         => GetByParentID(0);
 
     public ChangeTracker<int> GetChangeTracker()

@@ -495,7 +495,7 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode, ITmdbEpis
     int IEpisode.SeriesID => TmdbShowID;
 
     IReadOnlyList<int> IEpisode.DaCollectorEpisodeIDs => CrossReferences
-        .Select(xref => xref.AnimeEpisode?.AnimeEpisodeID)
+        .Select(xref => xref.MediaEpisode?.MediaEpisodeID)
         .WhereNotNull()
         .ToList();
 
@@ -520,7 +520,7 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode, ITmdbEpis
     ISeries? IEpisode.Series => TmdbShow;
 
     IReadOnlyList<IDaCollectorEpisode> IEpisode.DaCollectorEpisodes => CrossReferences
-        .Select(xref => xref.AnimeEpisode)
+        .Select(xref => xref.MediaEpisode)
         .WhereNotNull()
         .ToList();
 

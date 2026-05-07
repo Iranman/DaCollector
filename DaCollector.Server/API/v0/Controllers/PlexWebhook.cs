@@ -96,7 +96,7 @@ public class PlexWebhook : BaseController
     #endregion
 
     [NonAction]
-    private (AnimeEpisode, AnimeSeries) GetEpisode(PlexEvent.PlexMetadata metadata)
+    private (MediaEpisode, MediaSeries) GetEpisode(PlexEvent.PlexMetadata metadata)
     {
         var guid = new Uri(metadata.Guid);
         if (guid.Scheme != "com.plexapp.agents.dacollector" && guid.Scheme != "com.plexapp.agents.dacollectorrelay")
@@ -114,7 +114,7 @@ public class PlexWebhook : BaseController
         //int animeId = int.Parse(parts[1]);
         //int series = int.Parse(parts[2]);
 
-        var anime = RepoFactory.AnimeSeries.GetByID(animeId);
+        var anime = RepoFactory.MediaSeries.GetByID(animeId);
 
         EpisodeType episodeType;
         switch
@@ -154,7 +154,7 @@ public class PlexWebhook : BaseController
         if (animeEps.Count == 1) return (animeEps.First(), anime);
 
         // Check for Tmdb matches
-        AnimeEpisode result;
+        MediaEpisode result;
         if ((result = animeEps.FirstOrDefault(a => a.TmdbEpisodes.Any(e => e.SeasonNumber == series))) != null)
         {
             return (result, anime);

@@ -21,7 +21,7 @@ public enum CL_GroupFilterConditionType
     AnimeType = 12,
     VideoQuality = 13,
     Favourite = 14,
-    AnimeGroup = 15,
+    MediaGroup = 15,
     AniDBRating = 16,
     UserRating = 17,
     SeriesCreatedDate = 18,

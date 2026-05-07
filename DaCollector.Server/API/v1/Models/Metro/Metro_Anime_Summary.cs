@@ -3,7 +3,7 @@ namespace DaCollector.Server.API.v1.Models.Metro;
 public class Metro_Anime_Summary
 {
     public int AnimeID { get; set; }
-    public int AnimeSeriesID { get; set; }
+    public int MediaSeriesID { get; set; }
     public string AnimeName { get; set; }
     public int AirDateAsSeconds { get; set; }
     public int BeginYear { get; set; }

@@ -89,28 +89,28 @@ public class Group : BaseModel
 
     #region Constructors
 
-    public Group(AnimeGroup group, int userID = 0, bool randomizeImages = false)
+    public Group(MediaGroup group, int userID = 0, bool randomizeImages = false)
     {
         var subGroupCount = group.Children.Count;
         var allSeries = group.AllSeries;
         var mainSeries = allSeries.FirstOrDefault();
         var episodes = allSeries.SelectMany(a => a.AllAnimeEpisodes).ToList();
-        IDs = new GroupIDs { ID = group.AnimeGroupID };
+        IDs = new GroupIDs { ID = group.MediaGroupID };
         if (group.DefaultAnimeSeriesID != null)
             IDs.PreferredSeries = group.DefaultAnimeSeriesID.Value;
         if (mainSeries != null)
         {
-            IDs.MainSeries = mainSeries.AnimeSeriesID;
+            IDs.MainSeries = mainSeries.MediaSeriesID;
             IDs.MainAnime = mainSeries.AniDB_ID;
         }
         if (group.AnimeGroupParentID.HasValue)
             IDs.ParentGroup = group.AnimeGroupParentID.Value;
-        IDs.TopLevelGroup = group.TopLevelAnimeGroup.AnimeGroupID;
+        IDs.TopLevelGroup = group.TopLevelAnimeGroup.MediaGroupID;
         Name = group.GroupName;
         SortName = group.SortName;
         Description = group.Description;
         Sizes = ModelHelper.GenerateGroupSizes(allSeries, episodes, subGroupCount, userID);
-        Size = allSeries.Count(series => series.AnimeGroupID == group.AnimeGroupID);
+        Size = allSeries.Count(series => series.MediaGroupID == group.MediaGroupID);
         Created = group.DateTimeCreated.ToUniversalTime();
         Updated = group.DateTimeUpdated.ToUniversalTime();
         HasCustomName = group.IsManuallyNamed == 1;
@@ -239,22 +239,22 @@ public class Group : BaseModel
 
             public CreateOrUpdateGroupBody() { }
 
-            public CreateOrUpdateGroupBody(AnimeGroup group)
+            public CreateOrUpdateGroupBody(MediaGroup group)
             {
                 Name = group.GroupName;
                 ParentGroupID = group.AnimeGroupParentID;
                 PreferredSeriesID = group.DefaultAnimeSeriesID;
-                SeriesIDs = group.Series.Select(series => series.AnimeSeriesID).ToList();
-                GroupIDs = group.Children.Select(group => group.AnimeGroupID).ToList();
+                SeriesIDs = group.Series.Select(series => series.MediaSeriesID).ToList();
+                GroupIDs = group.Children.Select(group => group.MediaGroupID).ToList();
             }
 
-            public Group? MergeWithExisting(AnimeGroup group, int userID, ModelStateDictionary modelState)
+            public Group? MergeWithExisting(MediaGroup group, int userID, ModelStateDictionary modelState)
             {
                 // Validate if the parent exists if a parent id is set.
-                AnimeGroup? parent = null;
+                MediaGroup? parent = null;
                 if (ParentGroupID.HasValue && ParentGroupID.Value != 0)
                 {
-                    parent = RepoFactory.AnimeGroup.GetByID(ParentGroupID.Value);
+                    parent = RepoFactory.MediaGroup.GetByID(ParentGroupID.Value);
                     if (parent == null)
                     {
                         modelState.AddModelError(nameof(ParentGroupID), $"Unable to get parent group with id \"{ParentGroupID.Value}\".");
@@ -263,33 +263,33 @@ public class Group : BaseModel
                     {
                         if (GroupIDs is not null && parent.IsDescendantOf(GroupIDs))
                             modelState.AddModelError(nameof(ParentGroupID), "Infinite recursion detected between selected parent group and child groups.");
-                        if (group.AnimeGroupID != 0 && parent.IsDescendantOf(group.AnimeGroupID))
+                        if (group.MediaGroupID != 0 && parent.IsDescendantOf(group.MediaGroupID))
                             modelState.AddModelError(nameof(ParentGroupID), "Infinite recursion detected between selected parent group and current group.");
                     }
                 }
 
                 // Get the groups and validate the group ids.
                 var childGroups = GroupIDs == null ? [] : GroupIDs
-                    .Select(groupID => groupID > 0 ? RepoFactory.AnimeGroup.GetByID(groupID) : null)
+                    .Select(groupID => groupID > 0 ? RepoFactory.MediaGroup.GetByID(groupID) : null)
                     .WhereNotNull()
                     .ToList();
                 if (childGroups.Count != (GroupIDs?.Count ?? 0))
                 {
                     var unknownGroupIDs = GroupIDs!
-                        .Where(id => !childGroups.Any(childGroup => childGroup.AnimeGroupID == id))
+                        .Where(id => !childGroups.Any(childGroup => childGroup.MediaGroupID == id))
                         .ToList();
                     modelState.AddModelError(nameof(GroupIDs), $"Unable to get child groups with ids \"{string.Join("\", \"", unknownGroupIDs)}\".");
                 }
 
                 // Get the series and validate the series ids.
                 var seriesList = SeriesIDs == null ? [] : SeriesIDs
-                    .Select(id => id > 0 ? RepoFactory.AnimeSeries.GetByID(id) : null)
+                    .Select(id => id > 0 ? RepoFactory.MediaSeries.GetByID(id) : null)
                     .WhereNotNull()
                     .ToList();
                 if (seriesList.Count != (SeriesIDs?.Count ?? 0))
                 {
                     var unknownSeriesIDs = SeriesIDs!
-                        .Where(id => !seriesList.Any(series => series.AnimeSeriesID == id))
+                        .Where(id => !seriesList.Any(series => series.MediaSeriesID == id))
                         .ToList();
                     modelState.AddModelError(nameof(SeriesIDs), $"Unable to get series with ids \"{string.Join("\", \"", unknownSeriesIDs)}\".");
                 }
@@ -298,7 +298,7 @@ public class Group : BaseModel
                 var allSeriesList = seriesList
                         .Concat(childGroups.SelectMany(childGroup => childGroup.AllSeries))
                         .Concat(group.AllSeries)
-                        .DistinctBy(series => series.AnimeSeriesID)
+                        .DistinctBy(series => series.MediaSeriesID)
                         .ToList();
                 if (allSeriesList.Count == 0)
                 {
@@ -307,11 +307,11 @@ public class Group : BaseModel
                 }
 
                 // Find the preferred series among the list of series.
-                AnimeSeries? preferredSeries = null;
+                MediaSeries? preferredSeries = null;
                 if (PreferredSeriesID.HasValue && PreferredSeriesID.Value != 0)
                 {
                     preferredSeries = allSeriesList
-                        .FirstOrDefault(series => series.AnimeSeriesID == PreferredSeriesID.Value);
+                        .FirstOrDefault(series => series.MediaSeriesID == PreferredSeriesID.Value);
                     if (preferredSeries == null)
                         modelState.AddModelError(nameof(PreferredSeriesID), $"Unable to find the preferred series with id \"{PreferredSeriesID.Value}\" within the group.");
                 }
@@ -322,8 +322,8 @@ public class Group : BaseModel
 
                 // Save the group now if it's a new group, so we can get a valid
                 // id to use.
-                if (group.AnimeGroupID == 0)
-                    RepoFactory.AnimeGroup.Save(group);
+                if (group.MediaGroupID == 0)
+                    RepoFactory.MediaGroup.Save(group);
 
                 // Move the group under the new parent.
                 if (ParentGroupID.HasValue)
@@ -333,20 +333,20 @@ public class Group : BaseModel
                 foreach (var childGroup in childGroups)
                 {
                     // Skip adding child groups already part of the group.
-                    if (childGroup.AnimeGroupParentID.HasValue && childGroup.AnimeGroupParentID.Value == group.AnimeGroupID)
+                    if (childGroup.AnimeGroupParentID.HasValue && childGroup.AnimeGroupParentID.Value == group.MediaGroupID)
                         continue;
 
-                    childGroup.AnimeGroupParentID = group.AnimeGroupID;
+                    childGroup.AnimeGroupParentID = group.MediaGroupID;
                     childGroup.DateTimeUpdated = DateTime.Now;
-                    RepoFactory.AnimeGroup.Save(childGroup, false);
+                    RepoFactory.MediaGroup.Save(childGroup, false);
                 }
 
                 // Move the series over to the new group.
-                var seriesService = Utils.ServiceContainer.GetRequiredService<AnimeSeriesService>();
+                var seriesService = Utils.ServiceContainer.GetRequiredService<MediaSeriesService>();
                 foreach (var series in seriesList)
                     seriesService.MoveSeries(series, group, updateGroupStats: false, updateEvent: false);
 
-                var groupService = Utils.ServiceContainer.GetRequiredService<AnimeGroupService>();
+                var groupService = Utils.ServiceContainer.GetRequiredService<MediaGroupService>();
                 // Set the main series and maybe update the group
                 // name/description.
                 if (PreferredSeriesID.HasValue)

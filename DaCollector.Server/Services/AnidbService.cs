@@ -66,10 +66,10 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
     // Lazy init. to prevent circular dependency.
     private AnimeCreator? _animeCreator;
 
-    private readonly AnimeGroupCreator _animeGroupCreator;
+    private readonly MediaGroupCreator _animeGroupCreator;
 
     // Lazy init. to prevent circular dependency.
-    private AnimeSeriesService? _seriesService;
+    private MediaSeriesService? _seriesService;
 
     private readonly AniDB_AnimeRepository _anidbAnimeRepository;
 
@@ -77,7 +77,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
 
     private readonly AniDB_TagRepository _anidbTagRepository;
 
-    private readonly AnimeSeriesRepository _seriesRepository;
+    private readonly MediaSeriesRepository _seriesRepository;
 
     private readonly CrossRef_File_EpisodeRepository _crossReferenceRepository;
 
@@ -95,11 +95,11 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
         HttpXmlUtils xmlUtils,
         HttpAnimeParser httpParser,
         AniDBTitleHelper titleHelper,
-        AnimeGroupCreator animeGroupCreator,
+        MediaGroupCreator MediaGroupCreator,
         AniDB_AnimeRepository anidbAnimeRepository,
         AniDB_AnimeUpdateRepository anidbAnimeUpdateRepository,
         AniDB_TagRepository anidbTagRepository,
-        AnimeSeriesRepository seriesRepository,
+        MediaSeriesRepository seriesRepository,
         CrossRef_File_EpisodeRepository crossReferenceRepository
     )
     {
@@ -114,7 +114,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
         _xmlUtils = xmlUtils;
         _httpParser = httpParser;
         _titleHelper = titleHelper;
-        _animeGroupCreator = animeGroupCreator;
+        _animeGroupCreator = MediaGroupCreator;
         _anidbAnimeRepository = anidbAnimeRepository;
         _anidbAnimeUpdateRepository = anidbAnimeUpdateRepository;
         _anidbTagRepository = anidbTagRepository;
@@ -466,7 +466,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
         var series = _seriesRepository.GetByAnimeID(job.AnimeID);
         var seriesIsNew = series == null;
         var seriesUpdated = false;
-        var seriesEpisodeChanges = new Dictionary<AnimeEpisode, UpdateReason>();
+        var seriesEpisodeChanges = new Dictionary<MediaEpisode, UpdateReason>();
         var settings = _settingsProvider.GetSettings();
         if (series == null && job.CreateSeriesEntry)
             series = await CreateAnimeSeriesAndGroup(anime, job, settings);
@@ -475,7 +475,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
         // existing series record.
         if (series != null)
         {
-            _seriesService ??= _serviceProvider.GetRequiredService<AnimeSeriesService>();
+            _seriesService ??= _serviceProvider.GetRequiredService<MediaSeriesService>();
             (seriesUpdated, seriesEpisodeChanges) = await _seriesService.CreateAnimeEpisodes(series).ConfigureAwait(false);
             _seriesRepository.Save(series, true, false);
         }
@@ -593,10 +593,10 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
         return (false, null);
     }
 
-    private async Task<AnimeSeries> CreateAnimeSeriesAndGroup(AniDB_Anime anime, AnidbJobDetails job, IServerSettings settings)
+    private async Task<MediaSeries> CreateAnimeSeriesAndGroup(AniDB_Anime anime, AnidbJobDetails job, IServerSettings settings)
     {
-        // Create a new AnimeSeries record
-        var series = new AnimeSeries
+        // Create a new MediaSeries record
+        var series = new MediaSeries
         {
             AniDB_ID = anime.AnimeID,
             LatestLocalEpisodeNumber = 0,
@@ -607,7 +607,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
         };
 
         var grp = _animeGroupCreator.GetOrCreateSingleGroupForAnime(anime);
-        series.AnimeGroupID = grp.AnimeGroupID;
+        series.MediaGroupID = grp.MediaGroupID;
         // Populate before making a group to ensure IDs and stats are set for group filters.
         _seriesRepository.Save(series, false, false);
 
@@ -806,11 +806,11 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
 
     #region Helper Classes
 
-    private class AbstractAnidbAnimeSearchResult(SeriesSearch.SearchResult<ResponseAniDBTitles.Anime> searchResult, AniDB_AnimeRepository animeAnimeRepository, AnimeSeriesRepository seriesRepository) : IAnidbAnimeSearchResult
+    private class AbstractAnidbAnimeSearchResult(SeriesSearch.SearchResult<ResponseAniDBTitles.Anime> searchResult, AniDB_AnimeRepository animeAnimeRepository, MediaSeriesRepository seriesRepository) : IAnidbAnimeSearchResult
     {
         private readonly AniDB_AnimeRepository _anidbAnimeRepository = animeAnimeRepository;
 
-        private readonly AnimeSeriesRepository _seriesRepository = seriesRepository;
+        private readonly MediaSeriesRepository _seriesRepository = seriesRepository;
 
         private IReadOnlyList<ITitle>? _titles = null;
 

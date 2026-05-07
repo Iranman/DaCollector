@@ -10,50 +10,50 @@ using DaCollector.Server.Models.DaCollector;
 #nullable enable
 namespace DaCollector.Server.Repositories.Cached;
 
-public class AnimeGroup_UserRepository : BaseCachedRepository<AnimeGroup_User, int>
+public class MediaGroup_UserRepository : BaseCachedRepository<MediaGroup_User, int>
 {
-    private PocoIndex<int, AnimeGroup_User, int>? _groupIDs;
+    private PocoIndex<int, MediaGroup_User, int>? _groupIDs;
 
-    private PocoIndex<int, AnimeGroup_User, int>? _userIDs;
+    private PocoIndex<int, MediaGroup_User, int>? _userIDs;
 
-    private PocoIndex<int, AnimeGroup_User, (int, int)>? _userGroupIDs;
+    private PocoIndex<int, MediaGroup_User, (int, int)>? _userGroupIDs;
 
     private readonly Dictionary<int, ChangeTracker<int>> _changes = [];
 
-    public AnimeGroup_UserRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
+    public MediaGroup_UserRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
     {
         EndDeleteCallback = cr =>
         {
             _changes.TryAdd(cr.JMMUserID, new());
-            _changes[cr.JMMUserID].Remove(cr.AnimeGroupID);
+            _changes[cr.JMMUserID].Remove(cr.MediaGroupID);
         };
     }
 
-    protected override int SelectKey(AnimeGroup_User entity)
-        => entity.AnimeGroup_UserID;
+    protected override int SelectKey(MediaGroup_User entity)
+        => entity.MediaGroup_UserID;
 
     public override void PopulateIndexes()
     {
-        _groupIDs = Cache.CreateIndex(a => a.AnimeGroupID);
+        _groupIDs = Cache.CreateIndex(a => a.MediaGroupID);
         _userIDs = Cache.CreateIndex(a => a.JMMUserID);
-        _userGroupIDs = Cache.CreateIndex(a => (a.JMMUserID, a.AnimeGroupID));
+        _userGroupIDs = Cache.CreateIndex(a => (a.JMMUserID, a.MediaGroupID));
 
         foreach (var n in Cache.Values.Select(a => a.JMMUserID).Distinct())
         {
             _changes[n] = new();
-            _changes[n].AddOrUpdateRange(_userIDs.GetMultiple(n).Select(a => a.AnimeGroupID));
+            _changes[n].AddOrUpdateRange(_userIDs.GetMultiple(n).Select(a => a.MediaGroupID));
         }
     }
 
-    public override void Save(AnimeGroup_User obj)
+    public override void Save(MediaGroup_User obj)
     {
         base.Save(obj);
         _changes.TryAdd(obj.JMMUserID, new());
-        _changes[obj.JMMUserID].AddOrUpdate(obj.AnimeGroupID);
+        _changes[obj.JMMUserID].AddOrUpdate(obj.MediaGroupID);
     }
 
     /// <summary>
-    /// Inserts a batch of <see cref="AnimeGroup_User"/> into the database.
+    /// Inserts a batch of <see cref="MediaGroup_User"/> into the database.
     /// </summary>
     /// <remarks>
     /// This method should NOT be used for updating existing entities.
@@ -61,9 +61,9 @@ public class AnimeGroup_UserRepository : BaseCachedRepository<AnimeGroup_User, i
     /// Group Filters, etc. will not be updated by this method.
     /// </remarks>
     /// <param name="session">The NHibernate session.</param>
-    /// <param name="groupUsers">The batch of <see cref="AnimeGroup_User"/> to insert into the database.</param>
+    /// <param name="groupUsers">The batch of <see cref="MediaGroup_User"/> to insert into the database.</param>
     /// <exception cref="ArgumentNullException"><paramref name="session"/> or <paramref name="groupUsers"/> is <c>null</c>.</exception>
-    public async Task InsertBatch(ISessionWrapper session, IEnumerable<AnimeGroup_User> groupUsers)
+    public async Task InsertBatch(ISessionWrapper session, IEnumerable<MediaGroup_User> groupUsers)
     {
         ArgumentNullException.ThrowIfNull(session);
         ArgumentNullException.ThrowIfNull(groupUsers);
@@ -79,23 +79,23 @@ public class AnimeGroup_UserRepository : BaseCachedRepository<AnimeGroup_User, i
                 _changes[groupUser.JMMUserID] = changeTracker;
             }
 
-            changeTracker.AddOrUpdate(groupUser.AnimeGroupID);
+            changeTracker.AddOrUpdate(groupUser.MediaGroupID);
         }
 
         await transaction.CommitAsync();
     }
 
     /// <summary>
-    /// Inserts a batch of <see cref="AnimeGroup_User"/> into the database.
+    /// Inserts a batch of <see cref="MediaGroup_User"/> into the database.
     /// </summary>
     /// <remarks>
     /// <para>It is up to the caller of this method to manage transactions, etc.</para>
     /// <para>Group Filters, etc. will not be updated by this method.</para>
     /// </remarks>
     /// <param name="session">The NHibernate session.</param>
-    /// <param name="groupUsers">The batch of <see cref="AnimeGroup_User"/> to insert into the database.</param>
+    /// <param name="groupUsers">The batch of <see cref="MediaGroup_User"/> to insert into the database.</param>
     /// <exception cref="ArgumentNullException"><paramref name="session"/> or <paramref name="groupUsers"/> is <c>null</c>.</exception>
-    public async Task UpdateBatch(ISessionWrapper session, IEnumerable<AnimeGroup_User> groupUsers)
+    public async Task UpdateBatch(ISessionWrapper session, IEnumerable<MediaGroup_User> groupUsers)
     {
         ArgumentNullException.ThrowIfNull(session);
         ArgumentNullException.ThrowIfNull(groupUsers);
@@ -111,14 +111,14 @@ public class AnimeGroup_UserRepository : BaseCachedRepository<AnimeGroup_User, i
                 _changes[groupUser.JMMUserID] = changeTracker;
             }
 
-            changeTracker.AddOrUpdate(groupUser.AnimeGroupID);
+            changeTracker.AddOrUpdate(groupUser.MediaGroupID);
         }
 
         await transaction.CommitAsync();
     }
 
     /// <summary>
-    /// Deletes all AnimeGroup_User records.
+    /// Deletes all MediaGroup_User records.
     /// </summary>
     /// <remarks>
     /// This method also makes sure that the cache is cleared.
@@ -130,10 +130,10 @@ public class AnimeGroup_UserRepository : BaseCachedRepository<AnimeGroup_User, i
         ArgumentNullException.ThrowIfNull(session);
 
         // First, get all of the current user/groups so that we can inform the change tracker that they have been removed later
-        var groupUsers = GetAll().GroupBy(g => g.JMMUserID, g => g.AnimeGroupID);
+        var groupUsers = GetAll().GroupBy(g => g.JMMUserID, g => g.MediaGroupID);
 
         // Then, actually delete the AnimeGroup_Users
-        await Lock(async () => await session.CreateSQLQuery("DELETE FROM AnimeGroup_User WHERE AnimeGroup_UserID > 0").ExecuteUpdateAsync());
+        await Lock(async () => await session.CreateSQLQuery("DELETE FROM MediaGroup_User WHERE MediaGroup_UserID > 0").ExecuteUpdateAsync());
 
         // Now, update the change trackers with all removed records
         foreach (var groupUser in groupUsers)
@@ -152,13 +152,13 @@ public class AnimeGroup_UserRepository : BaseCachedRepository<AnimeGroup_User, i
         ClearCache();
     }
 
-    public AnimeGroup_User? GetByUserAndGroupID(int userID, int groupID)
+    public MediaGroup_User? GetByUserAndGroupID(int userID, int groupID)
         => ReadLock(() => _userGroupIDs!.GetOne((userID, groupID)));
 
-    public List<AnimeGroup_User> GetByUserID(int userID)
+    public List<MediaGroup_User> GetByUserID(int userID)
         => ReadLock(() => _userIDs!.GetMultiple(userID));
 
-    public List<AnimeGroup_User> GetByGroupID(int groupID)
+    public List<MediaGroup_User> GetByGroupID(int groupID)
         => ReadLock(() => _groupIDs!.GetMultiple(groupID));
 
     public ChangeTracker<int> GetChangeTracker(int userID)

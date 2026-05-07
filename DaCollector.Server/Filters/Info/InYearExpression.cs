@@ -18,7 +18,7 @@ public class InYearExpression : FilterExpression<bool>, IWithNumberParameter
 
     public override bool TimeDependent => true;
     public override string HelpDescription => "This condition passes if any of the anime aired in the specified year";
-    public override string[] HelpPossibleParameters => RepoFactory.AnimeSeries.GetAllYears().Select(a => a.ToString()).ToArray();
+    public override string[] HelpPossibleParameters => RepoFactory.MediaSeries.GetAllYears().Select(a => a.ToString()).ToArray();
 
     double IWithNumberParameter.Parameter
     {

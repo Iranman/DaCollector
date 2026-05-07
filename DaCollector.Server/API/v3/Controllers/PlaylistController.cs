@@ -19,17 +19,17 @@ public class PlaylistController : BaseController
 {
     private readonly GeneratedPlaylistService _playlistService;
 
-    private readonly AnimeSeriesRepository _seriesRepository;
+    private readonly MediaSeriesRepository _seriesRepository;
 
-    private readonly AnimeEpisodeRepository _episodeRepository;
+    private readonly MediaEpisodeRepository _episodeRepository;
 
     private readonly VideoLocalRepository _videoRepository;
 
-    public PlaylistController(ISettingsProvider settingsProvider, GeneratedPlaylistService playlistService, AnimeSeriesRepository animeSeriesRepository, AnimeEpisodeRepository animeEpisodeRepository, VideoLocalRepository videoRepository) : base(settingsProvider)
+    public PlaylistController(ISettingsProvider settingsProvider, GeneratedPlaylistService playlistService, MediaSeriesRepository MediaSeriesRepository, MediaEpisodeRepository MediaEpisodeRepository, VideoLocalRepository videoRepository) : base(settingsProvider)
     {
         _playlistService = playlistService;
-        _seriesRepository = animeSeriesRepository;
-        _episodeRepository = animeEpisodeRepository;
+        _seriesRepository = MediaSeriesRepository;
+        _episodeRepository = MediaEpisodeRepository;
         _videoRepository = videoRepository;
     }
 
@@ -59,7 +59,7 @@ public class PlaylistController : BaseController
         return playlist
             .Select(tuple => new PlaylistItem(
                 tuple.episodes
-                    .Select(episode => new Episode(HttpContext, (episode as AnimeEpisode)!, includeDataFrom, withXRefs: includeXRefs))
+                    .Select(episode => new Episode(HttpContext, (episode as MediaEpisode)!, includeDataFrom, withXRefs: includeXRefs))
                     .ToList(),
                 tuple.videos
                     .Select(video => new File(HttpContext, (video as VideoLocal)!, withXRefs: includeXRefs, includeReleaseInfo, includeMediaInfo, includeAbsolutePaths))

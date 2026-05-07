@@ -6,7 +6,7 @@ namespace DaCollector.Server.Extensions;
 
 public static class ModelProviders
 {
-    public static void Populate(this AnimeGroup group, AnimeSeries series, DateTime now)
+    public static void Populate(this MediaGroup group, MediaSeries series, DateTime now)
     {
         group.Description = series.PreferredOverview?.Value ?? string.Empty;
         var name = series.Title;
@@ -16,7 +16,7 @@ public static class ModelProviders
         group.DateTimeCreated = now;
     }
 
-    public static void Populate(this AnimeGroup group, AniDB_Anime anime, DateTime now)
+    public static void Populate(this MediaGroup group, AniDB_Anime anime, DateTime now)
     {
         group.Description = anime.Description;
         var name = anime.Title;

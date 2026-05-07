@@ -73,9 +73,9 @@ public class SettingsProvider : ISettingsProvider, IDisposable
             Languages.PreferredNamingLanguages = [];
 
             // Reset all preferred titles when the language setting has been updated.
-            var animeSeriesRepository = Utils.ServiceContainer.GetRequiredService<AnimeSeriesRepository>();
+            var MediaSeriesRepository = Utils.ServiceContainer.GetRequiredService<MediaSeriesRepository>();
             var anidbAnimeRepository = Utils.ServiceContainer.GetRequiredService<AniDB_AnimeRepository>();
-            Parallel.ForEach(animeSeriesRepository.GetAll(), new() { MaxDegreeOfParallelism = 10 }, series => series.ResetPreferredTitle());
+            Parallel.ForEach(MediaSeriesRepository.GetAll(), new() { MaxDegreeOfParallelism = 10 }, series => series.ResetPreferredTitle());
             Parallel.ForEach(anidbAnimeRepository.GetAll(), new() { MaxDegreeOfParallelism = 10 }, anime => anime.ResetPreferredTitle());
             shouldRenameAllGroups = true;
         }
@@ -100,13 +100,13 @@ public class SettingsProvider : ISettingsProvider, IDisposable
             Languages.PreferredDescriptionNamingLanguages = [];
 
             // Reset all preferred overviews when the language setting has been updated.
-            var animeSeriesRepository = Utils.ServiceContainer.GetRequiredService<AnimeSeriesRepository>();
-            Parallel.ForEach(animeSeriesRepository.GetAll(), new() { MaxDegreeOfParallelism = 10 }, series => series.ResetPreferredOverview());
+            var MediaSeriesRepository = Utils.ServiceContainer.GetRequiredService<MediaSeriesRepository>();
+            Parallel.ForEach(MediaSeriesRepository.GetAll(), new() { MaxDegreeOfParallelism = 10 }, series => series.ResetPreferredOverview());
             shouldRenameAllGroups = true;
         }
         if (shouldRenameAllGroups)
         {
-            var groupService = Utils.ServiceContainer.GetRequiredService<AnimeGroupService>();
+            var groupService = Utils.ServiceContainer.GetRequiredService<MediaGroupService>();
             Task.Factory.StartNew(groupService.RenameAllGroups, TaskCreationOptions.LongRunning);
         }
     }

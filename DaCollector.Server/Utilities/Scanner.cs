@@ -165,7 +165,7 @@ public class Scanner
 
         var files = ActiveErrorFiles.ToList();
         ActiveErrorFiles.Clear();
-        var seriesToUpdate = new HashSet<AnimeSeries>();
+        var seriesToUpdate = new HashSet<MediaSeries>();
         var vlpService = (VideoService)Utils.ServiceContainer.GetRequiredService<IVideoService>();
         var scheduler = Utils.ServiceContainer.GetRequiredService<ISchedulerFactory>().GetScheduler().Result;
         var databaseFactory = Utils.ServiceContainer.GetRequiredService<DatabaseFactory>();

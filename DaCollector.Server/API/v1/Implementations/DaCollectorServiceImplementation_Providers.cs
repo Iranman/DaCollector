@@ -378,14 +378,14 @@ public partial class DaCollectorServiceImplementation
                 return string.Empty;
             }
 
-            var ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
+            var ser = RepoFactory.MediaSeries.GetByAnimeID(animeID);
             if (ser == null)
             {
                 return "Could not find Anime Series";
             }
 
             var scheduler = _schedulerFactory.GetScheduler().Result;
-            scheduler.StartJob<SendSeriesWatchStatesToTraktJob>(c => c.AnimeSeriesID = ser.AnimeSeriesID).GetAwaiter().GetResult();
+            scheduler.StartJob<SendSeriesWatchStatesToTraktJob>(c => c.MediaSeriesID = ser.MediaSeriesID).GetAwaiter().GetResult();
 
             return string.Empty;
         }

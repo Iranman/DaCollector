@@ -44,8 +44,8 @@ public class CrossRef_AniDB_TMDB_Show : ITmdbShowCrossReference
     public AniDB_Anime? AnidbAnime =>
         RepoFactory.AniDB_Anime.GetByAnimeID(AnidbAnimeID);
 
-    public AnimeSeries? AnimeSeries =>
-        RepoFactory.AnimeSeries.GetByAnimeID(AnidbAnimeID);
+    public MediaSeries? MediaSeries =>
+        RepoFactory.MediaSeries.GetByAnimeID(AnidbAnimeID);
 
     public TMDB_Show? TmdbShow =>
         RepoFactory.TMDB_Show.GetByTmdbShowID(TmdbShowID);
@@ -91,7 +91,7 @@ public class CrossRef_AniDB_TMDB_Show : ITmdbShowCrossReference
 
     #region ITmdbShowCrossReference Implementation
 
-    IDaCollectorSeries? ITmdbShowCrossReference.DaCollectorSeries => AnimeSeries;
+    IDaCollectorSeries? ITmdbShowCrossReference.DaCollectorSeries => MediaSeries;
 
     ITmdbShow? ITmdbShowCrossReference.TmdbShow => TmdbShow;
 

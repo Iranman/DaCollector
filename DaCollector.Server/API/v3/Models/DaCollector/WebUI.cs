@@ -158,7 +158,7 @@ public class WebUI
     public class WebUISeriesFileSummary
     {
         public WebUISeriesFileSummary(
-            AnimeSeries series,
+            MediaSeries series,
             HashSet<EpisodeType>? episodeTypes = null,
             bool withEpisodeDetails = false,
             bool withLocationDetails = false,

@@ -56,7 +56,7 @@ public class TmdbLinkingService : ITmdbLinkingService
 
     private readonly TmdbImageService _imageService;
 
-    private readonly AnimeSeriesRepository _animeSeries;
+    private readonly MediaSeriesRepository _animeSeries;
 
     private readonly AniDB_AnimeRepository _anidbAnime;
 
@@ -79,7 +79,7 @@ public class TmdbLinkingService : ITmdbLinkingService
         ISchedulerFactory schedulerFactory,
         ISettingsProvider settingsProvider,
         TmdbImageService imageService,
-        AnimeSeriesRepository animeSeries,
+        MediaSeriesRepository MediaSeries,
         AniDB_AnimeRepository anidbAnime,
         AniDB_EpisodeRepository anidbEpisodes,
         AniDB_Episode_TitleRepository anidbEpisodeTitles,
@@ -94,7 +94,7 @@ public class TmdbLinkingService : ITmdbLinkingService
         _schedulerFactory = schedulerFactory;
         _settingsProvider = settingsProvider;
         _imageService = imageService;
-        _animeSeries = animeSeries;
+        _animeSeries = MediaSeries;
         _anidbAnime = anidbAnime;
         _anidbEpisodes = anidbEpisodes;
         _anidbEpisodeTitles = anidbEpisodeTitles;
@@ -539,7 +539,7 @@ public class TmdbLinkingService : ITmdbLinkingService
 
                 // If hidden and no user verified links, then unset the auto link.
                 shouldAddNewLinks = false;
-                if ((episode.AnimeEpisode?.IsHidden ?? false) && !existingLinks.Any(link => link.MatchRating is MatchRating.UserVerified))
+                if ((episode.MediaEpisode?.IsHidden ?? false) && !existingLinks.Any(link => link.MatchRating is MatchRating.UserVerified))
                 {
                     _logger.LogTrace("Skipping hidden episode. (AniDB ID: {AnidbEpisodeID})", episode.EpisodeID);
                     var link = existingLinks[0];
@@ -579,7 +579,7 @@ public class TmdbLinkingService : ITmdbLinkingService
             if (shouldAddNewLinks)
             {
                 // If hidden then skip linking episode.
-                if (episode.AnimeEpisode?.IsHidden ?? false)
+                if (episode.MediaEpisode?.IsHidden ?? false)
                 {
                     _logger.LogTrace("Skipping hidden episode. (AniDB ID: {AnidbEpisodeID})", episode.EpisodeID);
                     crossReferences.Add(new(episode.EpisodeID, anidbAnimeId, 0, 0, MatchRating.None, 0));

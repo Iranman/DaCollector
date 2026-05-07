@@ -57,7 +57,7 @@ public class VideoReleaseService(
     AniDB_EpisodeRepository anidbEpisodeRepository,
     AniDB_AnimeRepository anidbAnimeRepository,
     AniDB_AnimeUpdateRepository anidbAnimeUpdateRepository,
-    AnimeSeriesRepository dacollectorSeriesRepository,
+    MediaSeriesRepository dacollectorSeriesRepository,
     CrossRef_AniDB_TMDB_ShowRepository crossRefAnidbTmdbRepository,
     CrossRef_File_EpisodeRepository xrefRepository
 ) : IVideoReleaseService

@@ -17,21 +17,21 @@ using DaCollector.Server.Repositories.Cached;
 #nullable enable
 namespace DaCollector.Server.Services;
 
-public class AnimeGroupService
+public class MediaGroupService
 {
-    private readonly ILogger<AnimeGroupService> _logger;
+    private readonly ILogger<MediaGroupService> _logger;
 
-    private readonly AnimeGroup_UserRepository _groupUsers;
+    private readonly MediaGroup_UserRepository _groupUsers;
 
     private readonly StoredReleaseInfoRepository _storedReleaseInfo;
 
-    private readonly AnimeGroupRepository _groups;
+    private readonly MediaGroupRepository _groups;
 
-    private readonly AnimeSeries_UserRepository _seriesUsers;
+    private readonly MediaSeries_UserRepository _seriesUsers;
 
     private readonly UserDataService _userDataService;
 
-    public AnimeGroupService(ILogger<AnimeGroupService> logger, AnimeGroup_UserRepository groupUsers, StoredReleaseInfoRepository storedReleaseInfo, AnimeGroupRepository groups, AnimeSeries_UserRepository seriesUsers, IUserDataService userDataService)
+    public MediaGroupService(ILogger<MediaGroupService> logger, MediaGroup_UserRepository groupUsers, StoredReleaseInfoRepository storedReleaseInfo, MediaGroupRepository groups, MediaSeries_UserRepository seriesUsers, IUserDataService userDataService)
     {
         _groupUsers = groupUsers;
         _logger = logger;
@@ -41,7 +41,7 @@ public class AnimeGroupService
         _userDataService = (UserDataService)userDataService;
     }
 
-    public void DeleteGroup(AnimeGroup group, bool updateParent = true)
+    public void DeleteGroup(MediaGroup group, bool updateParent = true)
     {
         // delete all sub groups
         foreach (var subGroup in group.AllChildren)
@@ -58,17 +58,17 @@ public class AnimeGroupService
         }
     }
 
-    public void SetMainSeries(AnimeGroup group, AnimeSeries? series)
+    public void SetMainSeries(MediaGroup group, MediaSeries? series)
     {
         // Set the id before potentially resetting the fields, so the getter uses
         // the new id instead of the old.
-        group.DefaultAnimeSeriesID = series?.AnimeSeriesID;
+        group.DefaultAnimeSeriesID = series?.MediaSeriesID;
 
         ValidateMainSeries(group);
 
         // Reset the name/description if the group is not manually named.
         var current = series ?? (group.MainAniDBAnimeID.HasValue
-            ? RepoFactory.AnimeSeries.GetByAnimeID(group.MainAniDBAnimeID.Value)
+            ? RepoFactory.MediaSeries.GetByAnimeID(group.MainAniDBAnimeID.Value)
             : group.AllSeries.FirstOrDefault());
         if (group.IsManuallyNamed == 0 && current != null)
             group.GroupName = current!.Title;
@@ -80,13 +80,13 @@ public class AnimeGroupService
         _groups.Save(group, false);
     }
 
-    public void ValidateMainSeries(AnimeGroup group)
+    public void ValidateMainSeries(MediaGroup group)
     {
         if (group.MainAniDBAnimeID == null && group.DefaultAnimeSeriesID == null) return;
         var allSeries = group.AllSeries;
 
         // User overridden main series.
-        if (group.DefaultAnimeSeriesID.HasValue && !allSeries.Any(series => series.AnimeSeriesID == group.DefaultAnimeSeriesID.Value))
+        if (group.DefaultAnimeSeriesID.HasValue && !allSeries.Any(series => series.MediaSeriesID == group.DefaultAnimeSeriesID.Value))
         {
             throw new InvalidOperationException("Cannot set default series to a series that does not exist in the group");
         }
@@ -132,7 +132,7 @@ public class AnimeGroupService
     /// Update stats for all child groups and series
     /// This should only be called from the very top level group.
     /// </summary>
-    public void UpdateStatsFromTopLevel(AnimeGroup? group, bool watchedStats, bool missingEpsStats)
+    public void UpdateStatsFromTopLevel(MediaGroup? group, bool watchedStats, bool missingEpsStats)
     {
         if (group is not { AnimeGroupParentID: null })
         {
@@ -156,9 +156,9 @@ public class AnimeGroupService
 
     /// <summary>
     /// Update the stats for this group based on the child series
-    /// Assumes that all the AnimeSeries have had their stats updated already
+    /// Assumes that all the MediaSeries have had their stats updated already
     /// </summary>
-    private void UpdateStats(AnimeGroup group, bool watchedStats, bool missingEpsStats)
+    private void UpdateStats(MediaGroup group, bool watchedStats, bool missingEpsStats)
     {
         var start = DateTime.Now;
         _logger.LogInformation(
@@ -199,38 +199,38 @@ public class AnimeGroupService
     }
 
     /// <summary>
-    /// Batch updates watched/missing episode stats for the specified sequence of <see cref="AnimeGroup"/>s.
+    /// Batch updates watched/missing episode stats for the specified sequence of <see cref="MediaGroup"/>s.
     /// </summary>
     /// <remarks>
     /// NOTE: This method does NOT save the changes made to the database.
-    /// NOTE 2: Assumes that all the AnimeSeries have had their stats updated already.
+    /// NOTE 2: Assumes that all the MediaSeries have had their stats updated already.
     /// </remarks>
-    /// <param name="animeGroups">The sequence of <see cref="AnimeGroup"/>s whose missing episode stats are to be updated.</param>
+    /// <param name="animeGroups">The sequence of <see cref="MediaGroup"/>s whose missing episode stats are to be updated.</param>
     /// <param name="watchedStats"><c>true</c> to update watched stats; otherwise, <c>false</c>.</param>
     /// <param name="missingEpsStats"><c>true</c> to update missing episode stats; otherwise, <c>false</c>.</param>
-    /// <param name="createdGroupUsers">The <see cref="ICollection{T}"/> to add any <see cref="AnimeGroup_User"/> records
+    /// <param name="createdGroupUsers">The <see cref="ICollection{T}"/> to add any <see cref="MediaGroup_User"/> records
     /// that were created when updating watched stats.</param>
-    /// <param name="updatedGroupUsers">The <see cref="ICollection{T}"/> to add any <see cref="AnimeGroup_User"/> records
+    /// <param name="updatedGroupUsers">The <see cref="ICollection{T}"/> to add any <see cref="MediaGroup_User"/> records
     /// that were modified when updating watched stats.</param>
     /// <exception cref="ArgumentNullException"><paramref name="animeGroups"/> is <c>null</c>.</exception>
-    public void BatchUpdateStats(IEnumerable<AnimeGroup> animeGroups, bool watchedStats = true,
+    public void BatchUpdateStats(IEnumerable<MediaGroup> animeGroups, bool watchedStats = true,
         bool missingEpsStats = true,
-        ICollection<AnimeGroup_User>? createdGroupUsers = null,
-        ICollection<AnimeGroup_User>? updatedGroupUsers = null)
+        ICollection<MediaGroup_User>? createdGroupUsers = null,
+        ICollection<MediaGroup_User>? updatedGroupUsers = null)
     {
         ArgumentNullException.ThrowIfNull(animeGroups);
         if (!watchedStats && !missingEpsStats)
             return; // Nothing to do
 
         var allUsers = RepoFactory.JMMUser.GetAll();
-        foreach (var animeGroup in animeGroups)
+        foreach (var MediaGroup in animeGroups)
         {
-            var animeSeries = animeGroup.AllSeries;
+            var MediaSeries = MediaGroup.AllSeries;
             if (missingEpsStats)
-                UpdateMissingEpisodeStats(animeGroup, animeSeries);
+                UpdateMissingEpisodeStats(MediaGroup, MediaSeries);
             if (watchedStats)
             {
-                UpdateWatchedStats(animeGroup, animeSeries, allUsers, (userRecord, isNew, isUpdated) =>
+                UpdateWatchedStats(MediaGroup, MediaSeries, allUsers, (userRecord, isNew, isUpdated) =>
                 {
                     if (isNew)
                     {
@@ -248,18 +248,18 @@ public class AnimeGroupService
     /// <summary>
     /// Updates the watched stats for the specified anime group.
     /// </summary>
-    /// <param name="animeGroup">The <see cref="AnimeGroup"/> that is to have it's watched stats updated.</param>
-    /// <param name="seriesList">The list of <see cref="AnimeSeries"/> that belong to <paramref name="animeGroup"/>.</param>
+    /// <param name="MediaGroup">The <see cref="MediaGroup"/> that is to have it's watched stats updated.</param>
+    /// <param name="seriesList">The list of <see cref="MediaSeries"/> that belong to <paramref name="MediaGroup"/>.</param>
     /// <param name="allUsers">A sequence of all JMM users.</param>
-    /// <param name="newAnimeGroupUsers">A method that will be called for each processed <see cref="AnimeGroup_User"/>
-    /// and whether or not the <see cref="AnimeGroup_User"/> is new.</param>
-    private void UpdateWatchedStats(AnimeGroup animeGroup,
-        IReadOnlyList<AnimeSeries> seriesList,
-        IEnumerable<JMMUser> allUsers, Action<AnimeGroup_User, bool, bool> newAnimeGroupUsers)
+    /// <param name="newAnimeGroupUsers">A method that will be called for each processed <see cref="MediaGroup_User"/>
+    /// and whether or not the <see cref="MediaGroup_User"/> is new.</param>
+    private void UpdateWatchedStats(MediaGroup MediaGroup,
+        IReadOnlyList<MediaSeries> seriesList,
+        IEnumerable<JMMUser> allUsers, Action<MediaGroup_User, bool, bool> newAnimeGroupUsers)
     {
         foreach (var user in allUsers)
         {
-            _userDataService.UpdateWatchedStats(animeGroup, user, seriesList, newAnimeGroupUsers);
+            _userDataService.UpdateWatchedStats(MediaGroup, user, seriesList, newAnimeGroupUsers);
         }
     }
 
@@ -268,12 +268,12 @@ public class AnimeGroupService
     /// </summary>
     /// <remarks>
     /// NOTE: This method does NOT save the changes made to the database.
-    /// NOTE 2: Assumes that all the AnimeSeries have had their stats updated already.
+    /// NOTE 2: Assumes that all the MediaSeries have had their stats updated already.
     /// </remarks>
-    /// <param name="animeGroup">The <see cref="AnimeGroup"/> that is to have it's missing episode stats updated.</param>
-    /// <param name="seriesList">The list of <see cref="AnimeSeries"/> that belong to <paramref name="animeGroup"/>.</param>
-    private static void UpdateMissingEpisodeStats(AnimeGroup animeGroup,
-        IEnumerable<AnimeSeries> seriesList)
+    /// <param name="MediaGroup">The <see cref="MediaGroup"/> that is to have it's missing episode stats updated.</param>
+    /// <param name="seriesList">The list of <see cref="MediaSeries"/> that belong to <paramref name="MediaGroup"/>.</param>
+    private static void UpdateMissingEpisodeStats(MediaGroup MediaGroup,
+        IEnumerable<MediaSeries> seriesList)
     {
         var missingEpisodeCount = 0;
         var missingEpisodeCountGroups = 0;
@@ -300,8 +300,8 @@ public class AnimeGroupService
             }
         });
 
-        animeGroup.MissingEpisodeCount = missingEpisodeCount;
-        animeGroup.MissingEpisodeCountGroups = missingEpisodeCountGroups;
-        animeGroup.LatestEpisodeAirDate = latestEpisodeAirDate;
+        MediaGroup.MissingEpisodeCount = missingEpisodeCount;
+        MediaGroup.MissingEpisodeCountGroups = missingEpisodeCountGroups;
+        MediaGroup.LatestEpisodeAirDate = latestEpisodeAirDate;
     }
 }

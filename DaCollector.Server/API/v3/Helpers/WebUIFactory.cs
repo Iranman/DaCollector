@@ -13,7 +13,7 @@ namespace DaCollector.Server.API.v3.Helpers;
 
 public class WebUIFactory
 {
-    public WebUI.WebUISeriesExtra GetWebUISeriesExtra(AnimeSeries series)
+    public WebUI.WebUISeriesExtra GetWebUISeriesExtra(MediaSeries series)
     {
         var anime = series.AniDB_Anime;
         var animeEpisodes = anime.AniDBEpisodes;
@@ -63,12 +63,12 @@ public class WebUIFactory
         return TimeSpan.FromSeconds(episodes[index].LengthSeconds);
     }
 
-    public WebUI.WebUIGroupExtra GetWebUIGroupExtra(AnimeGroup group, AniDB_Anime anime,
+    public WebUI.WebUIGroupExtra GetWebUIGroupExtra(MediaGroup group, AniDB_Anime anime,
         TagFilter.Filter filter = TagFilter.Filter.None, bool orderByName = false, int tagLimit = 30)
     {
         var result = new WebUI.WebUIGroupExtra
         {
-            ID = group.AnimeGroupID,
+            ID = group.MediaGroupID,
             Type = anime.AnimeType.ToV3Dto(),
             Rating = new Rating { Source = "AniDB", Value = anime.Rating, MaxValue = 1000, Votes = anime.VoteCount }
         };

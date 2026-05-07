@@ -50,17 +50,17 @@ public class Episode : BaseDirectory
 
         if (anime_episode_id > 0)
         {
-            ep = GenerateFromAnimeEpisode(ctx, RepoFactory.AnimeEpisode.GetByID(anime_episode_id), uid,
+            ep = GenerateFromAnimeEpisode(ctx, RepoFactory.MediaEpisode.GetByID(anime_episode_id), uid,
                 level, pic);
         }
 
         return ep;
     }
 
-    internal static Episode GenerateFromAnimeEpisode(HttpContext ctx, AnimeEpisode aep, int uid, int level,
+    internal static Episode GenerateFromAnimeEpisode(HttpContext ctx, MediaEpisode aep, int uid, int level,
         int pic = 1)
     {
-        var ep = new Episode { id = aep.AnimeEpisodeID, art = new ArtCollection() };
+        var ep = new Episode { id = aep.MediaEpisodeID, art = new ArtCollection() };
 
         if (aep.AniDB_Episode is { } anidbEpisode)
         {
@@ -69,7 +69,7 @@ public class Episode : BaseDirectory
             ep.eid = anidbEpisode.EpisodeID;
         }
 
-        if (RepoFactory.AnimeEpisode_User.GetByUserAndEpisodeID(uid, aep.AnimeEpisodeID) is { HasUserRating: true } userData)
+        if (RepoFactory.MediaEpisode_User.GetByUserAndEpisodeID(uid, aep.MediaEpisodeID) is { HasUserRating: true } userData)
         {
             ep.userrating = userData.UserRating.Value.ToString(CultureInfo.InvariantCulture);
         }
@@ -173,7 +173,7 @@ public class Episode : BaseDirectory
 
         if (string.IsNullOrEmpty(ep.year))
         {
-            ep.year = aep.AnimeSeries.AirDate?.Year.ToString(CultureInfo.InvariantCulture) ?? "1";
+            ep.year = aep.MediaSeries.AirDate?.Year.ToString(CultureInfo.InvariantCulture) ?? "1";
         }
 
         if (level > 0)

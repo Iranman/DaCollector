@@ -16,9 +16,9 @@ namespace DaCollector.Server.Scheduling.Jobs.Actions;
 public class RefreshAnimeStatsJob : BaseJob
 {
     private readonly AniDB_AnimeRepository _animeRepo;
-    private readonly AnimeSeriesRepository _seriesRepo;
-    private readonly AnimeSeriesService _seriesService;
-    private readonly AnimeGroupService _groupService;
+    private readonly MediaSeriesRepository _seriesRepo;
+    private readonly MediaSeriesService _seriesService;
+    private readonly MediaGroupService _groupService;
 
     public int AnimeID { get; set; }
 
@@ -59,11 +59,11 @@ public class RefreshAnimeStatsJob : BaseJob
 
         // Updating stats saves everything and updates groups
         _seriesService.UpdateStats(series, true, true);
-        _groupService.UpdateStatsFromTopLevel(series?.AnimeGroup?.TopLevelAnimeGroup, true, true);
+        _groupService.UpdateStatsFromTopLevel(series?.MediaGroup?.TopLevelAnimeGroup, true, true);
         return Task.CompletedTask;
     }
 
-    public RefreshAnimeStatsJob(AnimeSeriesService seriesService, AniDB_AnimeRepository animeRepo, AnimeSeriesRepository seriesRepo, AnimeGroupService groupService)
+    public RefreshAnimeStatsJob(MediaSeriesService seriesService, AniDB_AnimeRepository animeRepo, MediaSeriesRepository seriesRepo, MediaGroupService groupService)
     {
         _seriesService = seriesService;
         _animeRepo = animeRepo;

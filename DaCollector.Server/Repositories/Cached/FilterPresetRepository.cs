@@ -251,7 +251,7 @@ public class FilterPresetRepository(DatabaseFactory databaseFactory) : BaseCache
         => ReadLock(() => GetAll().Where(a => a.Expression?.TimeDependent ?? false).ToList());
 
     public static IReadOnlyList<FilterPreset> GetAllYearFilters(int offset = 0)
-        => RepoFactory.AnimeSeries.GetAllYears()
+        => RepoFactory.MediaSeries.GetAllYears()
             .Select((s, i) => new FilterPreset
             {
                 Name = s.ToString(),
@@ -269,7 +269,7 @@ public class FilterPresetRepository(DatabaseFactory databaseFactory) : BaseCache
             .ToList();
 
     public static IReadOnlyList<FilterPreset> GetAllSeasonFilters(int offset = 0)
-        => RepoFactory.AnimeSeries.GetAllSeasons()
+        => RepoFactory.MediaSeries.GetAllSeasons()
             .Select((season, i) => new FilterPreset
             {
                 Name = season.Season + " " + season.Year,

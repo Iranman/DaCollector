@@ -18,6 +18,6 @@ public class CL_Trakt_WatchedEpisode
 
     public CL_TraktTVShowResponse TraktShow { get; set; }
 
-    public int? AnimeSeriesID { get; set; }
+    public int? MediaSeriesID { get; set; }
     public CL_AniDB_Anime Anime { get; set; }
 }

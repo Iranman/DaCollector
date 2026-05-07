@@ -17,7 +17,7 @@ public static class FilterExtensions
 {
     #region Series
 
-    public static Filterable ToFilterable(this AnimeSeries series, DateTime now)
+    public static Filterable ToFilterable(this MediaSeries series, DateTime now)
     {
         var filterable = new Filterable
         {
@@ -41,13 +41,13 @@ public static class FilterExtensions
                 series.PreferredOverview?.Value ?? string.Empty,
             DescriptionsDelegate = () =>
                 (series as ISeries)!.Descriptions.Select(a => a.Value).ToHashSet(),
-            SeriesIDsDelegate = () => new HashSet<string>() { series.AnimeSeriesID.ToString() },
+            SeriesIDsDelegate = () => new HashSet<string>() { series.MediaSeriesID.ToString() },
             GroupIDDelegate = () =>
-                series.AnimeGroupID,
+                series.MediaGroupID,
             TopLevelGroupIDDelegate = () =>
-                series.TopLevelAnimeGroup.AnimeGroupID,
+                series.TopLevelAnimeGroup.MediaGroupID,
             GroupIDsDelegate = () =>
-                series.AllGroupsAbove.Select(a => a.AnimeGroupID.ToString()).ToHashSet(),
+                series.AllGroupsAbove.Select(a => a.MediaGroupID.ToString()).ToHashSet(),
             AnidbAnimeIDsDelegate = () =>
                 new HashSet<string>() { series.AniDB_ID.ToString() },
             SeriesCountDelegate = () => 1,
@@ -109,7 +109,7 @@ public static class FilterExtensions
                 var allTmdbLinkedEpisodes = series.TmdbEpisodeCrossReferences.Select(a => a.AnidbEpisodeID)
                     .Concat(series.TmdbMovieCrossReferences.Select(a => a.AnidbEpisodeID))
                     .ToHashSet();
-                return series.AnimeEpisodes.Count(a => !allTmdbLinkedEpisodes.Contains(a.AnimeEpisodeID));
+                return series.AnimeEpisodes.Count(a => !allTmdbLinkedEpisodes.Contains(a.MediaEpisodeID));
             },
             IsFinishedDelegate = () =>
                 series.AniDB_Anime?.EndDate is { } endDate && endDate < now.Date,
@@ -176,10 +176,10 @@ public static class FilterExtensions
         return filterable;
     }
 
-    public static FilterableUserInfo ToFilterableUserInfo(this AnimeSeries series, int userID, DateTime now)
+    public static FilterableUserInfo ToFilterableUserInfo(this MediaSeries series, int userID, DateTime now)
     {
         var anime = series.AniDB_Anime;
-        var user = RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(userID, series.AnimeSeriesID);
+        var user = RepoFactory.MediaSeries_User.GetByUserAndSeriesID(userID, series.MediaSeriesID);
         var watchedDates = series.VideoLocals
             .Select(a => RepoFactory.VideoLocalUser.GetByUserAndVideoLocalID(userID, a.VideoLocalID)?.WatchedDate)
             .WhereNotNull()
@@ -213,7 +213,7 @@ public static class FilterExtensions
 
     #region Group
 
-    public static Filterable ToFilterable(this AnimeGroup group, DateTime now)
+    public static Filterable ToFilterable(this MediaGroup group, DateTime now)
     {
         var series = group.AllSeries;
         var anime = group.Anime;
@@ -240,13 +240,13 @@ public static class FilterExtensions
             DescriptionsDelegate = () =>
                 new HashSet<string> { group.Description }.Union((series as ISeries)!.Descriptions.Select(a => a.Value)).ToHashSet(),
             GroupIDDelegate = () =>
-                group.AnimeGroupID,
+                group.MediaGroupID,
             SeriesIDsDelegate = () =>
-                series.Select(a => a.AnimeSeriesID.ToString()).ToHashSet(),
+                series.Select(a => a.MediaSeriesID.ToString()).ToHashSet(),
             GroupIDsDelegate = () =>
-                group.AllGroupsAbove.Prepend(group).Select(a => a.AnimeGroupID.ToString()).ToHashSet(),
+                group.AllGroupsAbove.Prepend(group).Select(a => a.MediaGroupID.ToString()).ToHashSet(),
             TopLevelGroupIDDelegate = () =>
-                group.TopLevelAnimeGroup.AnimeGroupID,
+                group.TopLevelAnimeGroup.MediaGroupID,
             AnidbAnimeIDsDelegate = () =>
                 series.Select(a => a.AniDB_ID.ToString()).ToHashSet(),
             SeriesCountDelegate = () =>
@@ -327,7 +327,7 @@ public static class FilterExtensions
                 var allTmdbLinkedEpisodes = ser.TmdbEpisodeCrossReferences.Select(a => a.AnidbEpisodeID)
                     .Concat(ser.TmdbMovieCrossReferences.Select(a => a.AnidbEpisodeID))
                     .ToHashSet();
-                return acc + ser.AnimeEpisodes.Count(a => !allTmdbLinkedEpisodes.Contains(a.AnimeEpisodeID));
+                return acc + ser.AnimeEpisodes.Count(a => !allTmdbLinkedEpisodes.Contains(a.MediaEpisodeID));
             }),
             IsFinishedDelegate = () =>
                 series.All(a => a.EndDate is not null && a.EndDate <= now.Date),
@@ -383,14 +383,14 @@ public static class FilterExtensions
         return filterable;
     }
 
-    public static FilterableUserInfo ToFilterableUserInfo(this AnimeGroup group, int userID, DateTime now)
+    public static FilterableUserInfo ToFilterableUserInfo(this MediaGroup group, int userID, DateTime now)
     {
         var series = group.AllSeries;
         var anime = group.Anime;
-        var user = RepoFactory.AnimeGroup_User.GetByUserAndGroupID(userID, group.AnimeGroupID);
-        var seriesUserDict = series.Select(a => RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(userID, a.AnimeSeriesID))
+        var user = RepoFactory.MediaGroup_User.GetByUserAndGroupID(userID, group.MediaGroupID);
+        var seriesUserDict = series.Select(a => RepoFactory.MediaSeries_User.GetByUserAndSeriesID(userID, a.MediaSeriesID))
             .WhereNotNull()
-            .ToDictionary(a => a.AnimeSeriesID);
+            .ToDictionary(a => a.MediaSeriesID);
         var ratings = seriesUserDict.Values
             .Where(u => u.HasUserRating)
             .Select(a => a.UserRating!.Value)
@@ -436,7 +436,7 @@ public static class FilterExtensions
                 seriesUserDict.Values.Count(userData => userData is { HasUserRating: true, UserRatingVoteType: SeriesVoteType.Temporary }),
             SeriesPermanentVoteCountDelegate = () =>
                 seriesUserDict.Values.Count(userData => userData is { HasUserRating: true, UserRatingVoteType: SeriesVoteType.Permanent }),
-            MissingPermanentVotesDelegate = () => series.Any(ser => !(seriesUserDict.TryGetValue(ser.AnimeSeriesID, out var userData) && userData.HasUserRating) && ser.EndDate is not null && ser.EndDate > now.Date),
+            MissingPermanentVotesDelegate = () => series.Any(ser => !(seriesUserDict.TryGetValue(ser.MediaSeriesID, out var userData) && userData.HasUserRating) && ser.EndDate is not null && ser.EndDate > now.Date),
             WatchedDateDelegate = () => watchedDates.FirstOrDefault(),
             LastWatchedDateDelegate = () => watchedDates.LastOrDefault()
         };

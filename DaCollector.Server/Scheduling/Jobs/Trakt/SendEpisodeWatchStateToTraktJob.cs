@@ -21,20 +21,20 @@ public class SendEpisodeWatchStateToTraktJob : BaseJob
     private readonly ISettingsProvider _settingsProvider;
     private readonly TraktTVHelper _helper;
     private AniDB_Episode _episode;
-    public int AnimeEpisodeID { get; set; }
+    public int MediaEpisodeID { get; set; }
     public TraktSyncType Action { get; set; }
 
     public override string TypeName => "Send Episode Watch State to Trakt";
     public override string Title => "Sending Episode Watch State to Trakt";
     public override void PostInit()
     {
-        _episode = RepoFactory.AnimeEpisode?.GetByID(AnimeEpisodeID)?.AniDB_Episode;
+        _episode = RepoFactory.MediaEpisode?.GetByID(MediaEpisodeID)?.AniDB_Episode;
     }
 
     public override Dictionary<string, object> Details =>
         _episode == null ? new()
         {
-            { "EpisodeID", AnimeEpisodeID }
+            { "EpisodeID", MediaEpisodeID }
         } : new()
         {
             { "Anime", RepoFactory.AniDB_Anime.GetByAnimeID(_episode.AnimeID)?.PreferredTitle },
@@ -50,7 +50,7 @@ public class SendEpisodeWatchStateToTraktJob : BaseJob
 
         if (!settings.TraktTv.Enabled || string.IsNullOrEmpty(settings.TraktTv.AuthToken)) return Task.CompletedTask;
 
-        var episode = RepoFactory.AnimeEpisode.GetByID(AnimeEpisodeID);
+        var episode = RepoFactory.MediaEpisode.GetByID(MediaEpisodeID);
         if (episode == null) return Task.CompletedTask;
 
         _helper.SendEpisodeWatchState(Action, episode);

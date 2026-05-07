@@ -64,8 +64,8 @@ public class CrossRef_AniDB_TMDB_Season : IEquatable<CrossRef_AniDB_TMDB_Season>
     public AniDB_Anime? AnidbAnime =>
         RepoFactory.AniDB_Anime.GetByAnimeID(AnidbAnimeID);
 
-    public AnimeSeries? AnimeSeries =>
-        RepoFactory.AnimeSeries.GetByAnimeID(AnidbAnimeID);
+    public MediaSeries? MediaSeries =>
+        RepoFactory.MediaSeries.GetByAnimeID(AnidbAnimeID);
 
     public TMDB_Season? TmdbSeason =>
         IsAlternateSeason || _tmdbSeasonID is < 1 ? null : RepoFactory.TMDB_Season.GetByTmdbSeasonID(_tmdbSeasonID);
@@ -134,7 +134,7 @@ public class CrossRef_AniDB_TMDB_Season : IEquatable<CrossRef_AniDB_TMDB_Season>
 
     #region ITmdbSeasonCrossReference Implementation
 
-    IDaCollectorSeries? ITmdbSeasonCrossReference.DaCollectorSeries => AnimeSeries;
+    IDaCollectorSeries? ITmdbSeasonCrossReference.DaCollectorSeries => MediaSeries;
 
     ITmdbShow? ITmdbSeasonCrossReference.TmdbShow => TmdbShow;
 

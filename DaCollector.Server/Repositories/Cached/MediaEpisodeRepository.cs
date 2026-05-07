@@ -14,42 +14,42 @@ using DaCollector.Server.Services;
 #nullable enable
 namespace DaCollector.Server.Repositories.Cached;
 
-public class AnimeEpisodeRepository : BaseCachedRepository<AnimeEpisode, int>
+public class MediaEpisodeRepository : BaseCachedRepository<MediaEpisode, int>
 {
-    private PocoIndex<int, AnimeEpisode, int>? _seriesIDs;
+    private PocoIndex<int, MediaEpisode, int>? _seriesIDs;
 
-    private PocoIndex<int, AnimeEpisode, int>? _anidbEpisodeIDs;
+    private PocoIndex<int, MediaEpisode, int>? _anidbEpisodeIDs;
 
-    public AnimeEpisodeRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
+    public MediaEpisodeRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
     {
         BeginDeleteCallback = cr =>
         {
-            RepoFactory.AnimeEpisode_User.Delete(
-                RepoFactory.AnimeEpisode_User.GetByEpisodeID(cr.AnimeEpisodeID));
+            RepoFactory.MediaEpisode_User.Delete(
+                RepoFactory.MediaEpisode_User.GetByEpisodeID(cr.MediaEpisodeID));
         };
     }
 
-    protected override int SelectKey(AnimeEpisode entity)
-        => entity.AnimeEpisodeID;
+    protected override int SelectKey(MediaEpisode entity)
+        => entity.MediaEpisodeID;
 
     public override void PopulateIndexes()
     {
-        _seriesIDs = Cache.CreateIndex(a => a.AnimeSeriesID);
+        _seriesIDs = Cache.CreateIndex(a => a.MediaSeriesID);
         _anidbEpisodeIDs = Cache.CreateIndex(a => a.AniDB_EpisodeID);
     }
 
-    public List<AnimeEpisode> GetBySeriesID(int seriesID)
+    public List<MediaEpisode> GetBySeriesID(int seriesID)
         => ReadLock(() => _seriesIDs!.GetMultiple(seriesID));
 
-    public AnimeEpisode? GetByAniDBEpisodeID(int episodeID)
+    public MediaEpisode? GetByAniDBEpisodeID(int episodeID)
         => ReadLock(() => _anidbEpisodeIDs!.GetOne(episodeID));
 
     /// <summary>
-    /// Get the AnimeEpisode
+    /// Get the MediaEpisode
     /// </summary>
     /// <param name="name">The filename of the anime to search for.</param>
-    /// <returns>the AnimeEpisode given the file information</returns>
-    public AnimeEpisode? GetByFilename(string name)
+    /// <returns>the MediaEpisode given the file information</returns>
+    public MediaEpisode? GetByFilename(string name)
     {
         if (string.IsNullOrEmpty(name))
             return null;
@@ -67,14 +67,14 @@ public class AnimeEpisodeRepository : BaseCachedRepository<AnimeEpisode, int>
 
 
     /// <summary>
-    /// Get all the AnimeEpisode records associate with an AniDB_File record
-    /// AnimeEpisode.AniDB_EpisodeID -> AniDB_Episode.EpisodeID
+    /// Get all the MediaEpisode records associate with an AniDB_File record
+    /// MediaEpisode.AniDB_EpisodeID -> AniDB_Episode.EpisodeID
     /// AniDB_Episode.EpisodeID -> CrossRef_File_Episode.EpisodeID
     /// CrossRef_File_Episode.Hash -> VideoLocal.Hash
     /// </summary>
     /// <param name="hash"></param>
     /// <returns></returns>
-    public List<AnimeEpisode> GetByHash(string hash)
+    public List<MediaEpisode> GetByHash(string hash)
     {
         if (string.IsNullOrEmpty(hash))
             return [];
@@ -94,7 +94,7 @@ public class AnimeEpisodeRepository : BaseCachedRepository<AnimeEpisode, int>
     private const string MultipleReleasesCountVariationsQuery =
         @"SELECT ani.EpisodeID FROM VideoLocal AS vl JOIN CrossRef_File_Episode ani ON vl.Hash = ani.Hash WHERE vl.Hash != '' GROUP BY ani.EpisodeID HAVING COUNT(ani.EpisodeID) > 1";
 
-    public IEnumerable<AnimeEpisode> GetWithMultipleReleases(bool ignoreVariations, int? animeID = null)
+    public IEnumerable<MediaEpisode> GetWithMultipleReleases(bool ignoreVariations, int? animeID = null)
     {
         var ids = Lock(() =>
         {
@@ -189,7 +189,7 @@ GROUP BY
     ani.EpisodeID
 ";
 
-    public IEnumerable<AnimeEpisode> GetWithDuplicateFiles(int? animeID = null)
+    public IEnumerable<MediaEpisode> GetWithDuplicateFiles(int? animeID = null)
     {
         var ids = Lock(() =>
         {
@@ -217,17 +217,17 @@ GROUP BY
             .Select(tuple => tuple.episode!);
     }
 
-    public IEnumerable<AnimeEpisode> GetMissing(bool collecting, int? animeID = null)
+    public IEnumerable<MediaEpisode> GetMissing(bool collecting, int? animeID = null)
     {
-        // NOTE: For comments about this code, see the AnimeSeriesService.
+        // NOTE: For comments about this code, see the MediaSeriesService.
         var allSeries = animeID.HasValue
-            ? new List<AnimeSeries?>([RepoFactory.AnimeSeries.GetByAnimeID(animeID.Value)]).WhereNotNull()
-            : RepoFactory.AnimeSeries.GetWithMissingEpisodes(collecting);
+            ? new List<MediaSeries?>([RepoFactory.MediaSeries.GetByAnimeID(animeID.Value)]).WhereNotNull()
+            : RepoFactory.MediaSeries.GetWithMissingEpisodes(collecting);
         foreach (var series in allSeries)
         {
             var animeType = series.AniDB_Anime!.AnimeType;
-            var episodeReleasedList = new AnimeSeriesService.EpisodeList(animeType);
-            var episodeReleasedGroupList = new AnimeSeriesService.EpisodeList(animeType);
+            var episodeReleasedList = new MediaSeriesService.EpisodeList(animeType);
+            var episodeReleasedGroupList = new MediaSeriesService.EpisodeList(animeType);
             var animeGroupStatuses = RepoFactory.AniDB_GroupStatus.GetByAnimeID(series.AniDB_ID);
             var allEpisodes = series.AllAnimeEpisodes
                 .Select(episode => (episode, anidbEpisode: episode.AniDB_Episode!, videos: episode.VideoLocals))
@@ -279,14 +279,14 @@ GROUP BY
         }
     }
 
-    public IReadOnlyList<AnimeEpisode> GetAllWatchedEpisodes(int userid, DateTime? after_date)
-        => RepoFactory.AnimeEpisode_User.GetByUserID(userid)
+    public IReadOnlyList<MediaEpisode> GetAllWatchedEpisodes(int userid, DateTime? after_date)
+        => RepoFactory.MediaEpisode_User.GetByUserID(userid)
             .Where(a => a.IsWatched && a.WatchedDate > after_date).OrderBy(a => a.WatchedDate)
-            .Select(a => a.AnimeEpisode)
+            .Select(a => a.MediaEpisode)
             .WhereNotNull()
             .ToList();
 
-    public IReadOnlyList<AnimeEpisode> GetEpisodesWithNoFiles(bool includeSpecials, bool includeOnlyAired = false)
+    public IReadOnlyList<MediaEpisode> GetEpisodesWithNoFiles(bool includeSpecials, bool includeOnlyAired = false)
         => GetAll()
             .Where(a =>
             {
@@ -305,7 +305,7 @@ GROUP BY
 
                 return a.VideoLocals.Count == 0;
             })
-            .OrderBy(a => a.AnimeSeries?.PreferredTitle)
-            .ThenBy(a => a.AnimeSeriesID)
+            .OrderBy(a => a.MediaSeries?.PreferredTitle)
+            .ThenBy(a => a.MediaSeriesID)
             .ToList();
 }

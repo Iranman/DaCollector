@@ -506,27 +506,27 @@ public class AnimeCreator
         }
 
         // Validate existing dacollector episodes.
-        var correctSeries = RepoFactory.AnimeSeries.GetByAnimeID(anime.AnimeID);
-        var dacollectorEpisodesToRemove = new List<AnimeEpisode>();
-        var dacollectorEpisodesToSave = new List<AnimeEpisode>();
-        var dacollectorSeriesDict = new Dictionary<int, AnimeSeries>();
+        var correctSeries = RepoFactory.MediaSeries.GetByAnimeID(anime.AnimeID);
+        var dacollectorEpisodesToRemove = new List<MediaEpisode>();
+        var dacollectorEpisodesToSave = new List<MediaEpisode>();
+        var dacollectorSeriesDict = new Dictionary<int, MediaSeries>();
         var storedReleasesToRemove = new List<StoredReleaseInfo>();
         var xrefsToRemove = new List<CrossRef_File_Episode>();
         var videosToRefetch = new List<VideoLocal>();
         var tmdbXRefsToRemove = new List<CrossRef_AniDB_TMDB_Episode>();
         if (correctSeries != null)
-            dacollectorSeriesDict.Add(correctSeries.AnimeSeriesID, correctSeries);
+            dacollectorSeriesDict.Add(correctSeries.MediaSeriesID, correctSeries);
         foreach (var episode in epsToSave)
         {
             // No dacollector episode, continue.
-            var dacollectorEpisode = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(episode.EpisodeID);
+            var dacollectorEpisode = RepoFactory.MediaEpisode.GetByAniDBEpisodeID(episode.EpisodeID);
             if (dacollectorEpisode == null)
                 continue;
 
             // The series exists and the episode mapping is correct, continue.
             if ((
-                    dacollectorSeriesDict.TryGetValue(dacollectorEpisode.AnimeSeriesID, out var actualSeries) ||
-                    dacollectorSeriesDict.TryAdd(dacollectorEpisode.AnimeSeriesID, actualSeries = RepoFactory.AnimeSeries.GetByID(dacollectorEpisode.AnimeSeriesID))
+                    dacollectorSeriesDict.TryGetValue(dacollectorEpisode.MediaSeriesID, out var actualSeries) ||
+                    dacollectorSeriesDict.TryAdd(dacollectorEpisode.MediaSeriesID, actualSeries = RepoFactory.MediaSeries.GetByID(dacollectorEpisode.MediaSeriesID))
                 ) && actualSeries != null && actualSeries.AniDB_ID == episode.AnimeID)
                 continue;
 
@@ -534,7 +534,7 @@ public class AnimeCreator
             // if it's possible, or delete the episode.
             if (correctSeries != null)
             {
-                dacollectorEpisode.AnimeSeriesID = correctSeries.AnimeSeriesID;
+                dacollectorEpisode.MediaSeriesID = correctSeries.MediaSeriesID;
                 dacollectorEpisodesToSave.Add(dacollectorEpisode);
                 continue;
             }
@@ -561,7 +561,7 @@ public class AnimeCreator
         {
             if (currentAniDBEpisodeTitles.TryGetValue(episode.EpisodeID, out var currentTitles))
                 titlesToRemove.AddRange(currentTitles);
-            var dacollectorEpisode = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(episode.EpisodeID);
+            var dacollectorEpisode = RepoFactory.MediaEpisode.GetByAniDBEpisodeID(episode.EpisodeID);
             if (dacollectorEpisode != null)
                 dacollectorEpisodesToRemove.Add(dacollectorEpisode);
             var xrefs = RepoFactory.CrossRef_File_Episode.GetByEpisodeID(episode.EpisodeID);
@@ -582,8 +582,8 @@ public class AnimeCreator
         RepoFactory.AniDB_Episode.Delete(epsToRemove);
         RepoFactory.AniDB_Episode_Title.Save(titlesToSave);
         RepoFactory.AniDB_Episode_Title.Delete(titlesToRemove);
-        RepoFactory.AnimeEpisode.Save(dacollectorEpisodesToSave);
-        RepoFactory.AnimeEpisode.Delete(dacollectorEpisodesToRemove);
+        RepoFactory.MediaEpisode.Save(dacollectorEpisodesToSave);
+        RepoFactory.MediaEpisode.Delete(dacollectorEpisodesToRemove);
         RepoFactory.CrossRef_File_Episode.Delete(xrefsToRemove);
         RepoFactory.CrossRef_AniDB_TMDB_Episode.Delete(tmdbXRefsToRemove);
 

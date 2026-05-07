@@ -42,8 +42,8 @@ public class SeriesRelation
     public SeriesRelation(IRelatedMetadata relation, IDaCollectorSeries series = null,
         IDaCollectorSeries relatedSeries = null)
     {
-        series ??= RepoFactory.AnimeSeries.GetByAnimeID(relation.BaseID);
-        relatedSeries ??= RepoFactory.AnimeSeries.GetByAnimeID(relation.RelatedID);
+        series ??= RepoFactory.MediaSeries.GetByAnimeID(relation.BaseID);
+        relatedSeries ??= RepoFactory.MediaSeries.GetByAnimeID(relation.RelatedID);
 
         IDs = new RelationIDs { AniDB = relation.BaseID, DaCollector = series?.ID };
         RelatedIDs = new RelationIDs { AniDB = relation.RelatedID, DaCollector = relatedSeries?.ID };

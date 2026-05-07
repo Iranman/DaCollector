@@ -56,11 +56,11 @@ public class CrossRef_AniDB_TMDB_Episode : ITmdbEpisodeCrossReference
     public AniDB_Anime? AnidbAnime =>
         RepoFactory.AniDB_Anime.GetByAnimeID(AnidbAnimeID);
 
-    public AnimeEpisode? AnimeEpisode =>
-        RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(AnidbEpisodeID);
+    public MediaEpisode? MediaEpisode =>
+        RepoFactory.MediaEpisode.GetByAniDBEpisodeID(AnidbEpisodeID);
 
-    public AnimeSeries? AnimeSeries =>
-        RepoFactory.AnimeSeries.GetByAnimeID(AnidbAnimeID);
+    public MediaSeries? MediaSeries =>
+        RepoFactory.MediaSeries.GetByAnimeID(AnidbAnimeID);
 
     public TMDB_Episode? TmdbEpisode =>
         TmdbEpisodeID == 0 ? null : RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(TmdbEpisodeID);
@@ -117,9 +117,9 @@ public class CrossRef_AniDB_TMDB_Episode : ITmdbEpisodeCrossReference
 
     #region ITmdbEpisodeCrossReference Implementation
 
-    IDaCollectorSeries? ITmdbEpisodeCrossReference.DaCollectorSeries => AnimeSeries;
+    IDaCollectorSeries? ITmdbEpisodeCrossReference.DaCollectorSeries => MediaSeries;
 
-    IDaCollectorEpisode? ITmdbEpisodeCrossReference.DaCollectorEpisode => AnimeEpisode;
+    IDaCollectorEpisode? ITmdbEpisodeCrossReference.DaCollectorEpisode => MediaEpisode;
 
     ITmdbShow? ITmdbEpisodeCrossReference.TmdbShow => TmdbShow;
 

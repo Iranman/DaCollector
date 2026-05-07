@@ -31,9 +31,9 @@ namespace DaCollector.Server.API.v3.Controllers;
 public class ActionController : BaseController
 {
     private readonly ILogger<ActionController> _logger;
-    private readonly AnimeGroupCreator _groupCreator;
+    private readonly MediaGroupCreator _groupCreator;
     private readonly ActionService _actionService;
-    private readonly AnimeGroupService _groupService;
+    private readonly MediaGroupService _groupService;
     private readonly TmdbMetadataService _tmdbMetadataService;
     private readonly TmdbLinkingService _tmdbLinkingService;
     private readonly TmdbImageService _tmdbImageService;
@@ -51,8 +51,8 @@ public class ActionController : BaseController
         IVideoReleaseService videoReleaseService,
         ISettingsProvider settingsProvider,
         ActionService actionService,
-        AnimeGroupCreator groupCreator,
-        AnimeGroupService groupService
+        MediaGroupCreator groupCreator,
+        MediaGroupService groupService
     ) : base(settingsProvider)
     {
         _logger = logger;

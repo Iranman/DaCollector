@@ -137,13 +137,13 @@ public class Episode : BaseModel
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public IEnumerable<FileCrossReference.EpisodeCrossReferenceIDs>? CrossReferences { get; set; }
 
-    public Episode(HttpContext context, AnimeEpisode episode, HashSet<DataSourceType>? includeDataFrom = null, bool includeFiles = false, bool includeMediaInfo = false, bool includeAbsolutePaths = false, bool withXRefs = false, bool includeReleaseInfo = false)
+    public Episode(HttpContext context, MediaEpisode episode, HashSet<DataSourceType>? includeDataFrom = null, bool includeFiles = false, bool includeMediaInfo = false, bool includeAbsolutePaths = false, bool withXRefs = false, bool includeReleaseInfo = false)
     {
         includeDataFrom ??= [];
         var userID = context.GetUser()?.JMMUserID ?? 0;
         var episodeUserRecord = episode.GetUserRecord(userID);
         var anidbEpisode = episode.AniDB_Episode ??
-            throw new NullReferenceException($"Unable to get AniDB Episode {episode.AniDB_EpisodeID} for Anime Episode {episode.AnimeEpisodeID}");
+            throw new NullReferenceException($"Unable to get AniDB Episode {episode.AniDB_EpisodeID} for Anime Episode {episode.MediaEpisodeID}");
         var tmdbMovieXRefs = episode.TmdbMovieCrossReferences;
         var tmdbEpisodeXRefs = episode.TmdbEpisodeCrossReferences;
         var files = episode.VideoLocals;
@@ -153,8 +153,8 @@ public class Episode : BaseModel
             .FirstOrDefault();
         IDs = new EpisodeIDs
         {
-            ID = episode.AnimeEpisodeID,
-            ParentSeries = episode.AnimeSeriesID,
+            ID = episode.MediaEpisodeID,
+            ParentSeries = episode.MediaSeriesID,
             AniDB = episode.AniDB_EpisodeID,
             TvDB = tmdbEpisodeXRefs.Select(xref => xref.TmdbEpisode?.TvdbEpisodeID).WhereNotNull().Distinct().ToList(),
             IMDB = tmdbMovieXRefs
@@ -375,7 +375,7 @@ public class Episode : BaseModel
             LastUpdatedAt = userData.LastUpdatedAt;
         }
 
-        public EpisodeUserData MergeWithExisting(JMMUser user, AnimeEpisode episode)
+        public EpisodeUserData MergeWithExisting(JMMUser user, MediaEpisode episode)
         {
             var userDataService = Utils.ServiceContainer.GetRequiredService<IUserDataService>();
             var userData = userDataService.SaveEpisodeUserData(episode, user, new()

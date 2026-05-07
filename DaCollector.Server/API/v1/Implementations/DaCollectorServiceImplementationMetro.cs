@@ -218,7 +218,7 @@ public class DaCollectorServiceImplementationMetro : IHttpContextAccessor
     {
         try
         {
-            return RepoFactory.AnimeGroup.GetAll()
+            return RepoFactory.MediaGroup.GetAll()
                 .Select(a => _legacyV1Service.GetV1Contract(a, userID))
                 .OrderBy(a => a.SortName).ToList();
         }
@@ -243,22 +243,22 @@ public class DaCollectorServiceImplementationMetro : IHttpContextAccessor
                     return retEps;
                 }
 
-                /*string sql = "Select ae.AnimeSeriesID, max(vl.DateTimeCreated) as MaxDate " +
+                /*string sql = "Select ae.MediaSeriesID, max(vl.DateTimeCreated) as MaxDate " +
                              "From VideoLocal vl " +
                              "INNER JOIN CrossRef_File_Episode xref ON vl.Hash = xref.Hash " +
-                             "INNER JOIN AnimeEpisode ae ON ae.AniDB_EpisodeID = xref.EpisodeID " +
-                             "GROUP BY ae.AnimeSeriesID " +
+                             "INNER JOIN MediaEpisode ae ON ae.AniDB_EpisodeID = xref.EpisodeID " +
+                             "GROUP BY ae.MediaSeriesID " +
                              "ORDER BY MaxDate desc ";
                 */
 
                 var results = RepoFactory.VideoLocal.GetMostRecentlyAdded(maxRecords, userID)
-                    .SelectMany(a => a.AnimeEpisodes).GroupBy(a => a.AnimeSeriesID)
+                    .SelectMany(a => a.AnimeEpisodes).GroupBy(a => a.MediaSeriesID)
                     .Select(a => (a.Key, a.Max(b => b.DateTimeUpdated)));
 
                 var numEps = 0;
-                foreach ((var animeSeriesID, var lastUpdated) in results)
+                foreach ((var MediaSeriesID, var lastUpdated) in results)
                 {
-                    var ser = RepoFactory.AnimeSeries.GetByID(animeSeriesID);
+                    var ser = RepoFactory.MediaSeries.GetByID(MediaSeriesID);
                     if (ser is null)
                     {
                         continue;
@@ -320,13 +320,13 @@ public class DaCollectorServiceImplementationMetro : IHttpContextAccessor
                 }
 
                 var results = RepoFactory.VideoLocal.GetMostRecentlyAdded(maxRecords, userID)
-                    .SelectMany(a => a.AnimeEpisodes).GroupBy(a => a.AnimeSeriesID)
+                    .SelectMany(a => a.AnimeEpisodes).GroupBy(a => a.MediaSeriesID)
                     .Select(a => (a.Key, a.Max(b => b.DateTimeUpdated)));
 
                 var numEps = 0;
-                foreach ((var animeSeriesID, var lastUpdated) in results)
+                foreach ((var MediaSeriesID, var lastUpdated) in results)
                 {
-                    var ser = RepoFactory.AnimeSeries.GetByID(animeSeriesID);
+                    var ser = RepoFactory.MediaSeries.GetByID(MediaSeriesID);
                     if (ser is null)
                     {
                         continue;
@@ -337,7 +337,7 @@ public class DaCollectorServiceImplementationMetro : IHttpContextAccessor
                         continue;
                     }
 
-                    var serUser = RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(userID, ser.AnimeSeriesID);
+                    var serUser = RepoFactory.MediaSeries_User.GetByUserAndSeriesID(userID, ser.MediaSeriesID);
 
                     var vids =
                         RepoFactory.VideoLocal.GetMostRecentlyAddedForAnime(1, ser.AniDB_ID);
@@ -361,7 +361,7 @@ public class DaCollectorServiceImplementationMetro : IHttpContextAccessor
                         {
                             AnimeID = ser.AniDB_ID,
                             AnimeName = ser.Title,
-                            AnimeSeriesID = ser.AnimeSeriesID,
+                            MediaSeriesID = ser.MediaSeriesID,
                             BeginYear = anidb_anime.BeginYear,
                             EndYear = anidb_anime.EndYear
                         };
@@ -416,7 +416,7 @@ public class DaCollectorServiceImplementationMetro : IHttpContextAccessor
 
                 // get a list of series that is applicable
                 var allSeriesUser =
-                    RepoFactory.AnimeSeries_User.GetMostRecentlyWatched(userID);
+                    RepoFactory.MediaSeries_User.GetMostRecentlyWatched(userID);
 
                 var ts = DateTime.Now - start;
                 _logger.Info(string.Format("GetAnimeContinueWatching:Series: {0}", ts.TotalMilliseconds));
@@ -425,7 +425,7 @@ public class DaCollectorServiceImplementationMetro : IHttpContextAccessor
                 {
                     start = DateTime.Now;
 
-                    var series = RepoFactory.AnimeSeries.GetByID(userRecord.AnimeSeriesID);
+                    var series = RepoFactory.MediaSeries.GetByID(userRecord.MediaSeriesID);
                     if (series is null)
                     {
                         continue;
@@ -438,9 +438,9 @@ public class DaCollectorServiceImplementationMetro : IHttpContextAccessor
                         continue;
                     }
 
-                    var serUser = RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(userID, series.AnimeSeriesID);
+                    var serUser = RepoFactory.MediaSeries_User.GetByUserAndSeriesID(userID, series.MediaSeriesID);
 
-                    var ep = _service.GetNextUnwatchedEpisode(userRecord.AnimeSeriesID,
+                    var ep = _service.GetNextUnwatchedEpisode(userRecord.MediaSeriesID,
                         userID);
                     if (ep is not null)
                     {
@@ -450,7 +450,7 @@ public class DaCollectorServiceImplementationMetro : IHttpContextAccessor
                         {
                             AnimeID = series.AniDB_ID,
                             AnimeName = series.Title,
-                            AnimeSeriesID = series.AnimeSeriesID,
+                            MediaSeriesID = series.MediaSeriesID,
                             BeginYear = anidb_anime.BeginYear,
                             EndYear = anidb_anime.EndYear
                         };
@@ -526,18 +526,18 @@ public class DaCollectorServiceImplementationMetro : IHttpContextAccessor
             var evaluator = HttpContext.RequestServices.GetRequiredService<IFilterEvaluator>();
             var results = evaluator.EvaluateFilter(gf, user);
 
-            var comboGroups = results.Select(a => RepoFactory.AnimeGroup.GetByID(a.Key)).Where(a => a is not null)
+            var comboGroups = results.Select(a => RepoFactory.MediaGroup.GetByID(a.Key)).Where(a => a is not null)
                 .Select(a => _legacyV1Service.GetV1Contract(a, userID));
 
             foreach (var grp in comboGroups)
             {
-                foreach (var ser in RepoFactory.AnimeSeries.GetByGroupID(grp.AnimeGroupID))
+                foreach (var ser in RepoFactory.MediaSeries.GetByGroupID(grp.MediaGroupID))
                 {
                     if (!user.AllowedSeries(ser)) continue;
 
-                    var serUser = RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(userID, ser.AnimeSeriesID);
+                    var serUser = RepoFactory.MediaSeries_User.GetByUserAndSeriesID(userID, ser.MediaSeriesID);
 
-                    var ep = _service.GetNextUnwatchedEpisode(ser.AnimeSeriesID, userID);
+                    var ep = _service.GetNextUnwatchedEpisode(ser.MediaSeriesID, userID);
                     if (ep is not null)
                     {
                         var anidb_anime = ser.AniDB_Anime;
@@ -546,7 +546,7 @@ public class DaCollectorServiceImplementationMetro : IHttpContextAccessor
                         {
                             AnimeID = ser.AniDB_ID,
                             AnimeName = ser.Title,
-                            AnimeSeriesID = ser.AnimeSeriesID,
+                            MediaSeriesID = ser.MediaSeriesID,
                             BeginYear = anidb_anime.BeginYear,
                             EndYear = anidb_anime.EndYear,
                             PosterName = anidb_anime.PreferredOrDefaultPosterPath,
@@ -612,7 +612,7 @@ public class DaCollectorServiceImplementationMetro : IHttpContextAccessor
                     continue;
                 }
 
-                var ser = RepoFactory.AnimeSeries.GetByAnimeID(anidb_anime.AnimeID);
+                var ser = RepoFactory.MediaSeries.GetByAnimeID(anidb_anime.AnimeID);
 
                 var summary = new Metro_Anime_Summary
                 {
@@ -622,12 +622,12 @@ public class DaCollectorServiceImplementationMetro : IHttpContextAccessor
                 if (ser is not null)
                 {
                     summary.AnimeName = ser.Title;
-                    summary.AnimeSeriesID = ser.AnimeSeriesID;
+                    summary.MediaSeriesID = ser.MediaSeriesID;
                 }
                 else
                 {
                     summary.AnimeName = anidb_anime.MainTitle;
-                    summary.AnimeSeriesID = 0;
+                    summary.MediaSeriesID = 0;
                 }
 
                 summary.BeginYear = anidb_anime.BeginYear;
@@ -679,7 +679,7 @@ public class DaCollectorServiceImplementationMetro : IHttpContextAccessor
                     AirDateAsSeconds = AniDBExtensions.GetAniDBDateAsSeconds(anidb_anime.AirDate),
                     AnimeID = anidb_anime.AnimeID,
                     AnimeName = ser.Title,
-                    AnimeSeriesID = ser.AnimeSeriesID,
+                    MediaSeriesID = ser.MediaSeriesID,
                     BeginYear = anidb_anime.BeginYear,
                     EndYear = anidb_anime.EndYear,
                     PosterName = imgDet.LocalPath,
@@ -709,7 +709,7 @@ public class DaCollectorServiceImplementationMetro : IHttpContextAccessor
                 return null;
             }
 
-            var ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
+            var ser = RepoFactory.MediaSeries.GetByAnimeID(animeID);
 
             var ret = new Metro_Anime_Detail { AnimeID = anime.AnimeID };
             if (ser is not null)
@@ -723,11 +723,11 @@ public class DaCollectorServiceImplementationMetro : IHttpContextAccessor
 
             if (ser is not null)
             {
-                ret.AnimeSeriesID = ser.AnimeSeriesID;
+                ret.MediaSeriesID = ser.MediaSeriesID;
             }
             else
             {
-                ret.AnimeSeriesID = 0;
+                ret.MediaSeriesID = 0;
             }
 
             ret.BeginYear = anime.BeginYear;
@@ -756,7 +756,7 @@ public class DaCollectorServiceImplementationMetro : IHttpContextAccessor
             ret.NextEpisodesToWatch = [];
             if (ser is not null)
             {
-                var serUserRec = RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(userID, ser.AnimeSeriesID);
+                var serUserRec = RepoFactory.MediaSeries_User.GetByUserAndSeriesID(userID, ser.MediaSeriesID);
                 if (ser is not null)
                 {
                     ret.UnwatchedEpisodeCount = serUserRec.UnwatchedEpisodeCount;
@@ -767,27 +767,27 @@ public class DaCollectorServiceImplementationMetro : IHttpContextAccessor
                 }
 
 
-                var animeEpisodeList = new List<AnimeEpisode>();
-                var dictEpUsers = new Dictionary<int, AnimeEpisode_User>();
+                var animeEpisodeList = new List<MediaEpisode>();
+                var dictEpUsers = new Dictionary<int, MediaEpisode_User>();
                 foreach (
                     var userRecord in
-                    RepoFactory.AnimeEpisode_User.GetByUserIDAndSeriesID(userID, ser.AnimeSeriesID))
+                    RepoFactory.MediaEpisode_User.GetByUserIDAndSeriesID(userID, ser.MediaSeriesID))
                 {
-                    dictEpUsers[userRecord.AnimeEpisodeID] = userRecord;
+                    dictEpUsers[userRecord.MediaEpisodeID] = userRecord;
                 }
 
-                foreach (var animeEpisode in RepoFactory.AnimeEpisode.GetBySeriesID(ser.AnimeSeriesID))
+                foreach (var MediaEpisode in RepoFactory.MediaEpisode.GetBySeriesID(ser.MediaSeriesID))
                 {
-                    if (!dictEpUsers.ContainsKey(animeEpisode.AnimeEpisodeID))
+                    if (!dictEpUsers.ContainsKey(MediaEpisode.MediaEpisodeID))
                     {
-                        animeEpisodeList.Add(animeEpisode);
+                        animeEpisodeList.Add(MediaEpisode);
                         continue;
                     }
 
-                    var usrRec = dictEpUsers[animeEpisode.AnimeEpisodeID];
+                    var usrRec = dictEpUsers[MediaEpisode.MediaEpisodeID];
                     if (usrRec.WatchedCount == 0 || !usrRec.WatchedDate.HasValue)
                     {
-                        animeEpisodeList.Add(animeEpisode);
+                        animeEpisodeList.Add(MediaEpisode);
                     }
                 }
 
@@ -826,17 +826,17 @@ public class DaCollectorServiceImplementationMetro : IHttpContextAccessor
                     {
                         if (animeEpisodeDict.TryGetValue(canEp.AniDB_EpisodeID, out var anidbEpisode))
                         {
-                            dictEpUsers.TryGetValue(canEp.AnimeEpisodeID, out var userEpRecord);
+                            dictEpUsers.TryGetValue(canEp.MediaEpisodeID, out var userEpRecord);
 
                             // now refresh from the database to get file count
-                            var epFresh = RepoFactory.AnimeEpisode.GetByID(canEp.AnimeEpisodeID);
+                            var epFresh = RepoFactory.MediaEpisode.GetByID(canEp.MediaEpisodeID);
 
                             var fileCount = epFresh.VideoLocals.Count;
                             if (fileCount > 0)
                             {
                                 var contract = new Metro_Anime_Episode
                                 {
-                                    AnimeEpisodeID = epFresh.AnimeEpisodeID,
+                                    MediaEpisodeID = epFresh.MediaEpisodeID,
                                     LocalFileCount = fileCount
                                 };
                                 if (userEpRecord is null)
@@ -897,13 +897,13 @@ public class DaCollectorServiceImplementationMetro : IHttpContextAccessor
                 return null;
             }
 
-            var ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
+            var ser = RepoFactory.MediaSeries.GetByAnimeID(animeID);
 
             var summary = new Metro_Anime_Summary
             {
                 AnimeID = anime.AnimeID,
                 AnimeName = anime.MainTitle,
-                AnimeSeriesID = 0,
+                MediaSeriesID = 0,
                 BeginYear = anime.BeginYear,
                 EndYear = anime.EndYear,
             };
@@ -915,7 +915,7 @@ public class DaCollectorServiceImplementationMetro : IHttpContextAccessor
             if (ser is not null)
             {
                 summary.AnimeName = ser.Title;
-                summary.AnimeSeriesID = ser.AnimeSeriesID;
+                summary.MediaSeriesID = ser.MediaSeriesID;
             }
 
             return summary;
@@ -1018,13 +1018,13 @@ public class DaCollectorServiceImplementationMetro : IHttpContextAccessor
                 }
 
                 // check if this anime has a series
-                var ser = RepoFactory.AnimeSeries.GetByAnimeID(link.RelatedAnimeID);
+                var ser = RepoFactory.MediaSeries.GetByAnimeID(link.RelatedAnimeID);
 
                 var summary = new Metro_Anime_Summary
                 {
                     AnimeID = animeLink.AnimeID,
                     AnimeName = animeLink.MainTitle,
-                    AnimeSeriesID = 0,
+                    MediaSeriesID = 0,
                     BeginYear = animeLink.BeginYear,
                     EndYear = animeLink.EndYear,
 
@@ -1038,7 +1038,7 @@ public class DaCollectorServiceImplementationMetro : IHttpContextAccessor
                 if (ser is not null)
                 {
                     summary.AnimeName = ser.Title;
-                    summary.AnimeSeriesID = ser.AnimeSeriesID;
+                    summary.MediaSeriesID = ser.MediaSeriesID;
                 }
 
                 retAnime.Add(summary);
@@ -1059,13 +1059,13 @@ public class DaCollectorServiceImplementationMetro : IHttpContextAccessor
                 }
 
                 // check if this anime has a series
-                var ser = RepoFactory.AnimeSeries.GetByAnimeID(link.SimilarAnimeID);
+                var ser = RepoFactory.MediaSeries.GetByAnimeID(link.SimilarAnimeID);
 
                 var summary = new Metro_Anime_Summary
                 {
                     AnimeID = animeLink.AnimeID,
                     AnimeName = animeLink.MainTitle,
-                    AnimeSeriesID = 0,
+                    MediaSeriesID = 0,
                     BeginYear = animeLink.BeginYear,
                     EndYear = animeLink.EndYear,
                     RelationshipType = "Recommendation"
@@ -1078,7 +1078,7 @@ public class DaCollectorServiceImplementationMetro : IHttpContextAccessor
                 if (ser is not null)
                 {
                     summary.AnimeName = ser.Title;
-                    summary.AnimeSeriesID = ser.AnimeSeriesID;
+                    summary.MediaSeriesID = ser.MediaSeriesID;
                 }
 
                 retAnime.Add(summary);
@@ -1102,7 +1102,7 @@ public class DaCollectorServiceImplementationMetro : IHttpContextAccessor
     {
         try
         {
-            var ep = RepoFactory.AnimeEpisode.GetByID(episodeID);
+            var ep = RepoFactory.MediaEpisode.GetByID(episodeID);
             return ep is not null
                 ? _legacyV1Service.GetV1VideoDetailedContracts(ep, userID)
                 : [];
@@ -1115,14 +1115,14 @@ public class DaCollectorServiceImplementationMetro : IHttpContextAccessor
         return [];
     }
 
-    [HttpGet("Episode/Watch/{animeEpisodeID}/{watchedStatus}/{userID}")]
-    public CL_Response<CL_AnimeEpisode_User> ToggleWatchedStatusOnEpisode(int animeEpisodeID,
+    [HttpGet("Episode/Watch/{MediaEpisodeID}/{watchedStatus}/{userID}")]
+    public CL_Response<CL_AnimeEpisode_User> ToggleWatchedStatusOnEpisode(int MediaEpisodeID,
         bool watchedStatus, int userID)
     {
         var response = new CL_Response<CL_AnimeEpisode_User> { ErrorMessage = string.Empty, Result = null };
         try
         {
-            if (RepoFactory.AnimeEpisode.GetByID(animeEpisodeID) is not { } episode)
+            if (RepoFactory.MediaEpisode.GetByID(MediaEpisodeID) is not { } episode)
             {
                 response.ErrorMessage = "Could not find anime episode record";
                 return response;

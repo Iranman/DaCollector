@@ -3,16 +3,16 @@ using DaCollector.Server.Models.DaCollector;
 
 namespace DaCollector.Server.Mappings;
 
-public class AnimeGroup_UserMap : ClassMap<AnimeGroup_User>
+public class MediaGroup_UserMap : ClassMap<MediaGroup_User>
 {
-    public AnimeGroup_UserMap()
+    public MediaGroup_UserMap()
     {
-        Table("AnimeGroup_User");
+        Table("MediaGroup_User");
 
         Not.LazyLoad();
-        Id(x => x.AnimeGroup_UserID);
+        Id(x => x.MediaGroup_UserID);
         Map(x => x.JMMUserID);
-        Map(x => x.AnimeGroupID);
+        Map(x => x.MediaGroupID);
         Map(x => x.PlayedCount).Not.Nullable();
         Map(x => x.StoppedCount).Not.Nullable();
         Map(x => x.UnwatchedEpisodeCount).Not.Nullable();

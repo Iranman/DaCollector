@@ -25,8 +25,8 @@ public class VoteAniDBEpisodeJob : BaseJob
 
     public override void PostInit()
     {
-        var episode = RepoFactory.AnimeEpisode.GetByID(EpisodeID);
-        _animeName = episode?.AnimeSeries?.Title ?? EpisodeID.ToString();
+        var episode = RepoFactory.MediaEpisode.GetByID(EpisodeID);
+        _animeName = episode?.MediaSeries?.Title ?? EpisodeID.ToString();
         _episodeName = episode?.Title ?? EpisodeID.ToString();
     }
 

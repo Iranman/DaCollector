@@ -565,12 +565,12 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie, ITmdbMovie
     bool IMovie.Video => IsVideo;
 
     IReadOnlyList<int> IMovie.DaCollectorEpisodeIDs => CrossReferences
-        .Select(xref => xref.AnimeEpisode?.AnimeEpisodeID)
+        .Select(xref => xref.MediaEpisode?.MediaEpisodeID)
         .WhereNotNull()
         .ToList();
 
     IReadOnlyList<int> IMovie.DaCollectorSeriesIDs => CrossReferences
-        .Select(xref => xref.AnimeSeries?.AnimeSeriesID)
+        .Select(xref => xref.MediaSeries?.MediaSeriesID)
         .WhereNotNull()
         .ToList();
 
@@ -583,12 +583,12 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie, ITmdbMovie
     IImage? IMovie.DefaultPoster => DefaultPoster;
 
     IReadOnlyList<IDaCollectorEpisode> IMovie.DaCollectorEpisodes => CrossReferences
-        .Select(xref => xref.AnimeEpisode)
+        .Select(xref => xref.MediaEpisode)
         .WhereNotNull()
         .ToList();
 
     IReadOnlyList<IDaCollectorSeries> IMovie.DaCollectorSeries => CrossReferences
-        .Select(xref => xref.AnimeSeries)
+        .Select(xref => xref.MediaSeries)
         .WhereNotNull()
         .ToList();
 

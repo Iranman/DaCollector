@@ -5,7 +5,7 @@ namespace DaCollector.Server.API.v1.Models;
 
 public class CL_VideoDetailed
 {
-    public int AnimeEpisodeID { get; set; }
+    public int MediaEpisodeID { get; set; }
 
     // CrossRef_File_Episode
     public int Percentage { get; set; }

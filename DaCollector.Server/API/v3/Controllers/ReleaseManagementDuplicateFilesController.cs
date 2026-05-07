@@ -40,7 +40,7 @@ public class ReleaseManagementDuplicateFilesController(ISettingsProvider setting
         [FromQuery, Range(0, 1000)] int pageSize = 100,
         [FromQuery, Range(1, int.MaxValue)] int page = 1)
     {
-        var enumerable = RepoFactory.AnimeEpisode.GetWithDuplicateFiles();
+        var enumerable = RepoFactory.MediaEpisode.GetWithDuplicateFiles();
 
         return enumerable
             .ToListResult(episode =>
@@ -65,15 +65,15 @@ public class ReleaseManagementDuplicateFilesController(ISettingsProvider setting
     [HttpGet("FileLocationsToAutoRemove")]
     public ActionResult<List<FileIdSet>> GetFileIdsWithPreference()
     {
-        var enumerable = RepoFactory.AnimeEpisode.GetWithDuplicateFiles();
+        var enumerable = RepoFactory.MediaEpisode.GetWithDuplicateFiles();
 
         return enumerable
             .SelectMany(episode =>
                 episode.VideoLocals
                     .SelectMany(a => a.Places.ExceptBy((a.FirstValidPlace ?? a.FirstResolvedPlace) is { } fileLocation ? [fileLocation.ID] : [], b => b.ID))
-                    .Select(file => (episode.AnimeSeriesID, episode.AnimeEpisodeID, file.VideoID, file.ID))
+                    .Select(file => (episode.MediaSeriesID, episode.MediaEpisodeID, file.VideoID, file.ID))
             )
-            .GroupBy(tuple => tuple.VideoID, tuple => (tuple.ID, tuple.AnimeEpisodeID, tuple.AnimeSeriesID))
+            .GroupBy(tuple => tuple.VideoID, tuple => (tuple.ID, tuple.MediaEpisodeID, tuple.MediaSeriesID))
             .Select(groupBy => new FileIdSet(groupBy))
             .ToList();
     }
@@ -93,14 +93,14 @@ public class ReleaseManagementDuplicateFilesController(ISettingsProvider setting
         [FromQuery, Range(0, 1000)] int pageSize = 100,
         [FromQuery, Range(1, int.MaxValue)] int page = 1)
     {
-        var enumerable = RepoFactory.AnimeSeries.GetWithDuplicateFiles();
+        var enumerable = RepoFactory.MediaSeries.GetWithDuplicateFiles();
         if (onlyFinishedSeries)
             enumerable = enumerable.Where(a => a.AniDB_Anime.GetFinishedAiring());
 
         return enumerable
             .OrderBy(series => series.Title)
             .ThenBy(series => series.AniDB_ID)
-            .ToListResult(series => new Series.WithEpisodeCount(RepoFactory.AnimeEpisode.GetWithDuplicateFiles(series.AniDB_ID).Count(), series, User.JMMUserID, includeDataFrom), page, pageSize);
+            .ToListResult(series => new Series.WithEpisodeCount(RepoFactory.MediaEpisode.GetWithDuplicateFiles(series.AniDB_ID).Count(), series, User.JMMUserID, includeDataFrom), page, pageSize);
     }
 
     /// <summary>
@@ -124,14 +124,14 @@ public class ReleaseManagementDuplicateFilesController(ISettingsProvider setting
         [FromQuery, Range(0, 1000)] int pageSize = 100,
         [FromQuery, Range(1, int.MaxValue)] int page = 1)
     {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
             return new ListResult<Episode>();
 
         if (!User.AllowedSeries(series))
             return new ListResult<Episode>();
 
-        var enumerable = RepoFactory.AnimeEpisode.GetWithDuplicateFiles(series.AniDB_ID);
+        var enumerable = RepoFactory.MediaEpisode.GetWithDuplicateFiles(series.AniDB_ID);
 
         return enumerable
             .ToListResult(episode =>
@@ -159,27 +159,27 @@ public class ReleaseManagementDuplicateFilesController(ISettingsProvider setting
         [FromRoute, Range(1, int.MaxValue)] int seriesID
     )
     {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
             return new List<FileIdSet>();
 
         if (!User.AllowedSeries(series))
             return new List<FileIdSet>();
 
-        var enumerable = RepoFactory.AnimeEpisode.GetWithDuplicateFiles(series.AniDB_ID);
+        var enumerable = RepoFactory.MediaEpisode.GetWithDuplicateFiles(series.AniDB_ID);
 
         return enumerable
             .SelectMany(episode =>
                 episode.VideoLocals
                     .SelectMany(a => a.Places.ExceptBy((a.FirstValidPlace ?? a.FirstResolvedPlace) is { } fileLocation ? [fileLocation.ID] : [], b => b.ID))
-                    .Select(file => (episode.AnimeSeriesID, episode.AnimeEpisodeID, file.VideoID, file.ID))
+                    .Select(file => (episode.MediaSeriesID, episode.MediaEpisodeID, file.VideoID, file.ID))
             )
-            .GroupBy(tuple => tuple.VideoID, tuple => (tuple.ID, tuple.AnimeEpisodeID, tuple.AnimeSeriesID))
+            .GroupBy(tuple => tuple.VideoID, tuple => (tuple.ID, tuple.MediaEpisodeID, tuple.MediaSeriesID))
             .Select(groupBy => new FileIdSet(groupBy))
             .ToList();
     }
 
-    public class FileIdSet(IGrouping<int, (int VideoLocal_Place_ID, int AnimeEpisodeID, int AnimeSeriesID)> grouping)
+    public class FileIdSet(IGrouping<int, (int VideoLocal_Place_ID, int MediaEpisodeID, int MediaSeriesID)> grouping)
     {
         /// <summary>
         /// The file ID with duplicates to remove.
@@ -190,7 +190,7 @@ public class ReleaseManagementDuplicateFilesController(ISettingsProvider setting
         /// The series IDs with duplicates to remove.
         /// </summary>
         public List<int> AnimeSeriesIDs { get; set; } = grouping
-            .Select(tuple => tuple.AnimeSeriesID)
+            .Select(tuple => tuple.MediaSeriesID)
             .Distinct()
             .ToList();
 
@@ -198,7 +198,7 @@ public class ReleaseManagementDuplicateFilesController(ISettingsProvider setting
         /// The episode IDs with duplicates to remove.
         /// </summary>
         public List<int> AnimeEpisodeIDs { get; set; } = grouping
-            .Select(tuple => tuple.AnimeEpisodeID)
+            .Select(tuple => tuple.MediaEpisodeID)
             .Distinct()
             .ToList();
 

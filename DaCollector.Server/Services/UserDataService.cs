@@ -30,9 +30,9 @@ public class UserDataService(
     ISettingsProvider settingsProvider,
     ISchedulerFactory schedulerFactory,
     VideoLocal_UserRepository videoUserDataRepository,
-    AnimeEpisode_UserRepository episodeUserDataRepository,
-    AnimeSeries_UserRepository seriesUserDataRepository,
-    AnimeGroup_UserRepository groupUserDataRepository,
+    MediaEpisode_UserRepository episodeUserDataRepository,
+    MediaSeries_UserRepository seriesUserDataRepository,
+    MediaGroup_UserRepository groupUserDataRepository,
     JMMUserRepository userRepository
 ) : IUserDataService
 {
@@ -194,7 +194,7 @@ public class UserDataService(
             }
         }
 
-        var toUpdateSeries = new Dictionary<int, AnimeSeries>();
+        var toUpdateSeries = new Dictionary<int, MediaSeries>();
         var videoReason = reason is VideoUserDataSaveReason.Import ? VideoUserDataSaveReason.None : reason;
         if (watchedStatusChanged)
         {
@@ -232,8 +232,8 @@ public class UserDataService(
                         if (epPercentWatched <= 95)
                             continue;
 
-                        if (updateStatsNow && episode.Series is AnimeSeries series)
-                            toUpdateSeries.TryAdd(series.AnimeSeriesID, series);
+                        if (updateStatsNow && episode.Series is MediaSeries series)
+                            toUpdateSeries.TryAdd(series.MediaSeriesID, series);
 
                         await SaveEpisodeUserDataInternal(episode, user, new() { LastPlayedAt = userDataUpdate.LastPlayedAt, LastUpdatedAt = episodeLastUpdated, NoVideoPropagation = true }, importSource, videoReason, updateStatsNow: false);
                     }
@@ -263,8 +263,8 @@ public class UserDataService(
                         if (epPercentWatched > 95)
                             continue;
 
-                        if (updateStatsNow && episode.Series is AnimeSeries series)
-                            toUpdateSeries.TryAdd(series.AnimeSeriesID, series);
+                        if (updateStatsNow && episode.Series is MediaSeries series)
+                            toUpdateSeries.TryAdd(series.MediaSeriesID, series);
 
                         await SaveEpisodeUserDataInternal(episode, user, new() { LastPlayedAt = null, LastUpdatedAt = episodeLastUpdated, NoVideoPropagation = true }, importSource, videoReason, updateStatsNow: false);
                     }
@@ -296,7 +296,7 @@ public class UserDataService(
             var groups = toUpdateSeries.Values
                 .SelectMany(a => a.AllGroupsAbove)
                 .WhereNotNull()
-                .DistinctBy(a => a.AnimeGroupID);
+                .DistinctBy(a => a.MediaGroupID);
             foreach (var group in groups)
                 UpdateWatchedStats(group, user);
         }
@@ -320,8 +320,8 @@ public class UserDataService(
             throw new ArgumentException("user.ID must be greater than 0.", nameof(user));
 
         var userData = episodeUserDataRepository.GetByUserAndEpisodeID(user.ID, episode.ID)
-            ?? new() { JMMUserID = user.ID, AnimeEpisodeID = episode.ID };
-        if (userData.AnimeEpisode_UserID is 0)
+            ?? new() { JMMUserID = user.ID, MediaEpisodeID = episode.ID };
+        if (userData.MediaEpisode_UserID is 0)
             episodeUserDataRepository.Save(userData);
         return userData;
     }
@@ -403,13 +403,13 @@ public class UserDataService(
             ? EpisodeUserDataSaveReason.None
             : EpisodeUserDataSaveReason.Import;
         var userData = episodeUserDataRepository.GetByUserAndEpisodeID(user.ID, episode.ID)
-            ?? new() { JMMUserID = user.ID, AnimeEpisodeID = episode.ID, AnimeSeriesID = episode.SeriesID };
+            ?? new() { JMMUserID = user.ID, MediaEpisodeID = episode.ID, MediaSeriesID = episode.SeriesID };
         var watchedStatusChanged = userDataUpdate.HasLastPlayedAt && (
             userDataUpdate.LastPlayedAt.HasValue
                 ? !userData.WatchedDate.HasValue || !userData.WatchedDate.Value.Equals(userDataUpdate.LastPlayedAt.Value)
                 : userData.WatchedDate.HasValue
         );
-        var shouldSave = userData.AnimeEpisode_UserID is 0 ||
+        var shouldSave = userData.MediaEpisode_UserID is 0 ||
             watchedStatusChanged ||
             (userDataUpdate.LastUpdatedAt.HasValue && !userData.LastUpdated.Equals(userDataUpdate.LastUpdatedAt.Value));
         if (watchedStatusChanged)
@@ -523,7 +523,7 @@ public class UserDataService(
                 var scheduler = await schedulerFactory.GetScheduler();
                 await scheduler.StartJob<SendEpisodeWatchStateToTraktJob>(c =>
                 {
-                    c.AnimeEpisodeID = episode.ID;
+                    c.MediaEpisodeID = episode.ID;
                     c.Action = userDataUpdate.LastPlayedAt.HasValue ? TraktSyncType.HistoryAdd : TraktSyncType.HistoryRemove;
                 });
             }
@@ -531,11 +531,11 @@ public class UserDataService(
 
         if (updateStatsNow && shouldSave)
         {
-            var series = (AnimeSeries)episode.Series!;
+            var series = (MediaSeries)episode.Series!;
             UpdateWatchedStats(series, user);
             var groups = series.AllGroupsAbove
                 .WhereNotNull()
-                .DistinctBy(a => a.AnimeGroupID);
+                .DistinctBy(a => a.MediaGroupID);
             foreach (var group in groups)
                 UpdateWatchedStats(group, user);
         }
@@ -573,7 +573,7 @@ public class UserDataService(
             return;
 
         var episodeUserData = episodeUserDataRepository.GetByUserAndEpisodeID(user.ID, episode.ID)
-            ?? new() { AnimeEpisodeID = episode.ID, AnimeSeriesID = episode.SeriesID, JMMUserID = user.ID };
+            ?? new() { MediaEpisodeID = episode.ID, MediaSeriesID = episode.SeriesID, JMMUserID = user.ID };
         var shouldSave = false;
         switch (statCountType)
         {
@@ -592,7 +592,7 @@ public class UserDataService(
         }
 
         var seriesUserData = seriesUserDataRepository.GetByUserAndSeriesID(user.ID, series.ID)
-            ?? new() { AnimeSeriesID = series.ID, JMMUserID = user.ID };
+            ?? new() { MediaSeriesID = series.ID, JMMUserID = user.ID };
         switch (statCountType)
         {
             case 2 /* playback started */:
@@ -639,8 +639,8 @@ public class UserDataService(
             episodeUserData = new()
             {
                 JMMUserID = groupBy.Key,
-                AnimeEpisodeID = episode.ID,
-                AnimeSeriesID = episode.SeriesID,
+                MediaEpisodeID = episode.ID,
+                MediaSeriesID = episode.SeriesID,
                 WatchedDate = watchedAt,
                 PlayedCount = watchedCount,
                 WatchedCount = watchedCount,
@@ -667,8 +667,8 @@ public class UserDataService(
             throw new ArgumentException("user.ID must be greater than 0.", nameof(user));
 
         var userData = seriesUserDataRepository.GetByUserAndSeriesID(user.ID, series.ID)
-            ?? new() { JMMUserID = user.ID, AnimeSeriesID = series.ID };
-        if (userData.AnimeSeries_UserID is 0)
+            ?? new() { JMMUserID = user.ID, MediaSeriesID = series.ID };
+        if (userData.MediaSeries_UserID is 0)
             seriesUserDataRepository.Save(userData);
         return userData;
     }
@@ -758,8 +758,8 @@ public class UserDataService(
             throw new ArgumentException("user.ID must be greater than 0.", nameof(user));
 
         var userData = seriesUserDataRepository.GetByUserAndSeriesID(user.ID, series.ID)
-            ?? new() { AnimeSeriesID = series.ID, JMMUserID = user.ID };
-        var shouldSave = userData.AnimeSeries_UserID is 0;
+            ?? new() { MediaSeriesID = series.ID, JMMUserID = user.ID };
+        var shouldSave = userData.MediaSeries_UserID is 0;
 
         if (userDataUpdate.IsFavorite.HasValue && userData.IsFavorite != userDataUpdate.IsFavorite)
         {
@@ -847,11 +847,11 @@ public class UserDataService(
                 ep =>
                 {
                     var users = episodeUserDataRepository.GetByEpisodeID(ep.ID);
-                    return users.Select(a => (EpisodeID: ep.AnidbEpisodeID, AnimeEpisode_User: a));
+                    return users.Select(a => (EpisodeID: ep.AnidbEpisodeID, MediaEpisode_User: a));
                 }
             )
-            .Where(a => a.AnimeEpisode_User is not null)
-            .ToLookup(a => (a.EpisodeID, UserID: a.AnimeEpisode_User.JMMUserID), b => b.AnimeEpisode_User);
+            .Where(a => a.MediaEpisode_User is not null)
+            .ToLookup(a => (a.EpisodeID, UserID: a.MediaEpisode_User.JMMUserID), b => b.MediaEpisode_User);
         var lockObj = new object();
         foreach (var user in userRepository.GetAll())
             UpdateWatchedStatsInternal(series, episodes, user, VideoUserDataSaveReason.None, videoLookup, videoUserDataLookup, episodeUserDataLookup, lockObj);
@@ -873,11 +873,11 @@ public class UserDataService(
                 ep =>
                 {
                     var users = episodeUserDataRepository.GetByEpisodeID(ep.ID);
-                    return users.Select(a => (EpisodeID: ep.AnidbEpisodeID, AnimeEpisode_User: a));
+                    return users.Select(a => (EpisodeID: ep.AnidbEpisodeID, MediaEpisode_User: a));
                 }
             )
-            .Where(a => a.AnimeEpisode_User is not null)
-            .ToLookup(a => (a.EpisodeID, UserID: a.AnimeEpisode_User.JMMUserID), b => b.AnimeEpisode_User);
+            .Where(a => a.MediaEpisode_User is not null)
+            .ToLookup(a => (a.EpisodeID, UserID: a.MediaEpisode_User.JMMUserID), b => b.MediaEpisode_User);
         var lockObj = new object();
         UpdateWatchedStatsInternal(series, episodes, user, reason, videoLookup, videoUserDataLookup, episodeUserDataLookup, lockObj);
     }
@@ -889,7 +889,7 @@ public class UserDataService(
         VideoUserDataSaveReason videoReason,
         ILookup<int, IVideo> videoLookup,
         ILookup<(int EpisodeID, int UserID), VideoLocal_User> videoUserDataLookup,
-        ILookup<(int EpisodeID, int UserID), AnimeEpisode_User> episodeUserDataLookup,
+        ILookup<(int EpisodeID, int UserID), MediaEpisode_User> episodeUserDataLookup,
         object lockObj
     )
     {
@@ -901,7 +901,7 @@ public class UserDataService(
         DateTime? lastEpisodeUpdate = null;
         DateTime? watchedDate = null;
         var userData = seriesUserDataRepository.GetByUserAndSeriesID(user.ID, series.ID)
-            ?? new() { JMMUserID = user.ID, AnimeSeriesID = series.ID, LastUpdated = DateTime.Now };
+            ?? new() { JMMUserID = user.ID, MediaSeriesID = series.ID, LastUpdated = DateTime.Now };
         Parallel.ForEach(episodes, new() { MaxDegreeOfParallelism = 4 }, ep =>
             {
                 if (ep.Type is not (EpisodeType.Episode or EpisodeType.Special))
@@ -946,7 +946,7 @@ public class UserDataService(
             });
 
         if (
-            userData.AnimeSeries_UserID is 0 ||
+            userData.MediaSeries_UserID is 0 ||
             userData.UnwatchedEpisodeCount != unwatchedCount ||
             userData.HiddenUnwatchedEpisodeCount != hiddenUnwatchedCount ||
             userData.WatchedEpisodeCount != watchedEpisodeCount ||
@@ -1001,12 +1001,12 @@ public class UserDataService(
         IDaCollectorGroup group,
         IUser user,
         IReadOnlyList<IDaCollectorSeries>? allSeries = null,
-        Action<AnimeGroup_User, bool, bool>? newAnimeGroupUsers = null
+        Action<MediaGroup_User, bool, bool>? newAnimeGroupUsers = null
     )
     {
         var userData = groupUserDataRepository.GetByUserAndGroupID(user.ID, group.ID)
-            ?? new() { JMMUserID = user.ID, AnimeGroupID = group.ID };
-        var isNew = userData.AnimeGroup_UserID is 0;
+            ?? new() { JMMUserID = user.ID, MediaGroupID = group.ID };
+        var isNew = userData.MediaGroup_UserID is 0;
 
         // Reset stats
         var watchedCount = 0;

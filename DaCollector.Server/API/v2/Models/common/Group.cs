@@ -32,13 +32,13 @@ public class Group : BaseDirectory
         roles = [];
     }
 
-    public static Group GenerateFromAnimeGroup(HttpContext ctx, AnimeGroup ag, int uid, bool noCast, bool noTag, int level,
+    public static Group GenerateFromAnimeGroup(HttpContext ctx, MediaGroup ag, int uid, bool noCast, bool noTag, int level,
         bool all, int filterID, bool allPic, int pic, TagFilter.Filter tagFilter, List<int> evaluatedSeriesIDs = null)
     {
         var g = new Group
         {
             name = ag.GroupName,
-            id = ag.AnimeGroupID,
+            id = ag.MediaGroupID,
             added = ag.DateTimeCreated,
             edited = ag.DateTimeUpdated
         };
@@ -47,12 +47,12 @@ public class Group : BaseDirectory
         {
             var filter = RepoFactory.FilterPreset.GetByID(filterID);
             var evaluator = ctx.RequestServices.GetRequiredService<IFilterEvaluator>();
-            evaluatedSeriesIDs = evaluator.EvaluateFilter(filter, ctx.GetUser()).FirstOrDefault(a => a.Key == ag.AnimeGroupID)?.ToList();
+            evaluatedSeriesIDs = evaluator.EvaluateFilter(filter, ctx.GetUser()).FirstOrDefault(a => a.Key == ag.MediaGroupID)?.ToList();
         }
 
         var allAnime = evaluatedSeriesIDs is not null
             ? evaluatedSeriesIDs
-                .Select(RepoFactory.AnimeSeries.GetByID)
+                .Select(RepoFactory.MediaSeries.GetByID)
                 .WhereNotNull()
                 .Select(ser => ser.AniDB_Anime)
                 .WhereNotNull()
@@ -68,11 +68,11 @@ public class Group : BaseDirectory
 
         PopulateArtFromAniDBAnime(ctx, allAnime, g, allPic, pic);
 
-        List<AnimeEpisode> ael;
+        List<MediaEpisode> ael;
         if (evaluatedSeriesIDs is not null)
         {
             var series = evaluatedSeriesIDs
-                .Select(id => RepoFactory.AnimeSeries.GetByID(id))
+                .Select(id => RepoFactory.MediaSeries.GetByID(id))
                 .ToList();
             ael = series
                 .SelectMany(ser => ser?.AnimeEpisodes)
@@ -139,7 +139,7 @@ public class Group : BaseDirectory
         if (level > 0)
         {
             // we already sorted allAnime, so no need to sort
-            foreach (var ada in allAnime.Select(a => RepoFactory.AnimeSeries.GetByAnimeID(a.AnimeID)))
+            foreach (var ada in allAnime.Select(a => RepoFactory.MediaSeries.GetByAnimeID(a.AnimeID)))
             {
                 g.series.Add(Serie.GenerateFromAnimeSeries(ctx, ada, uid, noCast, noTag, level - 1, all, allPic, pic, tagFilter));
             }
@@ -254,7 +254,7 @@ public class Group : BaseDirectory
         }
     }
 
-    private static void GenerateSizes(Group grp, List<AnimeEpisode> ael, int uid)
+    private static void GenerateSizes(Group grp, List<MediaEpisode> ael, int uid)
     {
         var eps = 0;
         var credits = 0;

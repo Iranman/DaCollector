@@ -79,9 +79,9 @@ public class SyncAniDBVotesJob : BaseJob
     {
         _logger.LogInformation("Exporting votes for user {UserID} to AniDB.", user.JMMUserID);
         var scheduler = await _schedulerFactory.GetScheduler();
-        foreach (var userData in RepoFactory.AnimeSeries_User.GetByUserID(user.JMMUserID))
+        foreach (var userData in RepoFactory.MediaSeries_User.GetByUserID(user.JMMUserID))
         {
-            if (RepoFactory.AnimeSeries.GetByID(userData.AnimeSeriesID) is not { } series)
+            if (RepoFactory.MediaSeries.GetByID(userData.MediaSeriesID) is not { } series)
                 continue;
 
             var vote = votes.Find(v => v.EntityID == series.AniDB_ID && v.VoteType is Providers.AniDB.VoteType.AnimePermanent or Providers.AniDB.VoteType.AnimeTemporary);
@@ -125,9 +125,9 @@ public class SyncAniDBVotesJob : BaseJob
             }
         }
 
-        foreach (var userData in RepoFactory.AnimeEpisode_User.GetByUserID(user.JMMUserID))
+        foreach (var userData in RepoFactory.MediaEpisode_User.GetByUserID(user.JMMUserID))
         {
-            if (RepoFactory.AnimeEpisode.GetByID(userData.AnimeEpisodeID) is not { } episode)
+            if (RepoFactory.MediaEpisode.GetByID(userData.MediaEpisodeID) is not { } episode)
                 continue;
 
             var vote = votes.Find(v => v.EntityID == episode.AniDB_EpisodeID && v.VoteType is Providers.AniDB.VoteType.Episode);
@@ -170,7 +170,7 @@ public class SyncAniDBVotesJob : BaseJob
             {
                 case Providers.AniDB.VoteType.Episode:
                 {
-                    if (RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(vote.EntityID) is not { } episode)
+                    if (RepoFactory.MediaEpisode.GetByAniDBEpisodeID(vote.EntityID) is not { } episode)
                     {
                         _logger.LogInformation("Unable to find episode locally. Skipping import. (Episode={ID})", vote.EntityID);
                         continue;
@@ -182,7 +182,7 @@ public class SyncAniDBVotesJob : BaseJob
                 case Providers.AniDB.VoteType.AnimePermanent:
                 case Providers.AniDB.VoteType.AnimeTemporary:
                 {
-                    if (RepoFactory.AnimeSeries.GetByAnimeID(vote.EntityID) is not { } series)
+                    if (RepoFactory.MediaSeries.GetByAnimeID(vote.EntityID) is not { } series)
                     {
                         _logger.LogInformation("Unable to find series locally. Skipping import. (Anime={ID})", vote.EntityID);
                         continue;

@@ -164,7 +164,7 @@ public static class Dashboard
     /// </summary>
     public class Episode
     {
-        public Episode(AniDB_Episode episode, AniDB_Anime anime, AnimeSeries? series = null,
+        public Episode(AniDB_Episode episode, AniDB_Anime anime, MediaSeries? series = null,
             VideoLocal? file = null, VideoLocal_User? userRecord = null)
         {
             IDs = new EpisodeDetailsIDs()
@@ -172,9 +172,9 @@ public static class Dashboard
                 ID = episode.EpisodeID,
                 Series = anime.AnimeID,
                 DaCollectorFile = file?.VideoLocalID,
-                DaCollectorSeries = series?.AnimeSeriesID,
+                DaCollectorSeries = series?.MediaSeriesID,
                 DaCollectorEpisode = series != null
-                    ? RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(episode.EpisodeID)?.AnimeEpisodeID
+                    ? RepoFactory.MediaEpisode.GetByAniDBEpisodeID(episode.EpisodeID)?.MediaEpisodeID
                     : null
             };
             Title = episode.Title;

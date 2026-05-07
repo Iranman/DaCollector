@@ -163,7 +163,7 @@ public class ActionService
             // poster
             if (!string.IsNullOrEmpty(anime.PosterPath)) updateImages |= !File.Exists(anime.PosterPath);
 
-            var seriesExists = RepoFactory.AnimeSeries.GetByAnimeID(anime.AnimeID) != null;
+            var seriesExists = RepoFactory.MediaSeries.GetByAnimeID(anime.AnimeID) != null;
             if (seriesExists)
             {
                 // characters
@@ -439,7 +439,7 @@ public class ActionService
     {
         var scheduler = await _schedulerFactory.GetScheduler();
         _logger.LogInformation("Remove Missing Files: Start");
-        var seriesToUpdate = new HashSet<AnimeSeries>();
+        var seriesToUpdate = new HashSet<MediaSeries>();
         using var session = _databaseFactory.SessionFactory.OpenSession();
 
         // remove missing files in valid managed folders
@@ -522,8 +522,8 @@ public class ActionService
 #pragma warning disable CS0618
                         _logger.LogInformation("Remove Records With Orphaned Managed Folder: {Filename}", v.FileName);
 #pragma warning restore CS0618
-                        seriesToUpdate.UnionWith(v.AnimeEpisodes.Select(a => a.AnimeSeries)
-                            .DistinctBy(a => a.AnimeSeriesID));
+                        seriesToUpdate.UnionWith(v.AnimeEpisodes.Select(a => a.MediaSeries)
+                            .DistinctBy(a => a.MediaSeriesID));
                         RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(s, place);
                     }
 
@@ -556,8 +556,8 @@ public class ActionService
 #pragma warning disable CS0618
             _logger.LogInformation("RemoveOrphanedVideoLocal : {Filename}", v.FileName);
 #pragma warning restore CS0618
-            seriesToUpdate.UnionWith(v.AnimeEpisodes.Select(a => a.AnimeSeries)
-                .DistinctBy(a => a.AnimeSeriesID));
+            seriesToUpdate.UnionWith(v.AnimeEpisodes.Select(a => a.MediaSeries)
+                .DistinctBy(a => a.MediaSeriesID));
 
             if (removeMyList)
                 await ((VideoService)_videoService).ScheduleRemovalFromMyList(v);
@@ -612,7 +612,7 @@ public class ActionService
     public async Task UpdateAllStats()
     {
         var scheduler = await _schedulerFactory.GetScheduler().ConfigureAwait(false);
-        await Task.WhenAll(RepoFactory.AnimeSeries.GetAll().Select(a => scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID)));
+        await Task.WhenAll(RepoFactory.MediaSeries.GetAll().Select(a => scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID)));
     }
 
     public async Task<int> UpdateAnidbReleaseInfo(bool countOnly = false)
@@ -950,10 +950,10 @@ public class ActionService
 
         // Queue missing anime needed by existing files.
         index = 0;
-        var localAnimeSet = RepoFactory.AnimeSeries.GetAll()
+        var localAnimeSet = RepoFactory.MediaSeries.GetAll()
             .Select(a => a.AniDB_ID)
             .ToHashSet();
-        var localEpisodeSet = RepoFactory.AnimeEpisode.GetAll()
+        var localEpisodeSet = RepoFactory.MediaEpisode.GetAll()
             .Select(episode => episode.AniDB_EpisodeID)
             .ToHashSet();
         var missingAnimeSet = videos
@@ -1008,7 +1008,7 @@ public class ActionService
         {
             var xrefs = RepoFactory.CrossRef_File_Episode.GetByEd2k(vid.Hash);
             var aniDBAnime = xrefs.Select(a => RepoFactory.AniDB_Anime.GetByAnimeID(a.AnimeID)).WhereNotNull();
-            return aniDBAnime.Where(a => RepoFactory.AnimeSeries.GetByAnimeID(a.AnimeID) == null);
+            return aniDBAnime.Where(a => RepoFactory.MediaSeries.GetByAnimeID(a.AnimeID) == null);
         }).ToList();
 
         _logger.LogInformation("Creating {Count} Series that are missing.", missingSeries.Count);

@@ -44,7 +44,7 @@ public class ReleaseManagementMissingEpisodesController(ISettingsProvider settin
         [FromQuery, Range(0, 1000)] int pageSize = 100,
         [FromQuery, Range(1, int.MaxValue)] int page = 1)
     {
-        var enumerable = RepoFactory.AnimeEpisode.GetMissing(collecting);
+        var enumerable = RepoFactory.MediaEpisode.GetMissing(collecting);
 
         return enumerable
             .ToListResult(episode => new Episode(HttpContext, episode, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths, includeXRefs), page, pageSize);
@@ -67,7 +67,7 @@ public class ReleaseManagementMissingEpisodesController(ISettingsProvider settin
         [FromQuery, Range(0, 1000)] int pageSize = 100,
         [FromQuery, Range(1, int.MaxValue)] int page = 1)
     {
-        var enumerable = RepoFactory.AnimeSeries.GetWithMissingEpisodes(collecting);
+        var enumerable = RepoFactory.MediaSeries.GetWithMissingEpisodes(collecting);
         if (onlyFinishedSeries)
             enumerable = enumerable.Where(a => a.AniDB_Anime.GetFinishedAiring());
 
@@ -102,14 +102,14 @@ public class ReleaseManagementMissingEpisodesController(ISettingsProvider settin
         [FromQuery, Range(0, 1000)] int pageSize = 100,
         [FromQuery, Range(1, int.MaxValue)] int page = 1)
     {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
             return new ListResult<Episode>();
 
         if (!User.AllowedSeries(series))
             return new ListResult<Episode>();
 
-        var enumerable = RepoFactory.AnimeEpisode.GetMissing(collecting, series.AniDB_ID);
+        var enumerable = RepoFactory.MediaEpisode.GetMissing(collecting, series.AniDB_ID);
 
         return enumerable
             .ToListResult(episode => new Episode(HttpContext, episode, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths, includeXRefs), page, pageSize);

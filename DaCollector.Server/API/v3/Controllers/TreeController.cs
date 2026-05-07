@@ -81,11 +81,11 @@ public class TreeController(ISettingsProvider settingsProvider, FilterFactory _f
         [FromQuery] bool includeEmpty = true, [FromQuery] bool randomImages = false, [FromQuery] bool orderByName = false)
     {
         // Return the top level groups with no filter.
-        IEnumerable<AnimeGroup> groups;
+        IEnumerable<MediaGroup> groups;
         if (filterID == 0)
         {
             var user = User;
-            groups = RepoFactory.AnimeGroup.GetAll()
+            groups = RepoFactory.MediaGroup.GetAll()
                 .Where(group =>
                 {
                     if (group.AnimeGroupParentID.HasValue)
@@ -114,7 +114,7 @@ public class TreeController(ISettingsProvider settingsProvider, FilterFactory _f
             if (!results.Any()) return new ListResult<Group>();
 
             groups = results
-                .Select(group => RepoFactory.AnimeGroup.GetByID(group.Key))
+                .Select(group => RepoFactory.MediaGroup.GetByID(group.Key))
                 .Where(group => group is { AnimeGroupParentID: null } &&
                                 (includeEmpty || group.AllSeries.Any(s => s.AnimeEpisodes.Any(e => e.VideoLocals.Count > 0))));
         }
@@ -159,16 +159,16 @@ public class TreeController(ISettingsProvider settingsProvider, FilterFactory _f
                 return new Dictionary<char, int>();
 
             return results
-                .Select(group => RepoFactory.AnimeGroup.GetByID(group.Key)?.TopLevelAnimeGroup)
+                .Select(group => RepoFactory.MediaGroup.GetByID(group.Key)?.TopLevelAnimeGroup)
                 .WhereNotNull()
-                .DistinctBy(group => group.AnimeGroupID)
+                .DistinctBy(group => group.MediaGroupID)
                 .Where(group => includeEmpty || group.AllSeries.Any(s => s.AnimeEpisodes.Any(e => e.VideoLocals.Count > 0)))
                 .GroupBy(group => group.SortName[0])
                 .OrderBy(groupList => groupList.Key)
                 .ToDictionary(groupList => groupList.Key, groupList => groupList.Count());
         }
 
-        return RepoFactory.AnimeGroup.GetAll()
+        return RepoFactory.MediaGroup.GetAll()
             .Where(group =>
             {
                 if (group.AnimeGroupParentID.HasValue)
@@ -209,7 +209,7 @@ public class TreeController(ISettingsProvider settingsProvider, FilterFactory _f
         // Return the series with no group filter applied.
         var user = User;
         if (filterID == 0)
-            return RepoFactory.AnimeSeries.GetAll()
+            return RepoFactory.MediaSeries.GetAll()
                 .Where(series => user.AllowedSeries(series) && (includeMissing || series.VideoLocals.Count > 0))
                 .OrderBy(series => series.Title.ToLowerInvariant().ToSortName())
                 .ThenBy(series => series.AniDB_ID)
@@ -229,7 +229,7 @@ public class TreeController(ISettingsProvider settingsProvider, FilterFactory _f
             return new ListResult<Series>();
 
         // We don't need separate logic for ApplyAtSeriesLevel, as the FilterEvaluator handles that
-        return results.SelectMany(a => a.Select(id => RepoFactory.AnimeSeries.GetByID(id)))
+        return results.SelectMany(a => a.Select(id => RepoFactory.MediaSeries.GetByID(id)))
             .Where(series => series != null && (includeMissing || series.VideoLocals.Count > 0))
             .OrderBy(series => series.Title.ToLowerInvariant().ToSortName())
             .ThenBy(series => series.AniDB_ID)
@@ -252,9 +252,9 @@ public class TreeController(ISettingsProvider settingsProvider, FilterFactory _f
         if (filterID == 0)
         {
             var user = User;
-            return RepoFactory.AnimeSeries.GetAll()
+            return RepoFactory.MediaSeries.GetAll()
                 .Where(user.AllowedSeries)
-                .Select(group => group.AnimeSeriesID)
+                .Select(group => group.MediaSeriesID)
                 .ToList();
         }
 
@@ -297,7 +297,7 @@ public class TreeController(ISettingsProvider settingsProvider, FilterFactory _f
             return NotFound(FilterController.FilterNotFound);
 
         // Check if the group exists.
-        var group = RepoFactory.AnimeGroup.GetByID(groupID);
+        var group = RepoFactory.MediaGroup.GetByID(groupID);
         if (group == null)
             return NotFound(GroupController.GroupNotFound);
 
@@ -316,7 +316,7 @@ public class TreeController(ISettingsProvider settingsProvider, FilterFactory _f
 
         // Subgroups are weird. We'll take the group, build a set of all subgroup IDs, and use that to determine if a group should be included
         // This should maintain the order of results, but have every group in the tree for those results
-        var orderedGroups = results.SelectMany(a => RepoFactory.AnimeGroup.GetByID(a.Key).TopLevelAnimeGroup.AllChildren.Select(b => b.AnimeGroupID)).ToArray();
+        var orderedGroups = results.SelectMany(a => RepoFactory.MediaGroup.GetByID(a.Key).TopLevelAnimeGroup.AllChildren.Select(b => b.MediaGroupID)).ToArray();
         var groups = orderedGroups.ToHashSet();
 
         return group.Children
@@ -332,9 +332,9 @@ public class TreeController(ISettingsProvider settingsProvider, FilterFactory _f
                         .Any(s => s.AnimeEpisodes.Any(e => e.VideoLocals.Count > 0)))
                     return false;
 
-                return groups.Contains(subGroup.AnimeGroupID);
+                return groups.Contains(subGroup.MediaGroupID);
             })
-            .OrderBy(a => Array.IndexOf(orderedGroups, a.AnimeGroupID))
+            .OrderBy(a => Array.IndexOf(orderedGroups, a.MediaGroupID))
             .Select(g => new Group(g, User.JMMUserID, randomImages))
             .ToList();
     }
@@ -373,7 +373,7 @@ public class TreeController(ISettingsProvider settingsProvider, FilterFactory _f
             return GetSeriesInGroup(groupID, recursive, includeMissing, randomImages);
 
         // Check if the group exists.
-        var group = RepoFactory.AnimeGroup.GetByID(groupID);
+        var group = RepoFactory.MediaGroup.GetByID(groupID);
         if (group == null)
             return NotFound(GroupController.GroupNotFound);
 
@@ -391,11 +391,11 @@ public class TreeController(ISettingsProvider settingsProvider, FilterFactory _f
             return new List<Series>();
 
         var seriesIDs = recursive
-            ? group.AllChildren.SelectMany(a => results.FirstOrDefault(b => b.Key == a.AnimeGroupID))
+            ? group.AllChildren.SelectMany(a => results.FirstOrDefault(b => b.Key == a.MediaGroupID))
             : results.FirstOrDefault(a => a.Key == groupID);
 
-        var series = seriesIDs?.Select(a => RepoFactory.AnimeSeries.GetByID(a)).Where(a => includeMissing || a.VideoLocals.Count != 0) ??
-                     Array.Empty<AnimeSeries>();
+        var series = seriesIDs?.Select(a => RepoFactory.MediaSeries.GetByID(a)).Where(a => includeMissing || a.VideoLocals.Count != 0) ??
+                     Array.Empty<MediaSeries>();
 
         return series
             .Select(a => new Series(a, User.JMMUserID, randomImages, includeDataFrom))
@@ -418,7 +418,7 @@ public class TreeController(ISettingsProvider settingsProvider, FilterFactory _f
         [FromQuery] bool includeEmpty = true)
     {
         // Check if the group exists.
-        var group = RepoFactory.AnimeGroup.GetByID(groupID);
+        var group = RepoFactory.MediaGroup.GetByID(groupID);
         if (group == null)
             return NotFound(GroupController.GroupNotFound);
 
@@ -462,7 +462,7 @@ public class TreeController(ISettingsProvider settingsProvider, FilterFactory _f
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType> includeDataFrom = null)
     {
         // Check if the group exists.
-        var group = RepoFactory.AnimeGroup.GetByID(groupID);
+        var group = RepoFactory.MediaGroup.GetByID(groupID);
         if (group == null)
             return NotFound(GroupController.GroupNotFound);
 
@@ -492,7 +492,7 @@ public class TreeController(ISettingsProvider settingsProvider, FilterFactory _f
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType> includeDataFrom = null)
     {
         // Check if the group exists.
-        var group = RepoFactory.AnimeGroup.GetByID(groupID);
+        var group = RepoFactory.MediaGroup.GetByID(groupID);
         if (group == null)
             return NotFound(GroupController.GroupNotFound);
 
@@ -535,7 +535,7 @@ public class TreeController(ISettingsProvider settingsProvider, FilterFactory _f
     )
     {
         var user = User;
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = RepoFactory.MediaSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesController.SeriesNotFoundWithSeriesID);
 
@@ -570,11 +570,11 @@ public class TreeController(ISettingsProvider settingsProvider, FilterFactory _f
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] List<string> sortOrder = null
     )
     {
-        var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
+        var episode = RepoFactory.MediaEpisode.GetByID(episodeID);
         if (episode == null)
             return NotFound(EpisodeController.EpisodeNotFoundWithEpisodeID);
 
-        var series = episode.AnimeSeries;
+        var series = episode.MediaSeries;
         if (series == null)
             return InternalError("No Series entry for given Episode");
 

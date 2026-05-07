@@ -10,7 +10,7 @@ using DaCollector.Abstractions.Metadata.Stub;
 #nullable enable
 namespace DaCollector.Server.Models.DaCollector.Embedded;
 
-public class AnimeSeason(IDaCollectorSeries series, EpisodeType episodeType, int seasonNumber) : IDaCollectorSeason
+public class MediaSeason(IDaCollectorSeries series, EpisodeType episodeType, int seasonNumber) : IDaCollectorSeason
 {
     int ISeason.SeriesID => series.ID;
 

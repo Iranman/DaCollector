@@ -48,8 +48,8 @@ namespace DaCollector.Server.API.v2.Modules;
 [ApiController]
 public class Common : BaseController
 {
-    private readonly AnimeSeriesService _seriesService;
-    private readonly AnimeGroupService _groupService;
+    private readonly MediaSeriesService _seriesService;
+    private readonly MediaGroupService _groupService;
     private readonly ISchedulerFactory _schedulerFactory;
     private readonly ActionService _actionService;
     private readonly QueueHandler _queueHandler;
@@ -63,8 +63,8 @@ public class Common : BaseController
         ActionService actionService,
         ISettingsProvider settingsProvider,
         QueueHandler queueHandler,
-        AnimeSeriesService seriesService,
-        AnimeGroupService groupService,
+        MediaSeriesService seriesService,
+        MediaGroupService groupService,
         IUserDataService userDataService,
         VideoLocal_UserRepository vlUsers,
         IVideoService videoService,
@@ -842,19 +842,19 @@ public class Common : BaseController
         var results = new Dictionary<int, Serie>();
         try
         {
-            var list = RepoFactory.AnimeEpisode.GetWithMultipleReleases(true).ToList();
+            var list = RepoFactory.MediaEpisode.GetWithMultipleReleases(true).ToList();
             foreach (var ep in list)
             {
-                var series = ep?.AnimeSeries;
+                var series = ep?.MediaSeries;
                 if (series == null)
                 {
                     continue;
                 }
 
                 Serie serie = null;
-                if (results.ContainsKey(series.AnimeSeriesID))
+                if (results.ContainsKey(series.MediaSeriesID))
                 {
-                    serie = results[series.AnimeSeriesID];
+                    serie = results[series.MediaSeriesID];
                 }
 
                 serie ??= Serie.GenerateFromAnimeSeries(HttpContext, series, userID, para.nocast == 1,
@@ -878,7 +878,7 @@ public class Common : BaseController
                 }));
 
                 serie.eps.Add(episode);
-                results[series.AnimeSeriesID] = serie;
+                results[series.MediaSeriesID] = serie;
             }
         }
         catch (Exception ex)
@@ -917,8 +917,8 @@ public class Common : BaseController
         {
             list.Add(new RawFile.RecentFile(HttpContext, file, level, User.JMMUserID)
             {
-                ep_id = file.AnimeEpisodes.FirstOrDefault()?.AnimeEpisodeID ?? 0,
-                series_id = file.AnimeEpisodes.FirstOrDefault()?.AnimeSeries?.AnimeSeriesID ?? 0
+                ep_id = file.AnimeEpisodes.FirstOrDefault()?.MediaEpisodeID ?? 0,
+                series_id = file.AnimeEpisodes.FirstOrDefault()?.MediaSeries?.MediaSeriesID ?? 0
             });
         }
 
@@ -1133,7 +1133,7 @@ public class Common : BaseController
             return BadRequest("missing 'filename'");
         }
 
-        var aep = RepoFactory.AnimeEpisode.GetByFilename(filename);
+        var aep = RepoFactory.MediaEpisode.GetByFilename(filename);
         if (aep != null)
         {
             return Episode.GenerateFromAnimeEpisode(HttpContext, aep, user.JMMUserID, 0, pic);
@@ -1155,7 +1155,7 @@ public class Common : BaseController
             return BadRequest("missing 'hash'");
         }
 
-        var list_aep = RepoFactory.AnimeEpisode.GetByHash(hash);
+        var list_aep = RepoFactory.MediaEpisode.GetByHash(hash);
 
         switch (list_aep.Count)
         {
@@ -1206,7 +1206,7 @@ public class Common : BaseController
         {
             foreach (var aep in vl.AnimeEpisodes)
             {
-                if (IDs.Contains(aep.AnimeEpisodeID))
+                if (IDs.Contains(aep.MediaEpisodeID))
                 {
                     continue;
                 }
@@ -1214,7 +1214,7 @@ public class Common : BaseController
                 var ep = Episode.GenerateFromAnimeEpisode(HttpContext, aep, user.JMMUserID, para.level, para.pic);
                 if (ep != null)
                 {
-                    IDs.Add(aep.AnimeEpisodeID);
+                    IDs.Add(aep.MediaEpisodeID);
                     lst.Add(ep);
                 }
             }
@@ -1233,12 +1233,12 @@ public class Common : BaseController
         var user = HttpContext.GetUser();
         var lst = new List<Serie>();
 
-        var eps = RepoFactory.AnimeEpisode.GetEpisodesWithNoFiles(all);
+        var eps = RepoFactory.MediaEpisode.GetEpisodesWithNoFiles(all);
 
-        var lookup = eps.ToLookup(a => a.AnimeSeriesID);
+        var lookup = eps.ToLookup(a => a.MediaSeriesID);
         foreach (var ser in lookup)
         {
-            var series = RepoFactory.AnimeSeries.GetByID(ser.Key);
+            var series = RepoFactory.MediaSeries.GetByID(ser.Key);
             if (series.AniDB_Anime?.GetAllTags().FindInEnumerable(user.GetHideCategories()) ?? false)
             {
                 continue;
@@ -1306,7 +1306,7 @@ public class Common : BaseController
         [FromQuery, Range(-1, 1000)] double score
     )
     {
-        if (RepoFactory.AnimeEpisode.GetByID(id) is not { } episode)
+        if (RepoFactory.MediaEpisode.GetByID(id) is not { } episode)
             return BadRequest($"Episode with id '{id}' was not found");
 
         if (score is not -1 and (< 0 or > 1000))
@@ -1361,7 +1361,7 @@ public class Common : BaseController
 
         var index = -1;
         var _go = false;
-        var list_aep = RepoFactory.AnimeEpisode.GetAllWatchedEpisodes(user.JMMUserID, date_after);
+        var list_aep = RepoFactory.MediaEpisode.GetAllWatchedEpisodes(user.JMMUserID, date_after);
         var ep_list = new List<Episode>();
         foreach (var aep in list_aep)
         {
@@ -1404,7 +1404,7 @@ public class Common : BaseController
     {
         try
         {
-            if (RepoFactory.AnimeEpisode.GetByID(id) is not { } episode)
+            if (RepoFactory.MediaEpisode.GetByID(id) is not { } episode)
                 return NotFound();
 
             await _userDataService.SetEpisodeWatchedStatus(episode, user, status);
@@ -1423,7 +1423,7 @@ public class Common : BaseController
     internal object GetAllEpisodes(int uid, int limit, int offset, int level, bool all, int pic)
     {
         var eps = new List<Episode>();
-        var aepul = RepoFactory.AnimeEpisode_User.GetByUserID(uid).Select(a => a.AnimeEpisodeID).ToList();
+        var aepul = RepoFactory.MediaEpisode_User.GetByUserID(uid).Select(a => a.MediaEpisodeID).ToList();
         if (limit == 0)
         {
             // hardcoded
@@ -1473,10 +1473,10 @@ public class Common : BaseController
             return Unauthorized();
         }
 
-        var aep = RepoFactory.AnimeEpisode.GetByID(id);
+        var aep = RepoFactory.MediaEpisode.GetByID(id);
         if (aep != null)
         {
-            if (!user.AllowedSeries(aep.AnimeSeries))
+            if (!user.AllowedSeries(aep.MediaSeries))
             {
                 return NotFound();
             }
@@ -1523,7 +1523,7 @@ public class Common : BaseController
     [HttpGet("serie/count")]
     public ActionResult<Counter> CountSerie()
     {
-        return new Counter { count = RepoFactory.AnimeSeries.GetAll().Count };
+        return new Counter { count = RepoFactory.MediaSeries.GetAll().Count };
     }
 
     /// <summary>
@@ -1538,7 +1538,7 @@ public class Common : BaseController
         // 1. get series airing
         // 2. get eps for those series
         // 3. calculate which series have most of the files released today
-        var allSeries = RepoFactory.AnimeSeries.GetAll().AsParallel().Where(user.AllowedSeries);
+        var allSeries = RepoFactory.MediaSeries.GetAll().AsParallel().Where(user.AllowedSeries);
         var now = DateTime.Now;
         var result = allSeries.Where(ser =>
             {
@@ -1727,7 +1727,7 @@ public class Common : BaseController
             para.limit = 10;
         }
 
-        var series = RepoFactory.AnimeSeries.GetMostRecentlyAdded(para.limit, User.JMMUserID);
+        var series = RepoFactory.MediaSeries.GetMostRecentlyAdded(para.limit, User.JMMUserID);
 
         foreach (var aser in series)
         {
@@ -1781,7 +1781,7 @@ public class Common : BaseController
         [FromQuery, Range(-1, 1000)] double score
     )
     {
-        if (RepoFactory.AnimeSeries.GetByID(id) is not { } series)
+        if (RepoFactory.MediaSeries.GetByID(id) is not { } series)
             return BadRequest($"Series with id '{id}' was not found");
 
         if (score is not -1 and (< 0 or > 1000))
@@ -1871,14 +1871,14 @@ public class Common : BaseController
     /// Handle /api/serie/groups?id=...
     /// Get all related AnimeGroups for a series ID
     /// </summary>
-    /// <returns>AnimeGroup</returns>
+    /// <returns>MediaGroup</returns>
     [HttpGet("serie/groups")]
     public ActionResult<IEnumerable<Group>> GetSeriesGroups([FromQuery] API_Call_Parameters para)
     {
         var user = HttpContext.GetUser();
         if (para.id != 0)
         {
-            var anime = RepoFactory.AnimeSeries.GetByID(para.id);
+            var anime = RepoFactory.MediaSeries.GetByID(para.id);
             if (anime == null)
             {
                 return new List<Group>();
@@ -2015,13 +2015,13 @@ public class Common : BaseController
             }
 
             // There's usually only one, but shit happens
-            var seriesList = vl.AnimeEpisodes.Select(a => a.AnimeSeries).DistinctBy(a => a.AnimeSeriesID)
+            var seriesList = vl.AnimeEpisodes.Select(a => a.MediaSeries).DistinctBy(a => a.MediaSeriesID)
                 .ToList();
 
             var path = (Path.GetDirectoryName(place.RelativePath) ?? string.Empty) + "/";
             foreach (var series in seriesList)
             {
-                if (output.TryGetValue(series.AnimeSeriesID, out var value))
+                if (output.TryGetValue(series.MediaSeriesID, out var value))
                 {
                     var ser = value;
 
@@ -2039,13 +2039,13 @@ public class Common : BaseController
                 {
                     var ser = new SeriesInfo
                     {
-                        id = series.AnimeSeriesID,
+                        id = series.MediaSeriesID,
                         filesize = vl.FileSize,
                         name = series.Title,
                         size = 1,
                         paths = new List<string> { path }
                     };
-                    output.Add(series.AnimeSeriesID, ser);
+                    output.Add(series.MediaSeriesID, ser);
 
                     filesize += vl.FileSize;
                     size++;
@@ -2135,10 +2135,10 @@ public class Common : BaseController
     internal ActionResult<Serie> GetSerieFromEpisode(int id, int uid, bool nocast, bool notag, int level, bool all,
         bool allpic, int pic, TagFilter.Filter tagfilter)
     {
-        var aep = RepoFactory.AnimeEpisode.GetByID(id);
+        var aep = RepoFactory.MediaEpisode.GetByID(id);
         if (aep != null)
         {
-            return Serie.GenerateFromAnimeSeries(HttpContext, aep.AnimeSeries, uid, nocast, notag, level, all,
+            return Serie.GenerateFromAnimeSeries(HttpContext, aep.MediaSeries, uid, nocast, notag, level, all,
                 allpic, pic, tagfilter);
         }
 
@@ -2165,7 +2165,7 @@ public class Common : BaseController
 
         var allseries = new List<Serie>();
 
-        foreach (var asi in RepoFactory.AnimeSeries.GetAll().Where(a => user.AllowedSeries(a)))
+        foreach (var asi in RepoFactory.MediaSeries.GetAll().Where(a => user.AllowedSeries(a)))
         {
             if (offset <= 0)
             {
@@ -2201,7 +2201,7 @@ public class Common : BaseController
         TagFilter.Filter tagfilter)
     {
         var user = HttpContext.GetUser();
-        var ser = RepoFactory.AnimeSeries.GetByID(series_id);
+        var ser = RepoFactory.MediaSeries.GetByID(series_id);
         if (!user.AllowedSeries(ser))
         {
             return NotFound();
@@ -2227,7 +2227,7 @@ public class Common : BaseController
     {
         try
         {
-            if (RepoFactory.AnimeSeries.GetByID(id) is not { } ser)
+            if (RepoFactory.MediaSeries.GetByID(id) is not { } ser)
                 return BadRequest("Series not Found");
 
             foreach (var ep in ser.AllAnimeEpisodes)
@@ -2247,7 +2247,7 @@ public class Common : BaseController
             }
 
             _seriesService.UpdateStats(ser, true, true);
-            _groupService.UpdateStatsFromTopLevel(ser.AnimeGroup?.TopLevelAnimeGroup, true, true);
+            _groupService.UpdateStatsFromTopLevel(ser.MediaGroup?.TopLevelAnimeGroup, true, true);
 
             return Ok();
         }
@@ -2321,8 +2321,8 @@ public class Common : BaseController
                 : SeriesSearch.SearchFlags.Titles | SeriesSearch.SearchFlags.Tags,
         };
 
-    private static void CheckTitlesStartsWith(AnimeSeries a, string query,
-        ref ConcurrentDictionary<AnimeSeries, string> series, int limit)
+    private static void CheckTitlesStartsWith(MediaSeries a, string query,
+        ref ConcurrentDictionary<MediaSeries, string> series, int limit)
     {
         if (series.Count >= limit)
         {
@@ -2369,9 +2369,9 @@ public class Common : BaseController
         }
 
         var series_list = new List<Serie>();
-        var series = new Dictionary<AnimeSeries, string>();
-        var tempseries = new ConcurrentDictionary<AnimeSeries, string>();
-        var allSeries = RepoFactory.AnimeSeries.GetAll().Where(user.AllowedSeries).AsParallel();
+        var series = new Dictionary<MediaSeries, string>();
+        var tempseries = new ConcurrentDictionary<MediaSeries, string>();
+        var allSeries = RepoFactory.MediaSeries.GetAll().Where(user.AllowedSeries).AsParallel();
 
         #region Search_TitlesOnly
 
@@ -2651,10 +2651,10 @@ public class Common : BaseController
         TagFilter.Filter tagfilter)
     {
         var grps = new List<Group>();
-        var allGrps = RepoFactory.AnimeGroup_User.GetByUserID(uid);
+        var allGrps = RepoFactory.MediaGroup_User.GetByUserID(uid);
         foreach (var gr in allGrps)
         {
-            var ag = RepoFactory.AnimeGroup.GetByID(gr.AnimeGroupID);
+            var ag = RepoFactory.MediaGroup.GetByID(gr.MediaGroupID);
             var grp = Group.GenerateFromAnimeGroup(HttpContext, ag, uid, nocast, notag, level, all, 0, allpics, pic,
                 tagfilter);
             grps.Add(grp);
@@ -2680,7 +2680,7 @@ public class Common : BaseController
     internal object GetGroup(int id, int uid, bool nocast, bool notag, int level, bool all, int filterid, bool allpics,
         int pic, TagFilter.Filter tagfilter)
     {
-        var ag = RepoFactory.AnimeGroup.GetByID(id);
+        var ag = RepoFactory.MediaGroup.GetByID(id);
         if (ag != null)
         {
             var gr = Group.GenerateFromAnimeGroup(HttpContext, ag, uid, nocast, notag, level, all, filterid, allpics,
@@ -2702,7 +2702,7 @@ public class Common : BaseController
     {
         try
         {
-            var group = RepoFactory.AnimeGroup.GetByID(groupid);
+            var group = RepoFactory.MediaGroup.GetByID(groupid);
             if (group == null)
             {
                 return NotFound("Group not Found");
@@ -2734,8 +2734,8 @@ public class Common : BaseController
         return BadRequest();
     }
 
-    private static void CheckGroupNameFuzzy(AnimeGroup a, string query,
-        ConcurrentDictionary<AnimeGroup, double> distLevenshtein, int limit)
+    private static void CheckGroupNameFuzzy(MediaGroup a, string query,
+        ConcurrentDictionary<MediaGroup, double> distLevenshtein, int limit)
     {
         if (distLevenshtein.Count >= limit)
         {
@@ -2780,8 +2780,8 @@ public class Common : BaseController
         }
 
         var group_list = new List<Group>();
-        var groups = new List<AnimeGroup>();
-        var allGroups = RepoFactory.AnimeGroup.GetAll().Where(a => !RepoFactory.AnimeSeries.GetByGroupID(a.AnimeGroupID).Any(user.AllowedSeries));
+        var groups = new List<MediaGroup>();
+        var allGroups = RepoFactory.MediaGroup.GetAll().Where(a => !RepoFactory.MediaSeries.GetByGroupID(a.MediaGroupID).Any(user.AllowedSeries));
 
         #region Search_TitlesOnly
 
@@ -2813,7 +2813,7 @@ public class Common : BaseController
         }
         else
         {
-            var distLevenshtein = new ConcurrentDictionary<AnimeGroup, double>();
+            var distLevenshtein = new ConcurrentDictionary<MediaGroup, double>();
             allGroups.ForEach(a => CheckGroupNameFuzzy(a, query, distLevenshtein, limit));
 
             groups = distLevenshtein.Keys.OrderBy(a => distLevenshtein[a])
@@ -2852,7 +2852,7 @@ public class Common : BaseController
     public object GetCastFromSeries(int id)
     {
         var ctx = HttpContext;
-        var series = RepoFactory.AnimeSeries.GetByID(id);
+        var series = RepoFactory.MediaSeries.GetByID(id);
         if (series == null)
         {
             return BadRequest($"No Series with ID {id}");
@@ -2927,8 +2927,8 @@ public class Common : BaseController
     }
 
     private static int CompareXRef_Anime_StaffByImportance(
-        KeyValuePair<AnimeSeries, AniDB_Anime_Staff> staff1,
-        KeyValuePair<AnimeSeries, AniDB_Anime_Staff> staff2)
+        KeyValuePair<MediaSeries, AniDB_Anime_Staff> staff1,
+        KeyValuePair<MediaSeries, AniDB_Anime_Staff> staff2)
     {
         var result = ((int)staff1.Value.RoleType).CompareTo((int)staff2.Value.RoleType);
         if (result != 0)
@@ -2969,7 +2969,7 @@ public class Common : BaseController
     {
         var links = new Dictionary<string, object>();
 
-        var serie = RepoFactory.AnimeSeries.GetByID(id);
+        var serie = RepoFactory.MediaSeries.GetByID(id);
 
         if (serie?.TmdbShows is { Count: > 0 } tmdbShows)
             links.Add("tvdb", tmdbShows.Select(x => x.TvdbShowID).WhereNotNull().ToArray());

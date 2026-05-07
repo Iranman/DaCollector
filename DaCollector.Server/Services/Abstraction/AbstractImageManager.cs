@@ -29,7 +29,7 @@ public class AbstractImageManager(
     AniDB_Episode_PreferredImageRepository anidbPreferredEpisodeImageRepository,
     TMDB_ImageRepository tmdbImageRepository,
     TMDB_Image_EntityRepository tmdbImageEntityRepository,
-    AnimeSeriesRepository seriesRepository,
+    MediaSeriesRepository seriesRepository,
     CrossRef_AniDB_TMDB_MovieRepository xrefAnidbTmdbMovies,
     CrossRef_AniDB_TMDB_ShowRepository xrefAnidbTmdbShows,
     JMMUserRepository userRepository
