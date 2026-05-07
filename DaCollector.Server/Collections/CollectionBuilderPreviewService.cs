@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Threading;
@@ -18,7 +19,7 @@ namespace DaCollector.Server.Collections;
 /// <summary>
 /// Previews collection builder output from local provider data and live provider lookups.
 /// </summary>
-public class CollectionBuilderPreviewService(ITmdbCollectionBuilderClient tmdbClient)
+public class CollectionBuilderPreviewService(ITmdbCollectionBuilderClient tmdbClient, IImdbCollectionBuilderClient imdbClient)
 {
     private static readonly string[] ValueOptionKeys =
     [
@@ -48,7 +49,10 @@ public class CollectionBuilderPreviewService(ITmdbCollectionBuilderClient tmdbCl
             "tmdb_airing_today" => await PreviewTmdbShowList(rule, warnings, TmdbShowBuilderList.AiringToday, cancellationToken).ConfigureAwait(false),
             "tmdb_on_the_air" => await PreviewTmdbShowList(rule, warnings, TmdbShowBuilderList.OnTheAir, cancellationToken).ConfigureAwait(false),
             "tmdb_discover" => await PreviewTmdbDiscover(rule, warnings, cancellationToken).ConfigureAwait(false),
-            "imdb_id" => PreviewImdbTitles(rule, warnings),
+            "imdb_id" => await PreviewImdbTitles(rule, warnings, cancellationToken).ConfigureAwait(false),
+            "imdb_list" => await PreviewImdbList(rule, warnings, cancellationToken).ConfigureAwait(false),
+            "imdb_chart" => await PreviewImdbChart(rule, warnings, cancellationToken).ConfigureAwait(false),
+            "imdb_search" => await PreviewImdbSearch(rule, warnings, cancellationToken).ConfigureAwait(false),
             "tvdb_movie" => PreviewTvdbMovies(rule, warnings),
             "tvdb_show" => PreviewTvdbShows(rule, warnings),
             _ => UnsupportedPreview(builder, warnings),
@@ -294,22 +298,96 @@ public class CollectionBuilderPreviewService(ITmdbCollectionBuilderClient tmdbCl
             Summary = show.Overview,
         };
 
-    private static IReadOnlyList<CollectionBuilderPreviewItem> PreviewImdbTitles(CollectionRule rule, List<string> warnings)
-    {
-        var kind = rule.Kind is MediaKind.Unknown ? MediaKind.Movie : rule.Kind;
-        if (kind is not MediaKind.Movie and not MediaKind.Show)
+    private static CollectionBuilderPreviewItem ToPreviewItem(ImdbBuilderTitle title) =>
+        new()
         {
-            warnings.Add($"IMDb title previews support Movie or Show kinds. Defaulting unsupported kind '{kind}' to Movie.");
-            kind = MediaKind.Movie;
+            ExternalID = ExternalMediaId.ImdbTitle(title.Id, GetImdbExternalKind(title.Kind)),
+            Title = title.Title,
+            Summary = title.Summary,
+        };
+
+    private static CollectionBuilderPreviewItem ToFallbackImdbPreviewItem(string id, MediaKind kind) =>
+        new()
+        {
+            ExternalID = ExternalMediaId.ImdbTitle(id, GetImdbExternalKind(kind)),
+            Title = id,
+        };
+
+    private static MediaKind GetImdbExternalKind(MediaKind kind) =>
+        kind is MediaKind.Movie or MediaKind.Show ? kind : MediaKind.Movie;
+
+    private async Task<IReadOnlyList<CollectionBuilderPreviewItem>> PreviewImdbTitles(CollectionRule rule, List<string> warnings, CancellationToken cancellationToken)
+    {
+        var kind = GetImdbKind(rule, warnings);
+        var ids = GetImdbTitleIds(rule, warnings);
+        if (ids.Count == 0)
+            return [];
+
+        try
+        {
+            var titles = await imdbClient.GetByIds(ids, kind, cancellationToken).ConfigureAwait(false);
+            var titlesById = titles.ToDictionary(title => title.Id, StringComparer.OrdinalIgnoreCase);
+            return ids
+                .Select(id =>
+                {
+                    if (titlesById.TryGetValue(id, out var title))
+                        return ToPreviewItem(title);
+
+                    warnings.Add($"IMDb title {id} was not found in the configured dataset.");
+                    return ToFallbackImdbPreviewItem(id, kind);
+                })
+                .ToList();
+        }
+        catch (Exception e) when (IsImdbPreviewFailure(e))
+        {
+            warnings.Add($"IMDb titles could not be read from the configured dataset: {e.Message}");
+            return ids
+                .Select(id => ToFallbackImdbPreviewItem(id, kind))
+                .ToList();
+        }
+    }
+
+    private async Task<IReadOnlyList<CollectionBuilderPreviewItem>> PreviewImdbList(CollectionRule rule, List<string> warnings, CancellationToken cancellationToken)
+    {
+        warnings.Add("IMDb list preview currently accepts explicit IMDb title IDs from id, ids, value, or values; full online IMDb list ingestion is not implemented yet.");
+        return await PreviewImdbTitles(rule, warnings, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<IReadOnlyList<CollectionBuilderPreviewItem>> PreviewImdbChart(CollectionRule rule, List<string> warnings, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return (await imdbClient.GetChart(GetImdbQuery(rule, warnings), cancellationToken).ConfigureAwait(false))
+                .Select(ToPreviewItem)
+                .ToList();
+        }
+        catch (Exception e) when (IsImdbPreviewFailure(e))
+        {
+            warnings.Add($"IMDb chart could not be read from the configured dataset: {e.Message}");
+            return [];
+        }
+    }
+
+    private async Task<IReadOnlyList<CollectionBuilderPreviewItem>> PreviewImdbSearch(CollectionRule rule, List<string> warnings, CancellationToken cancellationToken)
+    {
+        var query = GetImdbQuery(rule, warnings);
+        if (string.IsNullOrWhiteSpace(query.SearchText))
+        {
+            warnings.Add("No IMDb search text was supplied. Use query, search, title, name, value, or values.");
+            return [];
         }
 
-        return GetStringValues(rule, warnings)
-            .Select(value => new CollectionBuilderPreviewItem
-            {
-                ExternalID = ExternalMediaId.ImdbTitle(value, kind),
-                Title = value,
-            })
-            .ToList();
+        try
+        {
+            return (await imdbClient.Search(query, cancellationToken).ConfigureAwait(false))
+                .Select(ToPreviewItem)
+                .ToList();
+        }
+        catch (Exception e) when (IsImdbPreviewFailure(e))
+        {
+            warnings.Add($"IMDb search could not be read from the configured dataset: {e.Message}");
+            return [];
+        }
     }
 
     private static IReadOnlyList<CollectionBuilderPreviewItem> PreviewTvdbMovies(CollectionRule rule, List<string> warnings) =>
@@ -412,6 +490,75 @@ public class CollectionBuilderPreviewService(ITmdbCollectionBuilderClient tmdbCl
             SortBy = GetOptionValue(rule.Options, "sort_by") ?? GetOptionValue(rule.Options, "sort"),
             Genres = GetIntegerListOption(rule, warnings, "genre", "genres", "with_genres"),
         };
+
+    private static ImdbBuilderQuery GetImdbQuery(CollectionRule rule, List<string> warnings)
+    {
+        var year = GetOptionalPositiveIntegerOption(rule, warnings, "year");
+        return new()
+        {
+            Kind = GetImdbKind(rule, warnings),
+            SearchText = GetImdbSearchText(rule),
+            Limit = GetPositiveIntegerOption(rule, warnings, "limit", 20, min: 1, max: 100),
+            StartYear = year ?? GetOptionalPositiveIntegerOption(rule, warnings, "start_year", "year_gte"),
+            EndYear = year ?? GetOptionalPositiveIntegerOption(rule, warnings, "end_year", "year_lte"),
+            MinRating = GetOptionalDoubleOption(rule, warnings, "min_rating", "rating_gte", "min_vote_average", "vote_average_gte"),
+            MinVotes = GetOptionalPositiveIntegerOption(rule, warnings, "min_votes", "votes_gte", "min_vote_count", "vote_count_gte"),
+        };
+    }
+
+    private static MediaKind GetImdbKind(CollectionRule rule, List<string> warnings)
+    {
+        var kind = rule.Kind;
+        var optionKind = GetOptionValue(rule.Options, "kind") ?? GetOptionValue(rule.Options, "type") ?? GetOptionValue(rule.Options, "media_type");
+        if (kind is MediaKind.Unknown && !string.IsNullOrWhiteSpace(optionKind))
+            kind = ParseMediaKind(optionKind);
+
+        if (kind is MediaKind.Unknown or MediaKind.Movie or MediaKind.Show)
+            return kind;
+
+        warnings.Add($"IMDb previews support Movie or Show kinds. Ignoring unsupported kind '{kind}'.");
+        return MediaKind.Unknown;
+    }
+
+    private static string? GetImdbSearchText(CollectionRule rule) =>
+        GetOptionValue(rule.Options, "query")
+            ?? GetOptionValue(rule.Options, "search")
+            ?? GetOptionValue(rule.Options, "title")
+            ?? GetOptionValue(rule.Options, "name")
+            ?? GetOptionValue(rule.Options, "value")
+            ?? GetOptionValue(rule.Options, "values");
+
+    private static IReadOnlyList<string> GetImdbTitleIds(CollectionRule rule, List<string> warnings)
+    {
+        var ids = new List<string>();
+        foreach (var value in GetStringValues(rule, warnings))
+        {
+            var id = NormalizeImdbTitleId(value);
+            if (id is null)
+            {
+                warnings.Add($"Ignoring invalid IMDb title ID '{value}'.");
+                continue;
+            }
+
+            ids.Add(id);
+        }
+
+        return ids
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    private static string? NormalizeImdbTitleId(string value)
+    {
+        var trimmed = value.Trim();
+        if (trimmed.StartsWith("tt", StringComparison.OrdinalIgnoreCase))
+        {
+            var digits = trimmed[2..];
+            return digits.Length > 0 && digits.All(char.IsDigit) ? $"tt{digits}" : null;
+        }
+
+        return trimmed.Length > 0 && trimmed.All(char.IsDigit) ? $"tt{trimmed}" : null;
+    }
 
     private static int GetPositiveIntegerOption(CollectionRule rule, List<string> warnings, string key, int defaultValue, int min, int max)
     {
@@ -530,4 +677,11 @@ public class CollectionBuilderPreviewService(ITmdbCollectionBuilderClient tmdbCl
             or HttpRequestException
             or TaskCanceledException
             or InvalidOperationException;
+
+    private static bool IsImdbPreviewFailure(Exception e) =>
+        e is IOException
+            or UnauthorizedAccessException
+            or InvalidOperationException
+            or FormatException
+            or TaskCanceledException;
 }
