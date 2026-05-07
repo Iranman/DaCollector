@@ -7,7 +7,7 @@ DaCollector settings are stored in the server data directory and can also be ove
 | Setting | Environment variable | Default |
 | --- | --- | --- |
 | Application data directory | `DACOLLECTOR_HOME` | `C:\ProgramData\DaCollector` |
-| HTTP port | `DACOLLECTOR_PORT` | `8111` |
+| HTTP port | `DACOLLECTOR_PORT` | `38111` |
 | Web UI prefix | Stored setting | `webui` |
 | SQLite database file | Stored setting | `DaCollector.db3` |
 
@@ -38,7 +38,7 @@ The Plex token is hidden in configuration surfaces. Use a Plex token that can re
 
 ```powershell
 $env:DACOLLECTOR_HOME = "D:\DaCollectorData"
-$env:DACOLLECTOR_PORT = "8111"
+$env:DACOLLECTOR_PORT = "38111"
 $env:TMDB_API_KEY = "<tmdb-api-key>"
 $env:PLEX_TARGET_BASE_URL = "http://127.0.0.1:32400"
 $env:PLEX_TARGET_SECTION_KEY = "<plex-section-key>"

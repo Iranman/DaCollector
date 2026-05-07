@@ -18,9 +18,9 @@ public class WebSettings
     [Display(Name = "Server Port")]
     [RequiresRestart]
     [EnvironmentVariable("DACOLLECTOR_PORT")]
-    [DefaultValue(8111)]
+    [DefaultValue(38111)]
     [Range(1, 65535, ErrorMessage = "Server Port must be between 1 and 65535")]
-    public ushort Port { get; set; } = 8111;
+    public ushort Port { get; set; } = 38111;
 
     /// <summary>
     /// Automagically replace the current web ui with the included version if

@@ -6,7 +6,7 @@ namespace DaCollector.Tests;
 
 public class TestServerSettings
 {
-    public ushort ServerPort { get; set; } = 8111;
+    public ushort ServerPort { get; set; } = 38111;
     public double PluginAutoWatchThreshold { get; set; } = 0.89;
     public int CachingDatabaseTimeout { get; set; } = 180;
     public string Culture { get; set; } = "en";

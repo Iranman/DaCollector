@@ -7,7 +7,7 @@ DaCollector can identify exact duplicate file locations by hash and file size. T
 Open the duplicate review page:
 
 ```text
-http://127.0.0.1:8111/webui/dacollector-duplicates.html
+http://127.0.0.1:38111/webui/dacollector-duplicates.html
 ```
 
 Use it to load the exact duplicate summary, inspect cleanup candidates, dry-run delete actions, and then confirm deletes when the candidate is correct.

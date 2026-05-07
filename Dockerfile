@@ -36,8 +36,8 @@ COPY ./dockerentry.sh /dockerentry.sh
 
 VOLUME /home/dacollector/.dacollector/
 
-HEALTHCHECK --start-period=5m CMD curl -s -H "Content-Type: application/json" -H 'Accept: application/json' 'http://localhost:8111/api/v3/Init/Status' || exit 1
+HEALTHCHECK --start-period=5m CMD curl -s -H "Content-Type: application/json" -H 'Accept: application/json' 'http://localhost:38111/api/v3/Init/Status' || exit 1
 
-EXPOSE 8111
+EXPOSE 38111
 
 ENTRYPOINT ["/bin/bash", "/dockerentry.sh"]

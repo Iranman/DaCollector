@@ -4,7 +4,7 @@ services:
     container_name: dacollector
     restart: unless-stopped
     ports:
-      - "${DACOLLECTOR_PORT:-8111}:8111"
+      - "${DACOLLECTOR_PORT:-38111}:38111"
     environment:
       PUID: "${PUID:-1000}"
       PGID: "${PGID:-1000}"

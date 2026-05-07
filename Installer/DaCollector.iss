@@ -43,13 +43,13 @@ Name: "{commondesktop}\DaCollector"; Filename: "{app}\DaCollector.exe"; Tasks: d
 Name: "{commonstartup}\DaCollector"; Filename: "{app}\DaCollector.exe"; Tasks: StartMenuEntry;
 
 [Run]
-Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall add rule name=""DaCollector - Client Port"" dir=in action=allow protocol=TCP localport=8111"; Flags: runhidden; StatusMsg: "Open exception on firewall..."; Tasks: Firewall
+Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall add rule name=""DaCollector - Client Port"" dir=in action=allow protocol=TCP localport=38111"; Flags: runhidden; StatusMsg: "Open exception on firewall..."; Tasks: Firewall
 Filename: "{app}\DaCollector.exe"; Flags: nowait postinstall skipifsilent shellexec; Description: "{cm:LaunchProgram,DaCollector}"
 Filename: "https://github.com/Iranman/DaCollector#readme"; Flags: shellexec runasoriginaluser postinstall; Description: "DaCollector Install Guide"
 Filename: "https://github.com/Iranman/DaCollector/releases/tag/v{#AppVer}"; Flags: shellexec runasoriginaluser postinstall; Check: BlogPostCheck; Description: "View {#AppVer} Release Notes"
 
 [UninstallRun]
-Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""DaCollector - Client Port"" protocol=TCP localport=8111"; Flags: runhidden; StatusMsg: "Closing exception on firewall..."; Tasks: Firewall
+Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""DaCollector - Client Port"" protocol=TCP localport=38111"; Flags: runhidden; StatusMsg: "Closing exception on firewall..."; Tasks: Firewall
 
 [Registry]
 Root: HKLM; Subkey: "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run"; ValueName: "DaCollector"; ValueType: none; Flags: deletevalue;

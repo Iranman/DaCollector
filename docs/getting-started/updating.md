@@ -9,7 +9,7 @@ DaCollector stores application binaries and server data separately. Update the b
 3. Download the newer `DaCollector.Setup.exe`.
 4. Run the installer.
 5. Start DaCollector.
-6. Open `http://127.0.0.1:8111/webui` and confirm the server loads.
+6. Open `http://127.0.0.1:38111/webui` and confirm the server loads.
 
 The installer is configured to uninstall the previous installed app before installing the new files.
 

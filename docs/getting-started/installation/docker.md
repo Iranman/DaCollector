@@ -37,7 +37,7 @@ services:
     container_name: dacollector
     restart: unless-stopped
     ports:
-      - "8111:8111"
+      - "38111:38111"
     environment:
       PUID: "1000"
       PGID: "1000"
@@ -87,7 +87,7 @@ docker compose up -d
 Open:
 
 ```text
-http://127.0.0.1:8111/webui
+http://127.0.0.1:38111/webui
 ```
 
 Check container status:
@@ -144,7 +144,7 @@ Change the host-side port in `docker-compose.yml`:
 
 ```yaml
 ports:
-  - "8112:8111"
+  - "38112:38111"
 ```
 
 Restart:
@@ -153,7 +153,7 @@ Restart:
 docker compose up -d
 ```
 
-Open `http://127.0.0.1:8112/webui`.
+Open `http://127.0.0.1:38112/webui`.
 
 ## Local Build
 

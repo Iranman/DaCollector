@@ -11,7 +11,7 @@ Use `GET /api/v3/CollectionBuilder` to list the builders available in the runnin
 Open the managed collections page:
 
 ```text
-http://127.0.0.1:8111/webui/dacollector-collections.html
+http://127.0.0.1:38111/webui/dacollector-collections.html
 ```
 
 Use it to create collection definitions, edit builder rules, preview output, run sync dry runs, and apply saved collections to the configured Plex target.

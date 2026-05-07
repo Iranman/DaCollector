@@ -76,6 +76,7 @@ public static partial class SettingsMigrations
         { 12, null },
         { 13, MigrateLogRotatorToLogging },
         { 14, MigrateTraceLogToLogging },
+        { 15, MigrateDefaultWebPortTo38111 },
     };
 
     private static string MigrateTvDBLanguageEnum(string settings)
@@ -237,6 +238,23 @@ public static partial class SettingsMigrations
         var webSettings = currentSettings["Web"] ?? (currentSettings["Web"] = new JObject());
         webSettings["Port"] = serverPort;
         currentSettings.Remove("ServerPort");
+
+        return currentSettings.ToString();
+    }
+
+    private static string MigrateDefaultWebPortTo38111(string settings)
+    {
+        var currentSettings = JObject.Parse(settings);
+        var webSettings = currentSettings["Web"] as JObject;
+        if (webSettings is null)
+        {
+            webSettings = new JObject();
+            currentSettings["Web"] = webSettings;
+        }
+
+        var currentPort = webSettings["Port"]?.Value<ushort>() ?? 8111;
+        if (currentPort == 8111)
+            webSettings["Port"] = 38111;
 
         return currentSettings.ToString();
     }

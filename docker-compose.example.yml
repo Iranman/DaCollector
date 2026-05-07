@@ -8,7 +8,7 @@ services:
     restart: unless-stopped
 
     ports:
-      - "8111:8111"
+      - "38111:38111"
 
     environment:
       # Replace PUID and PGID with the user and group that should own DaCollector files.

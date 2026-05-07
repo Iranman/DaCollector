@@ -55,4 +55,4 @@ Apply calls require an admin user. Use collection preview and match calls first 
 | Plex identity works but libraries fail | The token is missing or cannot read libraries. |
 | Libraries list but no items match | Confirm Plex items have TMDB, IMDb, or TVDB GUIDs. |
 | Collection sync previews only | Confirm sync was called with `apply=true`. |
-| LAN clients cannot open DaCollector | Open Windows firewall for TCP `8111`. |
+| LAN clients cannot open DaCollector | Open Windows firewall for TCP `38111`. |

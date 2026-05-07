@@ -3,10 +3,10 @@
 After DaCollector starts, open:
 
 ```text
-http://127.0.0.1:8111/webui
+http://127.0.0.1:38111/webui
 ```
 
-The server hosts the Web UI from the same process. If you changed the port, replace `8111` with your configured value.
+The server hosts the Web UI from the same process. If you changed the port, replace `38111` with your configured value.
 
 ## Initial Checklist
 
@@ -16,8 +16,8 @@ The server hosts the Web UI from the same process. If you changed the port, repl
 4. Configure provider settings for TMDB, IMDb, and TVDB as needed.
 5. Configure the Plex target URL, token, and library section key if you want DaCollector to apply collections to Plex.
 6. Run an import or scan job.
-7. Open the managed collections page at `http://127.0.0.1:8111/webui/dacollector-collections.html`.
-8. Open the duplicate review page at `http://127.0.0.1:8111/webui/dacollector-duplicates.html`.
+7. Open the managed collections page at `http://127.0.0.1:38111/webui/dacollector-collections.html`.
+8. Open the duplicate review page at `http://127.0.0.1:38111/webui/dacollector-duplicates.html`.
 
 ## Server Data
 
@@ -36,17 +36,17 @@ $env:DACOLLECTOR_HOME = "D:\DaCollectorData"
 
 ## Change the Port
 
-The default port is `8111`. Set `DACOLLECTOR_PORT` before starting the process to override it:
+The default port is `38111`. Set `DACOLLECTOR_PORT` before starting the process to override it:
 
 ```powershell
-$env:DACOLLECTOR_PORT = "8112"
+$env:DACOLLECTOR_PORT = "38112"
 .\DaCollector.exe
 ```
 
 Then open:
 
 ```text
-http://127.0.0.1:8112/webui
+http://127.0.0.1:38112/webui
 ```
 
 ## Health Checks

@@ -4,8 +4,8 @@
 
 | Item | Windows default |
 | --- | --- |
-| Web UI | `http://127.0.0.1:8111/webui` |
-| Duplicate review page | `http://127.0.0.1:8111/webui/dacollector-duplicates.html` |
+| Web UI | `http://127.0.0.1:38111/webui` |
+| Duplicate review page | `http://127.0.0.1:38111/webui/dacollector-duplicates.html` |
 | Application data | `C:\ProgramData\DaCollector` |
 | SQLite database | `C:\ProgramData\DaCollector\SQLite\DaCollector.db3` |
 | Quartz database | `C:\ProgramData\DaCollector\SQLite\Quartz.db3` |
@@ -33,12 +33,12 @@
 
 ```powershell
 $env:DACOLLECTOR_HOME = "D:\DaCollectorData"
-$env:DACOLLECTOR_PORT = "8112"
+$env:DACOLLECTOR_PORT = "38112"
 .\DaCollector.exe
 ```
 
 Open:
 
 ```text
-http://127.0.0.1:8112/webui
+http://127.0.0.1:38112/webui
 ```
