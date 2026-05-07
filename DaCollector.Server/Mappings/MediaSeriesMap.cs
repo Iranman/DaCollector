@@ -13,8 +13,8 @@ public class MediaSeriesMap : ClassMap<MediaSeries>
         Id(x => x.MediaSeriesID);
 
         Map(x => x.AniDB_ID).Not.Nullable();
-        Map(x => x.TVDB_ShowID).Nullable();
-        Map(x => x.TVDB_MovieID).Nullable();
+        Map(x => x.TvdbShowExternalID).Column("TVDB_ShowID").Nullable();
+        Map(x => x.TvdbMovieExternalID).Column("TVDB_MovieID").Nullable();
         Map(x => x.TMDB_ShowID).Nullable();
         Map(x => x.TMDB_MovieID).Nullable();
         Map(x => x.MediaGroupID).Not.Nullable();

@@ -40,9 +40,9 @@ public class MediaSeries : IDaCollectorSeries
 
     public int AniDB_ID { get; set; }
 
-    public int? TVDB_ShowID { get; set; }
+    public int? TvdbShowExternalID { get; set; }
 
-    public int? TVDB_MovieID { get; set; }
+    public int? TvdbMovieExternalID { get; set; }
 
     public int? TMDB_ShowID { get; set; }
 
@@ -191,10 +191,10 @@ public class MediaSeries : IDaCollectorSeries
                 if (AniDB_Anime is { } anime)
                     return _defaultTitle = anime.DefaultTitle;
 
-                if (TVDB_ShowID.HasValue && RepoFactory.TVDB_Show.GetByTvdbShowID(TVDB_ShowID.Value) is { } tvdbShow && !string.IsNullOrEmpty(tvdbShow.Name))
+                if (TvdbShowExternalID.HasValue && RepoFactory.TVDB_Show.GetByTvdbShowID(TvdbShowExternalID.Value) is { } tvdbShow && !string.IsNullOrEmpty(tvdbShow.Name))
                     return _defaultTitle = new TitleStub { Language = TitleLanguage.English, LanguageCode = "en", Value = tvdbShow.Name, Source = DataSource.TvDB };
 
-                if (TVDB_MovieID.HasValue && RepoFactory.TVDB_Movie.GetByTvdbMovieID(TVDB_MovieID.Value) is { } tvdbMovie && !string.IsNullOrEmpty(tvdbMovie.Name))
+                if (TvdbMovieExternalID.HasValue && RepoFactory.TVDB_Movie.GetByTvdbMovieID(TvdbMovieExternalID.Value) is { } tvdbMovie && !string.IsNullOrEmpty(tvdbMovie.Name))
                     return _defaultTitle = new TitleStub { Language = TitleLanguage.English, LanguageCode = "en", Value = tvdbMovie.Name, Source = DataSource.TvDB };
 
                 if (TMDB_ShowID.HasValue && RepoFactory.TMDB_Show.GetByTmdbShowID(TMDB_ShowID.Value) is { } tmdbShow && !string.IsNullOrEmpty(tmdbShow.EnglishTitle))
@@ -214,8 +214,8 @@ public class MediaSeries : IDaCollectorSeries
                 {
                     Language = TitleLanguage.Unknown,
                     LanguageCode = "unk",
-                    Value = TVDB_ShowID.HasValue ? $"<TVDB Show {TVDB_ShowID}>"
-                        : TVDB_MovieID.HasValue ? $"<TVDB Movie {TVDB_MovieID}>"
+                    Value = TvdbShowExternalID.HasValue ? $"<TVDB Show {TvdbShowExternalID}>"
+                        : TvdbMovieExternalID.HasValue ? $"<TVDB Movie {TvdbMovieExternalID}>"
                         : TMDB_ShowID.HasValue ? $"<TMDB Show {TMDB_ShowID}>"
                         : TMDB_MovieID.HasValue ? $"<TMDB Movie {TMDB_MovieID}>"
                         : $"<Series {MediaSeriesID}>",
@@ -308,9 +308,9 @@ public class MediaSeries : IDaCollectorSeries
 
     private ITitle? GetTvdbTitle()
     {
-        if (TVDB_ShowID.HasValue && RepoFactory.TVDB_Show.GetByTvdbShowID(TVDB_ShowID.Value) is { } tvdbShow && !string.IsNullOrEmpty(tvdbShow.Name))
+        if (TvdbShowExternalID.HasValue && RepoFactory.TVDB_Show.GetByTvdbShowID(TvdbShowExternalID.Value) is { } tvdbShow && !string.IsNullOrEmpty(tvdbShow.Name))
             return new TitleStub { Language = TitleLanguage.English, LanguageCode = "en", Value = tvdbShow.Name, Source = DataSource.TvDB };
-        if (TVDB_MovieID.HasValue && RepoFactory.TVDB_Movie.GetByTvdbMovieID(TVDB_MovieID.Value) is { } tvdbMovie && !string.IsNullOrEmpty(tvdbMovie.Name))
+        if (TvdbMovieExternalID.HasValue && RepoFactory.TVDB_Movie.GetByTvdbMovieID(TvdbMovieExternalID.Value) is { } tvdbMovie && !string.IsNullOrEmpty(tvdbMovie.Name))
             return new TitleStub { Language = TitleLanguage.English, LanguageCode = "en", Value = tvdbMovie.Name, Source = DataSource.TvDB };
         return null;
     }
@@ -318,9 +318,9 @@ public class MediaSeries : IDaCollectorSeries
     private IText? GetTvdbOverview()
     {
         string? overview = null;
-        if (TVDB_ShowID.HasValue && RepoFactory.TVDB_Show.GetByTvdbShowID(TVDB_ShowID.Value) is { } tvdbShow && !string.IsNullOrEmpty(tvdbShow.Overview))
+        if (TvdbShowExternalID.HasValue && RepoFactory.TVDB_Show.GetByTvdbShowID(TvdbShowExternalID.Value) is { } tvdbShow && !string.IsNullOrEmpty(tvdbShow.Overview))
             overview = tvdbShow.Overview;
-        else if (TVDB_MovieID.HasValue && RepoFactory.TVDB_Movie.GetByTvdbMovieID(TVDB_MovieID.Value) is { } tvdbMovie && !string.IsNullOrEmpty(tvdbMovie.Overview))
+        else if (TvdbMovieExternalID.HasValue && RepoFactory.TVDB_Movie.GetByTvdbMovieID(TvdbMovieExternalID.Value) is { } tvdbMovie && !string.IsNullOrEmpty(tvdbMovie.Overview))
             overview = tvdbMovie.Overview;
         if (overview is null)
             return null;
