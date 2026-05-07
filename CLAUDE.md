@@ -122,7 +122,7 @@ Never persisted; built from persistence models in controllers/services.
 ### Repository Pattern
 
 Two variants in `DaCollector.Server/Repositories/`:
-- **`Cached/`** — `BaseCachedRepository<T, S>` loads all rows at startup into a `PocoCache` (from `NutzCode.InMemoryIndex`). Reads are `ReaderWriterLockSlim`-protected. Each repository builds typed indexes via `PopulateIndexes()` (e.g., `_animeIDs = Cache.CreateIndex(a => a.AnimeID)`). All writes go to DB then invalidate/update the in-memory cache. Use for hot data.
+- **`Cached/`** — `BaseCachedRepository<T, S>` loads all rows at startup into a `PocoCache` (from `NutzCode.InMemoryIndex`). Reads are `ReaderWriterLockSlim`-protected. Each repository builds typed indexes via `PopulateIndexes()` (e.g., `_seriesIDs = Cache.CreateIndex(a => a.MediaSeriesID)`). All writes go to DB then invalidate/update the in-memory cache. Use for hot data.
 - **`Direct/`** — no cache; hits DB on every call. Use for infrequently accessed or large data.
 - `BaseDirectRepository` is the base class.
 
@@ -235,7 +235,7 @@ Inherited AniDB and TMDB entities are connected through cross-reference tables, 
 
 One inherited AniDB title can match multiple TMDB shows (e.g., split-cour series on TMDB) and one TMDB show can match multiple inherited titles. TMDB models (`TMDB_Show`, `TMDB_Movie`, `TMDB_Episode`, `TMDB_Season`, `TMDB_Image`) are read-only caches of TMDB API data, structured identically to the TMDB response schema.
 
-TVDB support is newer and uses cached `TVDB_Show`, `TVDB_Movie`, `TVDB_Season`, and `TVDB_Episode` records. `MediaSeries.TVDB_ShowID` and `MediaSeries.TVDB_MovieID` currently represent external TVDB IDs, not the internal `TVDB_*ID` primary keys.
+TVDB support is newer and uses cached `TVDB_Show`, `TVDB_Movie`, `TVDB_Season`, and `TVDB_Episode` records. `MediaSeries.TvdbShowExternalID` and `MediaSeries.TvdbMovieExternalID` store external TVDB IDs (different from the internal auto-increment `TVDB_Show.TVDB_ShowID` / `TVDB_Movie.TVDB_MovieID` primary keys).
 
 ## Import Pipeline
 
@@ -295,7 +295,7 @@ Several models exist solely to avoid redundant I/O or external API calls. Jobs c
 
 **`VideoLocal_HashDigest`** (`Models/DaCollector/VideoLocal_HashDigest.cs`) — stores all computed hash types (ED2K, CRC32, MD5, SHA1) for a `VideoLocal` as `Type + Value` rows. Written by `VideoHashingService` during `HashFileJob`. Read when displaying or cross-referencing file hashes without recomputing.
 
-**`StoredReleaseInfo`** (`Models/Release/StoredReleaseInfo.cs`) — caches the full release provider response: ED2K + FileSize, provider ID, release URI, source (BluRay/Web/etc.), codec flags (`IsCensored`, `IsCreditless`, `IsChaptered`), version, and cross-references to anime/episodes. Written by `IVideoReleaseService.FindReleaseForVideo()` inside `ProcessFileJob`. `ProcessFileJob` calls `GetCurrentReleaseForVideo()` first — if a `StoredReleaseInfo` already exists for the hash, the release provider lookup is skipped entirely. Queried by the API via `GetByEd2kAndFileSize()`, `GetByReleaseURI()`, `GetByAnidbEpisodeID()`.
+**`StoredReleaseInfo`** (`Models/Release/StoredReleaseInfo.cs`) — caches the full release provider response: ED2K + FileSize, provider ID, release URI, source (BluRay/Web/etc.), codec flags (`IsCensored`, `IsCreditless`, `IsChaptered`), version, and cross-references to series/episodes. Written by `IVideoReleaseService.FindReleaseForVideo()` inside `ProcessFileJob`. `ProcessFileJob` calls `GetCurrentReleaseForVideo()` first — if a `StoredReleaseInfo` already exists for the hash, the release provider lookup is skipped entirely. Queried by the API via `GetByEd2kAndFileSize()`, `GetByReleaseURI()`, `GetByAnidbEpisodeID()`.
 
 **`AniDB_AnimeUpdate`** (`Models/AniDB/AniDB_AnimeUpdate.cs`) — one row per `AnimeID`, storing only `UpdatedAt`. Written by `RequestGetAnime.UpdateAccessTime()` after every successful AniDB HTTP response. Read by the same method to decide whether the local `AniDB_Anime` record is stale enough to warrant a new fetch. `GetAniDBAnimeJob` respects `IgnoreTimeCheck` to force a refresh past this gate.
 
