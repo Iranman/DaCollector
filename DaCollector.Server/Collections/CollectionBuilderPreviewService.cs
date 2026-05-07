@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using DaCollector.Abstractions.Collections;
@@ -19,7 +20,11 @@ namespace DaCollector.Server.Collections;
 /// <summary>
 /// Previews collection builder output from local provider data and live provider lookups.
 /// </summary>
-public class CollectionBuilderPreviewService(ITmdbCollectionBuilderClient tmdbClient, IImdbCollectionBuilderClient imdbClient)
+public class CollectionBuilderPreviewService(
+    ITmdbCollectionBuilderClient tmdbClient,
+    IImdbCollectionBuilderClient imdbClient,
+    ITvdbCollectionBuilderClient tvdbClient
+)
 {
     private static readonly string[] ValueOptionKeys =
     [
@@ -53,8 +58,9 @@ public class CollectionBuilderPreviewService(ITmdbCollectionBuilderClient tmdbCl
             "imdb_list" => await PreviewImdbList(rule, warnings, cancellationToken).ConfigureAwait(false),
             "imdb_chart" => await PreviewImdbChart(rule, warnings, cancellationToken).ConfigureAwait(false),
             "imdb_search" => await PreviewImdbSearch(rule, warnings, cancellationToken).ConfigureAwait(false),
-            "tvdb_movie" => PreviewTvdbMovies(rule, warnings),
-            "tvdb_show" => PreviewTvdbShows(rule, warnings),
+            "tvdb_movie" => await PreviewTvdbMovies(rule, warnings, cancellationToken).ConfigureAwait(false),
+            "tvdb_show" => await PreviewTvdbShows(rule, warnings, cancellationToken).ConfigureAwait(false),
+            "tvdb_list" => await PreviewTvdbList(rule, warnings, cancellationToken).ConfigureAwait(false),
             _ => UnsupportedPreview(builder, warnings),
         };
 
@@ -306,6 +312,14 @@ public class CollectionBuilderPreviewService(ITmdbCollectionBuilderClient tmdbCl
             Summary = title.Summary,
         };
 
+    private static CollectionBuilderPreviewItem ToPreviewItem(TvdbBuilderTitle title) =>
+        new()
+        {
+            ExternalID = title.Kind is MediaKind.Movie ? ExternalMediaId.TvdbMovie(title.Id) : ExternalMediaId.TvdbShow(title.Id),
+            Title = title.Title,
+            Summary = title.Summary,
+        };
+
     private static CollectionBuilderPreviewItem ToFallbackImdbPreviewItem(string id, MediaKind kind) =>
         new()
         {
@@ -390,23 +404,95 @@ public class CollectionBuilderPreviewService(ITmdbCollectionBuilderClient tmdbCl
         }
     }
 
-    private static IReadOnlyList<CollectionBuilderPreviewItem> PreviewTvdbMovies(CollectionRule rule, List<string> warnings) =>
-        GetPositiveIntegerValues(rule, warnings)
-            .Select(id => new CollectionBuilderPreviewItem
+    private async Task<IReadOnlyList<CollectionBuilderPreviewItem>> PreviewTvdbMovies(CollectionRule rule, List<string> warnings, CancellationToken cancellationToken)
+    {
+        var items = new List<CollectionBuilderPreviewItem>();
+        foreach (var id in GetPositiveIntegerValues(rule, warnings))
+        {
+            try
             {
-                ExternalID = ExternalMediaId.TvdbMovie(id),
-                Title = $"TVDB Movie {id}",
-            })
-            .ToList();
+                var movie = await tvdbClient.GetMovie(id, cancellationToken).ConfigureAwait(false);
+                if (movie is null)
+                {
+                    warnings.Add($"TVDB movie {id} was not found.");
+                    items.Add(ToFallbackTvdbPreviewItem(id, MediaKind.Movie));
+                    continue;
+                }
 
-    private static IReadOnlyList<CollectionBuilderPreviewItem> PreviewTvdbShows(CollectionRule rule, List<string> warnings) =>
-        GetPositiveIntegerValues(rule, warnings)
-            .Select(id => new CollectionBuilderPreviewItem
+                items.Add(ToPreviewItem(movie));
+            }
+            catch (Exception e) when (IsTvdbPreviewFailure(e))
             {
-                ExternalID = ExternalMediaId.TvdbShow(id),
-                Title = $"TVDB Show {id}",
-            })
-            .ToList();
+                warnings.Add($"TVDB movie {id} could not be fetched: {e.Message}");
+                items.Add(ToFallbackTvdbPreviewItem(id, MediaKind.Movie));
+            }
+        }
+
+        return items;
+    }
+
+    private async Task<IReadOnlyList<CollectionBuilderPreviewItem>> PreviewTvdbShows(CollectionRule rule, List<string> warnings, CancellationToken cancellationToken)
+    {
+        var items = new List<CollectionBuilderPreviewItem>();
+        foreach (var id in GetPositiveIntegerValues(rule, warnings))
+        {
+            try
+            {
+                var show = await tvdbClient.GetShow(id, cancellationToken).ConfigureAwait(false);
+                if (show is null)
+                {
+                    warnings.Add($"TVDB show {id} was not found.");
+                    items.Add(ToFallbackTvdbPreviewItem(id, MediaKind.Show));
+                    continue;
+                }
+
+                items.Add(ToPreviewItem(show));
+            }
+            catch (Exception e) when (IsTvdbPreviewFailure(e))
+            {
+                warnings.Add($"TVDB show {id} could not be fetched: {e.Message}");
+                items.Add(ToFallbackTvdbPreviewItem(id, MediaKind.Show));
+            }
+        }
+
+        return items;
+    }
+
+    private async Task<IReadOnlyList<CollectionBuilderPreviewItem>> PreviewTvdbList(CollectionRule rule, List<string> warnings, CancellationToken cancellationToken)
+    {
+        var query = GetTvdbQuery(rule, warnings);
+        if (query.Kind is not (MediaKind.Unknown or MediaKind.Movie or MediaKind.Show))
+            return [];
+
+        var items = new List<CollectionBuilderPreviewItem>();
+        foreach (var id in GetPositiveIntegerValues(rule, warnings))
+        {
+            try
+            {
+                var listItems = await tvdbClient.GetList(id, query, cancellationToken).ConfigureAwait(false);
+                if (listItems.Count == 0)
+                {
+                    warnings.Add($"TVDB list {id} was not found or has no matching titles.");
+                    continue;
+                }
+
+                items.AddRange(listItems.Select(ToPreviewItem));
+            }
+            catch (Exception e) when (IsTvdbPreviewFailure(e))
+            {
+                warnings.Add($"TVDB list {id} could not be fetched: {e.Message}");
+            }
+        }
+
+        return items;
+    }
+
+    private static CollectionBuilderPreviewItem ToFallbackTvdbPreviewItem(int id, MediaKind kind) =>
+        new()
+        {
+            ExternalID = kind is MediaKind.Movie ? ExternalMediaId.TvdbMovie(id) : ExternalMediaId.TvdbShow(id),
+            Title = $"TVDB {(kind is MediaKind.Movie ? "Movie" : "Show")} {id}",
+        };
 
     private static IReadOnlyList<CollectionBuilderPreviewItem> UnsupportedPreview(CollectionBuilderDescriptor builder, List<string> warnings)
     {
@@ -506,6 +592,13 @@ public class CollectionBuilderPreviewService(ITmdbCollectionBuilderClient tmdbCl
         };
     }
 
+    private static TvdbBuilderQuery GetTvdbQuery(CollectionRule rule, List<string> warnings) =>
+        new()
+        {
+            Kind = GetTvdbKind(rule, warnings),
+            Limit = GetPositiveIntegerOption(rule, warnings, "limit", 20, min: 1, max: 100),
+        };
+
     private static MediaKind GetImdbKind(CollectionRule rule, List<string> warnings)
     {
         var kind = rule.Kind;
@@ -518,6 +611,20 @@ public class CollectionBuilderPreviewService(ITmdbCollectionBuilderClient tmdbCl
 
         warnings.Add($"IMDb previews support Movie or Show kinds. Ignoring unsupported kind '{kind}'.");
         return MediaKind.Unknown;
+    }
+
+    private static MediaKind GetTvdbKind(CollectionRule rule, List<string> warnings)
+    {
+        var kind = rule.Kind;
+        var optionKind = GetOptionValue(rule.Options, "kind") ?? GetOptionValue(rule.Options, "type") ?? GetOptionValue(rule.Options, "media_type");
+        if (kind is MediaKind.Unknown && !string.IsNullOrWhiteSpace(optionKind))
+            kind = ParseMediaKind(optionKind);
+
+        if (kind is MediaKind.Unknown or MediaKind.Movie or MediaKind.Show)
+            return kind;
+
+        warnings.Add($"TVDB previews support Movie or Show kinds. Ignoring unsupported kind '{kind}'.");
+        return kind;
     }
 
     private static string? GetImdbSearchText(CollectionRule rule) =>
@@ -684,4 +791,11 @@ public class CollectionBuilderPreviewService(ITmdbCollectionBuilderClient tmdbCl
             or InvalidOperationException
             or FormatException
             or TaskCanceledException;
+
+    private static bool IsTvdbPreviewFailure(Exception e) =>
+        e is HttpRequestException
+            or TaskCanceledException
+            or InvalidOperationException
+            or FormatException
+            or JsonException;
 }

@@ -388,6 +388,7 @@ public class SystemService : ISystemService
             services.AddSingleton<ITmdbSearchService>(sp => sp.GetRequiredService<TmdbSearchService>());
             services.AddSingleton<ITmdbCollectionBuilderClient, TmdbCollectionBuilderClient>();
             services.AddSingleton<IImdbCollectionBuilderClient, ImdbDatasetCollectionBuilderClient>();
+            services.AddSingleton<ITvdbCollectionBuilderClient, TvdbCollectionBuilderClient>();
             services.AddSingleton<CollectionBuilderPreviewService>();
             services.AddSingleton<ManagedCollectionService>();
             services.AddSingleton<ManagedCollectionSyncService>();
@@ -458,6 +459,23 @@ public class SystemService : ISystemService
                     client.DefaultRequestHeaders.Add("X-Plex-Device-Name", "DaCollector");
                     client.DefaultRequestHeaders.Add("User-Agent", $"DaCollector/{systemService.Version.Version.ToSemanticVersioningString()}");
                     client.Timeout = TimeSpan.FromSeconds(10);
+                })
+                .SetHandlerLifetime(Timeout.InfiniteTimeSpan)
+                .UseSocketsHttpHandler((handler, _) =>
+                {
+                    handler.AllowAutoRedirect = true;
+                    handler.AutomaticDecompression = DecompressionMethods.All;
+                    handler.PooledConnectionLifetime = TimeSpan.FromMinutes(2);
+                });
+            services.AddHttpClient("TVDB", client =>
+                {
+                    client.BaseAddress = new Uri("https://api4.thetvdb.com/v4/");
+                    client.DefaultRequestHeaders.Add("Accept", "application/json");
+                    client.DefaultRequestHeaders.Add("User-Agent", $"DaCollector/{systemService.Version.Version.ToSemanticVersioningString()}");
+                    client.DefaultRequestHeaders.AcceptEncoding.ParseAdd("gzip");
+                    client.DefaultRequestHeaders.AcceptEncoding.ParseAdd("deflate");
+                    client.DefaultRequestHeaders.AcceptEncoding.ParseAdd("br");
+                    client.Timeout = TimeSpan.FromSeconds(15);
                 })
                 .SetHandlerLifetime(Timeout.InfiniteTimeSpan)
                 .UseSocketsHttpHandler((handler, _) =>

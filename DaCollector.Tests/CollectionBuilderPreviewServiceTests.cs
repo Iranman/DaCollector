@@ -159,11 +159,99 @@ public class CollectionBuilderPreviewServiceTests
         Assert.Empty(preview.Warnings);
     }
 
+    [Fact]
+    public async Task Preview_TvdbMovie_FetchesRemoteTitle()
+    {
+        var tvdb = new FakeTvdbCollectionBuilderClient
+        {
+            Movies = { [101] = new(101, MediaKind.Movie, "The TVDB Movie", "A TVDB movie.") },
+        };
+        var service = CreateService(tvdb: tvdb);
+
+        var preview = await service.Preview(new()
+        {
+            Builder = "tvdb_movie",
+            Options = new Dictionary<string, string> { ["id"] = "101" },
+        });
+
+        var item = Assert.Single(preview.Items);
+        Assert.Equal(ExternalProvider.TVDB, item.ExternalID.Provider);
+        Assert.Equal(MediaKind.Movie, item.ExternalID.Kind);
+        Assert.Equal("101", item.ExternalID.Value);
+        Assert.Equal("The TVDB Movie", item.Title);
+        Assert.Equal("A TVDB movie.", item.Summary);
+        Assert.Empty(preview.Warnings);
+    }
+
+    [Fact]
+    public async Task Preview_TvdbList_ReturnsMixedTitlesWhenKindIsUnknown()
+    {
+        var tvdb = new FakeTvdbCollectionBuilderClient
+        {
+            Lists =
+            {
+                [7] =
+                [
+                    new(101, MediaKind.Movie, "Movie From List", null),
+                    new(202, MediaKind.Show, "Show From List", null),
+                ],
+            },
+        };
+        var service = CreateService(tvdb: tvdb);
+
+        var preview = await service.Preview(new()
+        {
+            Builder = "tvdb_list",
+            Options = new Dictionary<string, string> { ["id"] = "7" },
+        });
+
+        Assert.Contains(preview.Items, item => item.ExternalID.Kind == MediaKind.Movie && item.ExternalID.Value == "101");
+        Assert.Contains(preview.Items, item => item.ExternalID.Kind == MediaKind.Show && item.ExternalID.Value == "202");
+        Assert.Empty(preview.Warnings);
+    }
+
+    [Fact]
+    public async Task Preview_TvdbList_FiltersRequestedKind()
+    {
+        var tvdb = new FakeTvdbCollectionBuilderClient
+        {
+            Lists =
+            {
+                [7] =
+                [
+                    new(101, MediaKind.Movie, "Movie From List", null),
+                    new(202, MediaKind.Show, "Show From List", null),
+                ],
+            },
+        };
+        var service = CreateService(tvdb: tvdb);
+
+        var preview = await service.Preview(new()
+        {
+            Builder = "tvdb_list",
+            Options = new Dictionary<string, string>
+            {
+                ["id"] = "7",
+                ["kind"] = "show",
+            },
+        });
+
+        var item = Assert.Single(preview.Items);
+        Assert.Equal(MediaKind.Show, item.ExternalID.Kind);
+        Assert.Equal("202", item.ExternalID.Value);
+        Assert.Empty(preview.Warnings);
+    }
+
     private static CollectionBuilderPreviewService CreateService(
         ITmdbCollectionBuilderClient? tmdb = null,
-        IImdbCollectionBuilderClient? imdb = null
+        IImdbCollectionBuilderClient? imdb = null,
+        ITvdbCollectionBuilderClient? tvdb = null
     ) =>
-        new(tmdb ?? new FakeTmdbCollectionBuilderClient(), imdb ?? new FakeImdbCollectionBuilderClient());
+        new(
+            tmdb ?? new FakeTmdbCollectionBuilderClient(),
+            imdb ?? new FakeImdbCollectionBuilderClient(),
+            tvdb ?? new FakeTvdbCollectionBuilderClient()
+        );
 
     private static IImdbCollectionBuilderClient CreateImdbClient(string datasetPath)
     {
@@ -223,6 +311,33 @@ public class CollectionBuilderPreviewServiceTests
 
         public Task<IReadOnlyList<ImdbBuilderTitle>> GetChart(ImdbBuilderQuery query, CancellationToken cancellationToken = default) =>
             Task.FromResult<IReadOnlyList<ImdbBuilderTitle>>([]);
+    }
+
+    private sealed class FakeTvdbCollectionBuilderClient : ITvdbCollectionBuilderClient
+    {
+        public Dictionary<int, TvdbBuilderTitle> Movies { get; } = [];
+
+        public Dictionary<int, TvdbBuilderTitle> Shows { get; } = [];
+
+        public Dictionary<int, IReadOnlyList<TvdbBuilderTitle>> Lists { get; } = [];
+
+        public Task<TvdbBuilderTitle?> GetMovie(int id, CancellationToken cancellationToken = default) =>
+            Task.FromResult(Movies.GetValueOrDefault(id));
+
+        public Task<TvdbBuilderTitle?> GetShow(int id, CancellationToken cancellationToken = default) =>
+            Task.FromResult(Shows.GetValueOrDefault(id));
+
+        public Task<IReadOnlyList<TvdbBuilderTitle>> GetList(int id, TvdbBuilderQuery query, CancellationToken cancellationToken = default)
+        {
+            if (!Lists.TryGetValue(id, out var items))
+                return Task.FromResult<IReadOnlyList<TvdbBuilderTitle>>([]);
+
+            var filtered = items
+                .Where(item => query.Kind is MediaKind.Unknown || item.Kind == query.Kind)
+                .Take(query.Limit)
+                .ToList();
+            return Task.FromResult<IReadOnlyList<TvdbBuilderTitle>>(filtered);
+        }
     }
 
     private sealed class FakeSettingsProvider(IServerSettings settings) : ISettingsProvider
