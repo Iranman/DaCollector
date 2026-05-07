@@ -10,6 +10,8 @@
 | SQLite database | `C:\ProgramData\DaCollector\SQLite\DaCollector.db3` |
 | Quartz database | `C:\ProgramData\DaCollector\SQLite\Quartz.db3` |
 | Installer app folder | `C:\Program Files\DaCollector\DaCollector` |
+| Docker data path | `/home/dacollector/.dacollector/DaCollector` |
+| Docker Compose volume | `dacollector-data` |
 
 ## Environment Variables
 

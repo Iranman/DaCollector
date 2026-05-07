@@ -46,6 +46,7 @@ The first implementation slice adds generic media/provider identity and collecti
 Start with [DaCollector Docs](docs/index.md).
 
 - [Windows installation](docs/getting-started/installation/windows.md)
+- [Docker installation](docs/getting-started/installation/docker.md)
 - [First run](docs/getting-started/first-run.md)
 - [Configuration](docs/getting-started/configuration.md)
 - [Collection management](docs/features/collection-management.md)

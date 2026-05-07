@@ -3,6 +3,7 @@
 - [Home](index.md)
 - Getting Started
   - [Windows Installation](getting-started/installation/windows.md)
+  - [Docker Installation](getting-started/installation/docker.md)
   - [First Run](getting-started/first-run.md)
   - [Configuration](getting-started/configuration.md)
   - [Updating](getting-started/updating.md)

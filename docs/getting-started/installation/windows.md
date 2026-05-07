@@ -2,6 +2,8 @@
 
 DaCollector targets Windows x64 for the tray service and server bundle. The easiest install path is the release installer when it is published. The fallback is a standalone ZIP or a local publish from source.
 
+If you prefer a containerized headless server, use the [Docker installation guide](docker.md).
+
 ## Requirements
 
 | Install type | Requirement |

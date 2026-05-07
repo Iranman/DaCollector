@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "Started DaCollector bootstrapping process…"
+echo "Started DaCollector bootstrapping process..."
 
 # Set variable for the UID and GID based on env, else use default values
 PUID=${PUID:-1000}
@@ -37,7 +37,7 @@ if [ $(getent passwd $USER) ]; then
     fi
     [ $(id -g $USER) -ne $PGID ] && usermod -g "$PGID" $USER
 else
-    echo "Adding user $USER and changing ownership of /home/dacollector and all it's sub-directories…"
+    echo "Adding user $USER and changing ownership of /home/dacollector and all its sub-directories..."
     useradd  -N -o -u "$PUID" -g "$PGID" -d /home/dacollector $USER
 
     mkdir -p /home/dacollector/
@@ -45,28 +45,23 @@ else
 fi
 
 # Make sure DACOLLECTOR_HOME directory is correctly set.
-DACOLLECTOR_HOME=${DACOLLECTOR_HOME:-/home/dacollector/.dacollector/DaCollector.CLI}
+DACOLLECTOR_HOME=${DACOLLECTOR_HOME:-/home/dacollector/.dacollector/DaCollector}
 if [ "$PUID" -eq 0 ]; then
-    if [ "$DACOLLECTOR_HOME" == "/home/dacollector/.dacollector/DaCollector.CLI" ]; then
+    if [ "$DACOLLECTOR_HOME" == "/home/dacollector/.dacollector/DaCollector" ]; then
         echo "Error: Cannot use default DACOLLECTOR_HOME directory when running as root (PUID=0)."
         echo "Please set a custom DACOLLECTOR_HOME directory."
         exit 1
     fi
 fi
 if [ ! -d "$DACOLLECTOR_HOME" ]; then
-    if [ "$DACOLLECTOR_HOME" == "/home/dacollector/.dacollector/DaCollector.CLI" ]; then
-        echo "Creating default DACOLLECTOR_HOME directory: $DACOLLECTOR_HOME"
-        mkdir -p "$DACOLLECTOR_HOME"
-    else
-        echo "Error: DACOLLECTOR_HOME directory ($DACOLLECTOR_HOME) does not exist!"
-        exit 1
-    fi
+    echo "Creating DACOLLECTOR_HOME directory: $DACOLLECTOR_HOME"
+    mkdir -p "$DACOLLECTOR_HOME"
 fi
 
 # Set ownership of application data to dacollector user.
 OWNER=$(stat -c '%u:%g' "$DACOLLECTOR_HOME" 2>/dev/null)
 if [ "$OWNER" != "$PUID:$PGID" ]; then
-    echo "Changing ownership of /home/dacollector and all it's sub-directories…"
+    echo "Changing ownership of /home/dacollector and all its sub-directories..."
     chown -R $PUID:$PGID /home/dacollector/
 fi
 

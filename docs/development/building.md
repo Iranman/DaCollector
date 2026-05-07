@@ -62,3 +62,21 @@ The GitHub release workflow is configured to publish:
 - `DaCollector.Setup.exe`
 
 Use the standalone ZIP when testing on a machine without installed .NET runtimes.
+
+## Build Docker Image
+
+```powershell
+docker compose build dacollector
+```
+
+Or build directly:
+
+```powershell
+docker build -t dacollector:local .
+```
+
+For ARM64:
+
+```powershell
+docker build -f Dockerfile.aarch64 -t dacollector:local-arm64 .
+```
