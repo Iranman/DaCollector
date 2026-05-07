@@ -2,7 +2,7 @@
 
 Context:
 - Branch: `daccollector-main`
-- Latest commits: `c1a6de4 Add TvdbController with show/movie CRUD endpoints`
+- Latest commits: `43cc973 Commit pre-existing uncommitted work: duplicate models, Plex service, tests, docs`
 - Follow `CLAUDE.md`: append database migrations; **never rewrite historical migration strings**.
 - Keep legacy API contract class names like `CL_AnimeSeries_User` unless intentionally versioning the public API.
 - `.NET SDK 10.0.203` may not be in PATH in the sandbox — use `& "C:\Program Files\dotnet\dotnet.exe"` if needed.
@@ -58,24 +58,24 @@ Note: `MetadataEventEmitter` already existed as a separate emitter for metadata 
 
 ---
 
-## P2 — Product Improvements
+## ✅ P2 — Product Improvements — DONE
 
-- Add install verification path (Windows + Docker):
-  - Start server on port `38111`
-  - `GET /api/v3/Init/Status` returns 200
-  - `/webui` loads
-  - No migration errors on clean SQLite database
-
-- Expand collection management tests:
+- Install verification documented for Windows and Docker at `docs/getting-started/verify-install.md`:
+  - Port `38111`
+  - `GET /api/v3/Init/Status`
+  - `/webui`
+  - Clean SQLite startup and migration-log checks
+- Collection management tests expanded:
   - TMDB movie/show/collection rules
   - TVDB movie/show/list rules
-  - Duplicate title handling
-  - Plex preview and apply mode
-
-- Improve duplicate management:
-  - Separate exact file duplicates from duplicate media entries
-  - Add scoring reasons (path hash, provider ID, title/year, Plex rating key)
-  - Surface safe-delete candidates without auto-deleting
+  - Duplicate external ID collapse
+  - Duplicate title preservation across different external IDs
+  - Plex preview and append apply mode
+- Duplicate management improved:
+  - Exact file duplicate cleanup remains under `/api/v3/Duplicates/Exact`
+  - Plex media duplicate review added under `/api/v3/Duplicates/Media/Plex/Library/{sectionKey}`
+  - Scoring reasons include path hash, provider ID, title/year, and Plex rating keys
+  - Safe-delete candidates are surfaced as review data without auto-deleting
 
 ---
 
