@@ -39,6 +39,108 @@ public class CollectionBuilderPreviewServiceTests
     }
 
     [Fact]
+    public async Task Preview_TmdbShow_FetchesRemoteWhenShowIsNotCached()
+    {
+        var tmdb = new FakeTmdbCollectionBuilderClient
+        {
+            Shows = { [22] = new(22, "The Expanse", "A space drama.") },
+        };
+        var service = CreateService(tmdb);
+
+        var preview = await service.Preview(new()
+        {
+            Builder = "tmdb_show",
+            Options = new Dictionary<string, string> { ["id"] = "22" },
+        });
+
+        var item = Assert.Single(preview.Items);
+        Assert.Equal(ExternalProvider.TMDB, item.ExternalID.Provider);
+        Assert.Equal(MediaKind.Show, item.ExternalID.Kind);
+        Assert.Equal("22", item.ExternalID.Value);
+        Assert.Equal("The Expanse", item.Title);
+        Assert.Empty(preview.Warnings);
+    }
+
+    [Fact]
+    public async Task Preview_TmdbCollection_ReturnsMovieParts()
+    {
+        var tmdb = new FakeTmdbCollectionBuilderClient
+        {
+            CollectionMovies =
+            [
+                new(100, "The Matrix", "A simulation."),
+                new(101, "The Matrix Reloaded", "A sequel."),
+            ],
+        };
+        var service = CreateService(tmdb);
+
+        var preview = await service.Preview(new()
+        {
+            Builder = "tmdb_collection",
+            Options = new Dictionary<string, string> { ["id"] = "10" },
+        });
+
+        Assert.Collection(
+            preview.Items,
+            item =>
+            {
+                Assert.Equal(ExternalProvider.TMDB, item.ExternalID.Provider);
+                Assert.Equal(MediaKind.Movie, item.ExternalID.Kind);
+                Assert.Equal("100", item.ExternalID.Value);
+                Assert.Equal("The Matrix", item.Title);
+            },
+            item =>
+            {
+                Assert.Equal("101", item.ExternalID.Value);
+                Assert.Equal("The Matrix Reloaded", item.Title);
+            }
+        );
+        Assert.Empty(preview.Warnings);
+    }
+
+    [Fact]
+    public async Task Preview_DuplicateProviderIds_AreCollapsed()
+    {
+        var tmdb = new FakeTmdbCollectionBuilderClient
+        {
+            Movies = { [11] = new(11, "Star Wars", null) },
+        };
+        var service = CreateService(tmdb);
+
+        var preview = await service.Preview(new()
+        {
+            Builder = "tmdb_movie",
+            Options = new Dictionary<string, string> { ["ids"] = "11,11" },
+        });
+
+        var item = Assert.Single(preview.Items);
+        Assert.Equal("11", item.ExternalID.Value);
+        Assert.Empty(preview.Warnings);
+    }
+
+    [Fact]
+    public async Task Preview_DuplicateTitlesWithDifferentExternalIds_AreKept()
+    {
+        var tmdb = new FakeTmdbCollectionBuilderClient
+        {
+            PopularMovies = [new(1, "The Office", null)],
+            PopularShows = [new(2, "The Office", null)],
+        };
+        var service = CreateService(tmdb);
+
+        var preview = await service.Preview(new()
+        {
+            Builder = "tmdb_popular",
+            Options = new Dictionary<string, string> { ["limit"] = "10" },
+        });
+
+        Assert.Equal(2, preview.Items.Count);
+        Assert.Contains(preview.Items, item => item.ExternalID.Kind == MediaKind.Movie && item.Title == "The Office");
+        Assert.Contains(preview.Items, item => item.ExternalID.Kind == MediaKind.Show && item.Title == "The Office");
+        Assert.Empty(preview.Warnings);
+    }
+
+    [Fact]
     public async Task Preview_TmdbPopular_ReturnsMoviesAndShowsWhenKindIsUnknown()
     {
         var tmdb = new FakeTmdbCollectionBuilderClient
@@ -180,6 +282,30 @@ public class CollectionBuilderPreviewServiceTests
         Assert.Equal("101", item.ExternalID.Value);
         Assert.Equal("The TVDB Movie", item.Title);
         Assert.Equal("A TVDB movie.", item.Summary);
+        Assert.Empty(preview.Warnings);
+    }
+
+    [Fact]
+    public async Task Preview_TvdbShow_FetchesRemoteTitle()
+    {
+        var tvdb = new FakeTvdbCollectionBuilderClient
+        {
+            Shows = { [202] = new(202, MediaKind.Show, "The TVDB Show", "A TVDB show.") },
+        };
+        var service = CreateService(tvdb: tvdb);
+
+        var preview = await service.Preview(new()
+        {
+            Builder = "tvdb_show",
+            Options = new Dictionary<string, string> { ["id"] = "202" },
+        });
+
+        var item = Assert.Single(preview.Items);
+        Assert.Equal(ExternalProvider.TVDB, item.ExternalID.Provider);
+        Assert.Equal(MediaKind.Show, item.ExternalID.Kind);
+        Assert.Equal("202", item.ExternalID.Value);
+        Assert.Equal("The TVDB Show", item.Title);
+        Assert.Equal("A TVDB show.", item.Summary);
         Assert.Empty(preview.Warnings);
     }
 

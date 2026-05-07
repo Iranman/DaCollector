@@ -90,6 +90,8 @@ Open:
 http://127.0.0.1:38111/webui
 ```
 
+Then run the [install verification checklist](../verify-install.md).
+
 Check container status:
 
 ```powershell

@@ -61,6 +61,10 @@ Sync calls evaluate saved definitions and can either preview or apply the result
 
 Use `apply=false` before the first real sync. It lets you inspect matched items, missing items, warnings, and intended changes.
 
+## Duplicate Output Handling
+
+DaCollector de-duplicates collection output by external provider identity, not by title text. Two items with the same title remain separate when their provider, kind, or ID differs. Repeated copies of the same external ID collapse to one target item before Plex matching.
+
 ## Sync Modes
 
 Collection definitions can be evaluated in preview mode or applied to the target media server. When using a sync mode that removes membership, DaCollector compares the target output to the existing Plex collection and removes items that no longer match.

@@ -52,8 +52,8 @@ public class MediaDuplicateReviewServiceTests
     [Fact]
     public void FindDuplicateMediaEntries_MarksSafeDeleteWhenAllFilesAreCoveredByOtherEntry()
     {
-        // Item 200 has 2 files that also appear in item 201 → 200 is a safe-delete candidate.
-        // Item 201 has one additional unique file → it is NOT a safe-delete candidate.
+        // Item 200 has 2 files that also appear in item 201, so 200 is a safe-delete candidate.
+        // Item 201 has one additional unique file, so it is not a safe-delete candidate.
         var duplicates = MediaDuplicateReviewService.FindDuplicateMediaEntries(
         [
             new()

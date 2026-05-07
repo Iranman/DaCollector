@@ -58,5 +58,6 @@ Most endpoints require authentication. Admin-only endpoints require an admin use
 | `GET` | `/api/v3/Duplicates/Exact` | List exact duplicate sets. |
 | `GET` | `/api/v3/Duplicates/Exact/CleanupPlan` | List cleanup candidates. |
 | `DELETE` | `/api/v3/Duplicates/Exact/Location/{locationID}` | Dry-run or confirm one candidate delete. |
+| `GET` | `/api/v3/Duplicates/Media/Plex/Library/{sectionKey}` | List possible duplicate Plex media entries. |
 
 Use `confirm=false` for dry-run deletes and `confirm=true` for confirmed deletes.

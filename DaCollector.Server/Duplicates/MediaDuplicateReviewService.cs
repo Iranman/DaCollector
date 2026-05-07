@@ -71,7 +71,7 @@ public class MediaDuplicateReviewService(PlexTargetService plexTargetService)
             .ToList();
 
         // An item is a safe-delete candidate if every file it holds also appears in at least
-        // one other item in the set — removing it would not lose any files from the library.
+        // one other item in the set; removing it would not lose any files from the library.
         var safeDeleteCandidate = items.Any(item =>
             item.PathHashes.Count > 0 &&
             item.PathHashes.All(hash => items
@@ -80,7 +80,7 @@ public class MediaDuplicateReviewService(PlexTargetService plexTargetService)
                 .Contains(hash, StringComparer.OrdinalIgnoreCase)));
 
         var reviewAction = safeDeleteCandidate
-            ? "One or more entries have all files covered by other entries — safe to remove duplicates from Plex."
+            ? "One or more entries have all files covered by other entries; safe to remove duplicates from Plex."
             : "Review in Plex before deleting or merging media entries.";
 
         return new()
@@ -193,7 +193,7 @@ public class MediaDuplicateReviewService(PlexTargetService plexTargetService)
             .ToList();
 
     private static string GetRatingKeySetKey(IReadOnlyList<PlexMediaItem> items) =>
-        string.Join("|", items.Select(item => item.RatingKey).Order(StringComparer.OrdinalIgnoreCase));
+        string.Join("|", items.Select(item => item.RatingKey).OrderBy(ratingKey => ratingKey, StringComparer.OrdinalIgnoreCase));
 
     private static string NormalizeTitle(string title) =>
         string.Join(" ", title.Trim().ToLowerInvariant().Split(' ', StringSplitOptions.RemoveEmptyEntries));

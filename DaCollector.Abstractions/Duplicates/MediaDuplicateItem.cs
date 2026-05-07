@@ -1,25 +1,25 @@
 using System.Collections.Generic;
 using DaCollector.Abstractions.Metadata;
 
-namespace DaCollector.Abstractions.MediaServers.Plex;
+namespace DaCollector.Abstractions.Duplicates;
 
 /// <summary>
-/// One movie or TV item from a Plex library section.
+/// One Plex media entry that participates in a possible duplicate media set.
 /// </summary>
-public sealed record PlexMediaItem
+public sealed record MediaDuplicateItem
 {
     /// <summary>
-    /// Plex item rating key.
+    /// Plex rating key for the media entry.
     /// </summary>
     public string RatingKey { get; init; } = string.Empty;
 
     /// <summary>
-    /// Plex item title.
+    /// Plex title.
     /// </summary>
     public string Title { get; init; } = string.Empty;
 
     /// <summary>
-    /// Plex item type, such as movie or show.
+    /// Plex media type, such as movie or show.
     /// </summary>
     public string Type { get; init; } = string.Empty;
 
@@ -34,7 +34,7 @@ public sealed record PlexMediaItem
     public string? Guid { get; init; }
 
     /// <summary>
-    /// External provider identities exposed by Plex.
+    /// External provider IDs attached to the Plex item.
     /// </summary>
     public IReadOnlyList<ExternalMediaId> ExternalIDs { get; init; } = [];
 
@@ -47,4 +47,9 @@ public sealed record PlexMediaItem
     /// File paths exposed by Plex for this item.
     /// </summary>
     public IReadOnlyList<string> FilePaths { get; init; } = [];
+
+    /// <summary>
+    /// Stable hashes of file paths exposed by Plex.
+    /// </summary>
+    public IReadOnlyList<string> PathHashes { get; init; } = [];
 }

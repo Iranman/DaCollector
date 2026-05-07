@@ -395,6 +395,7 @@ public class SystemService : ISystemService
             services.AddSingleton<ManagedCollectionService>();
             services.AddSingleton<ManagedCollectionSyncService>();
             services.AddSingleton<ExactDuplicateService>();
+            services.AddSingleton<MediaDuplicateReviewService>();
             services.AddSingleton<MediaCatalogService>();
             services.AddSingleton<PlexTargetService>();
             services.AddSingleton<DaCollectorStatusService>();

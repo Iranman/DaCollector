@@ -53,6 +53,8 @@ cd DaCollector.Server\bin\Release\net10.0\win-x64\publish
 
 Then open `http://127.0.0.1:38111/webui`.
 
+After first startup, run the [install verification checklist](../verify-install.md).
+
 ## Framework-Dependent Build
 
 Use this only when the target machine already has the required .NET runtimes:

@@ -1,4 +1,6 @@
+using System;
 using System.ComponentModel.DataAnnotations;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -18,7 +20,8 @@ namespace DaCollector.Server.API.v3.Controllers;
 [Authorize]
 public class DuplicatesController(
     ISettingsProvider settingsProvider,
-    ExactDuplicateService exactDuplicateService
+    ExactDuplicateService exactDuplicateService,
+    MediaDuplicateReviewService mediaDuplicateReviewService
 ) : BaseController(settingsProvider)
 {
     /// <summary>
@@ -64,6 +67,30 @@ public class DuplicatesController(
         exactDuplicateService
             .GetCleanupPlans(includeIgnored, onlyAvailable, preferredManagedFolderID, preferredPathContains)
             .ToListResult(page, pageSize);
+
+    /// <summary>
+    /// List possible duplicate Plex media entries by provider ID, title/year, and path hash signals.
+    /// </summary>
+    [HttpGet("Media/Plex/Library/{sectionKey}")]
+    public async Task<ActionResult<ListResult<MediaDuplicateSet>>> GetPlexMediaDuplicates(
+        [FromRoute] string sectionKey,
+        [FromQuery, Range(0, 1000)] int pageSize = 100,
+        [FromQuery, Range(1, int.MaxValue)] int page = 1,
+        CancellationToken cancellationToken = default
+    )
+    {
+        try
+        {
+            return (await mediaDuplicateReviewService
+                    .GetPlexMediaDuplicates(sectionKey, cancellationToken: cancellationToken)
+                    .ConfigureAwait(false))
+                .ToListResult(page, pageSize);
+        }
+        catch (Exception e) when (e is ArgumentException or InvalidOperationException)
+        {
+            return ValidationProblem(e.Message, "Plex");
+        }
+    }
 
     /// <summary>
     /// Preview or delete one exact duplicate remove candidate.

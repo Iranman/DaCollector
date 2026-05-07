@@ -1,6 +1,15 @@
 # Duplicate Management
 
-DaCollector can identify exact duplicate file locations by hash and file size. The duplicate tools are designed around review first, deletion second.
+DaCollector separates exact duplicate files from duplicate media entries. Exact duplicates are file cleanup candidates based on stored hash and size. Media duplicates are Plex library entries that may point to the same movie or show based on provider IDs, title/year, rating keys, or matching file path hashes.
+
+The duplicate tools are designed around review first, deletion second.
+
+## Duplicate Types
+
+| Type | Source | Signals | Delete behavior |
+| --- | --- | --- | --- |
+| Exact file duplicates | DaCollector file database | File hash, file size, managed folder preference, path preference, file availability | Can dry-run and then delete one selected remove candidate. |
+| Plex media duplicates | Plex target library | Provider ID, title/year, Plex rating key, file path hash | Read-only review. Delete or merge in Plex after inspection. |
 
 ## Web UI
 
@@ -23,6 +32,14 @@ Use it to load the exact duplicate summary, inspect cleanup candidates, dry-run 
 | `DELETE` | `/api/v3/Duplicates/Exact/Location/{locationID}?confirm=true` | Remove one confirmed candidate. |
 
 Delete calls require an admin user.
+
+## Plex Media Duplicate API
+
+| Method | Endpoint | Purpose |
+| --- | --- | --- |
+| `GET` | `/api/v3/Duplicates/Media/Plex/Library/{sectionKey}` | List possible duplicate media entries from one Plex library section. |
+
+The media duplicate response includes a score, scoring reasons, Plex rating keys, provider IDs, title/year data, file paths, and path hashes. DaCollector does not delete media duplicate entries from this endpoint.
 
 ## Useful Query Options
 

@@ -5,6 +5,7 @@
   - [Windows Installation](getting-started/installation/windows.md)
   - [Docker Installation](getting-started/installation/docker.md)
   - [First Run](getting-started/first-run.md)
+  - [Verify Install](getting-started/verify-install.md)
   - [Configuration](getting-started/configuration.md)
   - [Updating](getting-started/updating.md)
 - Features

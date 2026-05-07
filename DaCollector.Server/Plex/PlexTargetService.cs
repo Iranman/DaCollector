@@ -437,6 +437,13 @@ public class PlexTargetService(ISettingsProvider settingsProvider, IHttpClientFa
             .Where(guid => !string.IsNullOrWhiteSpace(guid))
             .Select(guid => guid!)
             .ToList();
+        var filePaths = element
+            .Descendants("Part")
+            .Select(part => GetAttribute(part, "file"))
+            .Where(path => !string.IsNullOrWhiteSpace(path))
+            .Select(path => path!)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
 
         return new()
         {
@@ -447,6 +454,7 @@ public class PlexTargetService(ISettingsProvider settingsProvider, IHttpClientFa
             Guid = GetAttribute(element, "guid"),
             ExternalIDs = externalIDs,
             GuidValues = guidValues,
+            FilePaths = filePaths,
         };
     }
 
