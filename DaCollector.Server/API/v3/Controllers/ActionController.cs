@@ -3,7 +3,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 using Quartz;
 using DaCollector.Abstractions.Video.Services;
 using DaCollector.Server.API.Annotations;
@@ -13,7 +12,6 @@ using DaCollector.Server.Providers.TMDB;
 using DaCollector.Server.Repositories;
 using DaCollector.Server.Scheduling;
 using DaCollector.Server.Scheduling.Jobs.Actions;
-using DaCollector.Server.Scheduling.Jobs.AniDB;
 using DaCollector.Server.Scheduling.Jobs.Plex;
 using DaCollector.Server.Scheduling.Jobs.DaCollector;
 using DaCollector.Server.Scheduling.Jobs.Trakt;
@@ -30,7 +28,6 @@ namespace DaCollector.Server.API.v3.Controllers;
 [Authorize]
 public class ActionController : BaseController
 {
-    private readonly ILogger<ActionController> _logger;
     private readonly MediaGroupCreator _groupCreator;
     private readonly ActionService _actionService;
     private readonly MediaGroupService _groupService;
@@ -42,7 +39,6 @@ public class ActionController : BaseController
     private readonly ISchedulerFactory _schedulerFactory;
 
     public ActionController(
-        ILogger<ActionController> logger,
         TmdbMetadataService tmdbMetadataService,
         TmdbLinkingService tmdbLinkingService,
         TmdbImageService tmdbImageService,
@@ -55,7 +51,6 @@ public class ActionController : BaseController
         MediaGroupService groupService
     ) : base(settingsProvider)
     {
-        _logger = logger;
         _tmdbMetadataService = tmdbMetadataService;
         _tmdbLinkingService = tmdbLinkingService;
         _tmdbImageService = tmdbImageService;
@@ -100,24 +95,6 @@ public class ActionController : BaseController
     public ActionResult SyncHashes()
     {
         return BadRequest();
-    }
-
-    /// <summary>
-    /// Sync the votes from DaCollector to AniDB.
-    /// </summary>
-    /// <returns></returns>
-    [HttpGet("SyncVotes")]
-    public async Task<ActionResult> SyncVotes([FromQuery] bool export = false, [FromQuery] bool import = false)
-    {
-        if (User.IsAniDBUser != 1)
-            return BadRequest("User is not an AniDB user. Nothing to do.");
-
-        if (export && import)
-            return BadRequest("Cannot export and import at the same time.");
-
-        var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob<SyncAniDBVotesJob>(c => (c.UserID, c.Export) = (User.JMMUserID, export));
-        return Ok();
     }
 
     /// <summary>
@@ -181,7 +158,7 @@ public class ActionController : BaseController
     }
 
     /// <summary>
-    /// Scan for TMDB matches for all unlinked AniDB anime.
+    /// Scan for TMDB matches for all unlinked movies and TV shows.
     /// </summary>
     /// <returns></returns>
     [HttpGet("SearchForTmdbMatches")]
@@ -203,7 +180,7 @@ public class ActionController : BaseController
     }
 
     /// <summary>
-    /// Purge all unused TMDB Movies that are not linked to any AniDB anime.
+    /// Purge all unused TMDB Movies that are not linked to local media.
     /// </summary>
     /// <returns></returns>
     [Authorize("admin")]
@@ -260,7 +237,7 @@ public class ActionController : BaseController
     }
 
     /// <summary>
-    /// Purge all unused TMDB Shows that are not linked to any AniDB anime.
+    /// Purge all unused TMDB Shows that are not linked to local media.
     /// </summary>
     /// <returns></returns>
     [Authorize("admin")]
@@ -284,7 +261,7 @@ public class ActionController : BaseController
     }
 
     /// <summary>
-    /// Purge all AniDB-TMDB links, optionally removing the links and resetting the auto-linking state.
+    /// Purge all TMDB links, optionally removing the links and resetting the auto-linking state.
     /// </summary>
     /// <param name="removeShowLinks">Whether to remove show links.</param>
     /// <param name="removeMovieLinks">Whether to remove movie links.</param>
@@ -363,92 +340,6 @@ public class ActionController : BaseController
     #region Admin Actions
 
     /// <summary>
-    /// Gets files whose data does not match AniDB
-    /// </summary>
-    /// <returns></returns>
-    [Authorize("admin")]
-    [HttpGet("AVDumpMismatchedFiles")]
-    public async Task<ActionResult> AVDumpMismatchedFiles()
-    {
-        var settings = SettingsProvider.GetSettings();
-        if (string.IsNullOrWhiteSpace(settings.AniDb.AVDumpKey))
-            return ValidationProblem("Missing AVDump API key.", "Settings");
-
-        var mismatchedFiles = RepoFactory.VideoLocal.GetAll()
-            .Where(file => !file.IsEmpty() && file.MediaInfo != null)
-            .Select(file => (Video: file, AniDB: file.ReleaseInfo))
-            .Where(tuple => tuple.AniDB is { ProviderName: "AniDB", IsCorrupted: false } && tuple.Video.MediaInfo?.MenuStreams.Count != 0 != tuple.AniDB.IsChaptered)
-            .Select(tuple => (Path: tuple.Video.FirstResolvedPlace?.Path, tuple.Video))
-            .Where(tuple => !string.IsNullOrEmpty(tuple.Path))
-            .ToDictionary(tuple => tuple.Video.VideoLocalID, tuple => tuple.Path);
-        var scheduler = await _schedulerFactory.GetScheduler();
-        foreach (var (fileId, filePath) in mismatchedFiles)
-            await scheduler.StartJob<AVDumpFilesJob>(a => a.Videos = new() { { fileId, filePath } });
-
-        _logger.LogInformation("Queued {QueuedAnimeCount} files for avdumping", mismatchedFiles.Count);
-
-        return Ok();
-    }
-
-    /// <summary>
-    /// This Downloads XML data from AniDB where there is none. This should only happen:
-    /// A. If someone deleted or corrupted them.
-    /// B. If the server closed unexpectedly at the wrong time (it'll only be one).
-    /// C. If there was a catastrophic error.
-    /// </summary>
-    /// <returns></returns>
-    [Authorize("admin")]
-    [HttpGet("DownloadMissingAniDBAnimeData")]
-    public ActionResult UpdateMissingAnidbXml()
-    {
-        Task.Run(_actionService.DownloadMissingAnidbAnimeXmls);
-        Task.Run(_actionService.ScheduleMissingAnidbAnimeForFiles);
-
-        return Ok();
-    }
-
-    /// <summary>
-    /// Downloads all missing or partially missing AniDB creators over the UDP
-    /// API. Will do nothing if downloading creator data is set to
-    /// <see langword="false" />.
-    /// </summary>
-    /// <returns></returns>
-    [Authorize("admin")]
-    [HttpGet("DownloadMissingAniDBCreators")]
-    public ActionResult ScheduleMissingAniDBCreators()
-    {
-        Task.Run(_actionService.ScheduleMissingAnidbCreators);
-        return Ok();
-    }
-
-    /// <summary>
-    /// BEWARE this is a dangerous command!
-    /// It syncs all of the states in DaCollector's library to AniDB.
-    /// ONE WAY. THIS CAN ERASE ANIDB DATA IRREVERSIBLY
-    /// </summary>
-    /// <returns></returns>
-    [Authorize("admin")]
-    [HttpGet("SyncMyList")]
-    public async Task<ActionResult> SyncMyList()
-    {
-        var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob<SyncAniDBMyListJob>(c => c.ForceRefresh = true);
-        return Ok();
-    }
-
-    /// <summary>
-    /// Update All AniDB Series Info
-    /// </summary>
-    /// <returns></returns>
-    [Authorize("admin")]
-    [HttpGet("UpdateAllAniDBInfo")]
-    public async Task<ActionResult> UpdateAllAniDBInfo()
-    {
-        await _actionService.RunImport_UpdateAllAniDB();
-        return Ok();
-    }
-
-    /// <summary>
     /// Queues a task to Update all media info
     /// </summary>
     /// <returns></returns>
@@ -470,31 +361,6 @@ public class ActionController : BaseController
     public async Task<ActionResult> UpdateSeriesStats()
     {
         await _actionService.UpdateAllStats();
-        return Ok();
-    }
-
-    /// <summary>
-    /// Update AniDB Releases with missing group info, including with missing release
-    /// groups.
-    /// </summary>
-    /// <returns></returns>
-    [Authorize("admin")]
-    [HttpGet("UpdateMissingAniDBFileInfo")]
-    public async Task<ActionResult> UpdateMissingAniDBFileInfo()
-    {
-        await _actionService.UpdateAnidbReleaseInfo();
-        return Ok();
-    }
-
-    /// <summary>
-    /// Update the AniDB Calendar data for use on the dashboard.
-    /// </summary>
-    /// <returns></returns>
-    [Authorize("admin")]
-    [HttpGet("UpdateAniDBCalendar")]
-    public async Task<ActionResult> UpdateAniDBCalendarData()
-    {
-        await _actionService.CheckForCalendarUpdate(true);
         return Ok();
     }
 
@@ -557,48 +423,6 @@ public class ActionController : BaseController
             if (string.IsNullOrEmpty(user.PlexToken)) continue;
             await scheduler.StartJob<SyncPlexWatchedStatesJob>(c => c.User = user);
         }
-        return Ok();
-    }
-
-    /// <summary>
-    /// Forcibly runs AddToMyList commands for all manual links
-    /// </summary>
-    /// <returns></returns>
-    [Authorize("admin")]
-    [HttpGet("AddAllManualLinksToMyList")]
-    public async Task<ActionResult> AddAllManualLinksToMyList()
-    {
-        var scheduler = await _schedulerFactory.GetScheduler();
-        var files = RepoFactory.VideoLocal.GetManuallyLinkedVideos();
-        foreach (var vl in files)
-        {
-            await scheduler.StartJob<AddFileToMyListJob>(c => c.Hash = vl.Hash);
-        }
-
-        return Ok($"Saved {files.Count} AddToMyList Commands");
-    }
-
-    /// <summary>
-    /// Fetch unread notifications and messages from AniDB
-    /// </summary>
-    /// <returns></returns>
-    [Authorize("admin")]
-    [HttpGet("GetAniDBNotifications")]
-    public async Task<ActionResult> GetAniDBNotifications()
-    {
-        await _actionService.CheckForUnreadNotifications(true);
-        return Ok();
-    }
-
-    /// <summary>
-    /// Process file moved messages from AniDB. This will force an update on the affected files.
-    /// </summary>
-    /// <returns></returns>
-    [Authorize("admin")]
-    [HttpGet("RefreshAniDBMovedFiles")]
-    public async Task<ActionResult> RefreshAniDBMovedFiles()
-    {
-        await _actionService.RefreshAniDBMovedFiles(true);
         return Ok();
     }
 

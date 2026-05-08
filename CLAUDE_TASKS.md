@@ -6,6 +6,7 @@ Context:
 - Follow `CLAUDE.md`: append database migrations; **never rewrite historical migration strings**.
 - Keep legacy API contract class names like `CL_AnimeSeries_User` unless intentionally versioning the public API.
 - `.NET SDK 10.0.203` may not be in PATH in the sandbox — use `& "C:\Program Files\dotnet\dotnet.exe"` if needed.
+- Current provider scope for user-facing WebUI/server surfaces is TMDB and TVDB only. Do not reintroduce legacy anime-only provider settings/actions into WebUI-facing endpoints.
 
 ---
 
@@ -25,6 +26,7 @@ Context:
 - **P1**: Rename `MediaSeries.TVDB_ShowID/TVDB_MovieID` → `TvdbShowExternalID/TvdbMovieExternalID`; NHibernate Column() override keeps DB columns unchanged
 - **P1**: Rename `AnidbEventEmitter` → `AniDBConnectionEventEmitter`; update CLAUDE.md
 - **P1**: Add `TvdbController` at `/api/v3/Tvdb/` — show/movie GET, Refresh, Link/Unlink endpoints
+- **P1**: Remove legacy provider actions/settings from WebUI-facing server public surface; `/api/v3/Settings` now returns a DaCollector WebUI DTO with TMDB/TVDB, provider readiness reports TMDB/TVDB only, and collection builder catalog exposes TMDB/TVDB only.
 
 ---
 
@@ -41,6 +43,11 @@ All domain model references already use Media* names throughout.
 Renaming to `SourceSettings` would be inconsistent and break existing `settings-server.json` configs.
 The class name is internal (not user-facing). The JSON key `"AniDb"` in the settings file would need a migration.
 **Decision: do not rename** — it accurately identifies the AniDB provider settings.
+
+Follow-up after WebUI/provider cleanup:
+- Keep this deferred for deep storage/model internals only.
+- Do not expose this settings section from `/api/v3/Settings` or the React WebUI.
+- Do not add legacy provider actions back to `/api/v3/Action`.
 
 ---
 
@@ -394,12 +401,14 @@ Acceptance criteria:
 Goal: determine whether DaCollector is actually runnable as a first-install server and fix the blockers before moving to feature polish.
 
 Current status:
-- The codebase is not yet considered complete.
 - A local .NET SDK `10.0.203` was bootstrapped to `F:\Collection manager\.dotnet-sdk`.
 - `global.json` requires SDK `10.0.203` with `rollForward: latestFeature`.
 - Docker is not installed in the local Windows shell, so Docker validation must run on a Docker host such as TrueNAS.
 - The React `DaCollector-WebUI` build has been validated with `npm run build`.
 - `compose.yaml` now targets `Dockerfile.combined`, which builds the adjacent `../DaCollector-WebUI` repo and copies its `dist/` output into `DaCollector.Server/webui`.
+- P0.1 local build and tests pass.
+- P0.5 startup crash (empty config file) has been identified and fixed in commit `6ef5b0e`.
+- GHCR workflow was re-triggered by `6ef5b0e`; Docker host verification (P0.2–P0.4) still pending.
 
 Files in scope:
 - `global.json`
@@ -567,15 +576,29 @@ Remaining:
 - Run a collection preview/safe sync against section key `4`.
 - Run duplicate review in read-only mode and verify it reports results without enabling deletion behavior.
 
-### P0.5 — Document Any New Startup Issue
+### ✅ P0.5 — Document Any New Startup Issue — DONE
 
-Tasks:
-- If a new Docker/server crash appears, add a new P0.x section with:
-  - exact log excerpt
-  - failing endpoint or command
-  - suspected files
-  - acceptance criteria
-- Do not move to P1 polish until P0.1-P0.4 are either passing or explicitly blocked.
+#### Setup crash: "Error reading JToken from JsonReader. Path '', line 0, position 0."
+
+Symptoms:
+- WebUI setup screen appeared (server in `State=Waiting`).
+- After completing setup (`POST /api/v3/Init/CompleteSetup`), server transitioned to `State=Failed`.
+- Error message: `"Server failed to start: Error reading JToken from JsonReader. Path '', line 0, position 0."`
+
+Root cause:
+- `ConfigurationService.LoadInternal()` calls `File.ReadAllText(info.Path)` and passes the result directly to `ValidateInternal()` → `JsonSchemaValidatorBase.Validate()`.
+- In that validator, `JToken.ReadFrom(jsonReader)` throws with the above message when the input is empty or whitespace.
+- If a configuration file (e.g. `settings-server.json`) exists on disk but is zero bytes — possible on first-run Docker volumes, interrupted writes, or symlinks pointing to empty files — the `!File.Exists(info.Path)` guard passes but the content is empty, causing the crash.
+
+Files fixed (commit `6ef5b0e`):
+- `DaCollector.Server/Services/Configuration/ConfigurationService.cs`:
+  After reading the file, if `string.IsNullOrWhiteSpace(json)`, log a warning and regenerate a default config in place — mirrors the existing "file not found" recovery path exactly.
+- `DaCollector.Server/Services/Configuration/JsonSchemaValidatorBase.cs`:
+  Added early null/empty guard in `Validate(string jsonData, ...)` with a descriptive exception message as a safety net for any caller that bypasses `LoadInternal`.
+
+Result:
+- Empty or whitespace config files are now recovered from automatically with a logged warning instead of crashing the server.
+- Pushed `6ef5b0e` to `main`; GHCR re-triggered automatically.
 
 Acceptance criteria:
 - Server readiness status is factual and reproducible.

@@ -1,5 +1,4 @@
 using System;
-using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -22,8 +21,6 @@ public class DaCollectorStatusServiceTests
     {
         var settings = new ServerSettings();
         settings.TMDB.UserApiKey = "tmdb-secret";
-        settings.IMDb.Enabled = true;
-        settings.IMDb.DatasetPath = Path.GetTempPath();
         settings.TVDB.Enabled = true;
         settings.TVDB.ApiKey = "tvdb-secret";
         settings.TVDB.Pin = "tvdb-pin";
@@ -32,12 +29,11 @@ public class DaCollectorStatusServiceTests
         var providers = service.GetProviderStatuses();
 
         var tmdb = providers.Single(provider => provider.Provider == ExternalProvider.TMDB);
-        var imdb = providers.Single(provider => provider.Provider == ExternalProvider.IMDb);
         var tvdb = providers.Single(provider => provider.Provider == ExternalProvider.TVDB);
 
+        Assert.Equal([ExternalProvider.TMDB, ExternalProvider.TVDB], providers.Select(provider => provider.Provider));
         Assert.True(tmdb.Ready);
         Assert.True(tmdb.CredentialConfigured);
-        Assert.True(imdb.Ready);
         Assert.True(tvdb.Ready);
         Assert.True(tvdb.CredentialConfigured);
         Assert.True(tvdb.SecondaryCredentialConfigured);

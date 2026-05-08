@@ -135,7 +135,7 @@ public static class Dashboard
         public int Web { get; set; }
 
         /// <summary>
-        /// Things marked on AniDB as Other, different from None
+        /// Entries marked as Other, different from None.
         /// </summary>
         [Required]
         public int Other { get; set; }
@@ -153,7 +153,7 @@ public static class Dashboard
         public int Unknown { get; set; }
 
         /// <summary>
-        /// Series that don't have AniDB Records. This is very bad, and usually means there was an error in the import process. It can also happen if the API is hit at just the right time.
+        /// Series that do not have metadata records. This usually means there was an error in the import process, or the API was hit while records were still being created.
         /// </summary>
         [Required]
         public int None { get; set; }
@@ -265,7 +265,7 @@ public static class Dashboard
         public new int ID { get; set; }
 
         /// <summary>
-        /// The related <see cref="Series.AniDB"/> id for the entry.
+        /// The related source series id for the entry.
         /// </summary>
         [Required]
         public int Series { get; set; }

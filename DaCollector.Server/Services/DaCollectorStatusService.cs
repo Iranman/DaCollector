@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Threading;
@@ -47,7 +46,6 @@ public class DaCollectorStatusService(
     private static IReadOnlyList<ProviderConnectionStatus> GetProviderStatuses(IServerSettings settings) =>
     [
         GetTmdbStatus(settings),
-        GetImdbStatus(settings),
         GetTvdbStatus(settings),
     ];
 
@@ -70,34 +68,6 @@ public class DaCollectorStatusService(
             CredentialConfigured = hasUserApiKey,
             ConfigurationSource = hasUserApiKey ? "TMDB.UserApiKey" : hasBundledApiKey ? "Bundled TMDB API key" : null,
             CollectionBuilders = GetCollectionBuilders(ExternalProvider.TMDB),
-            Warnings = warnings,
-        };
-    }
-
-    private static ProviderConnectionStatus GetImdbStatus(IServerSettings settings)
-    {
-        var datasetPath = settings.IMDb.DatasetPath?.Trim() ?? string.Empty;
-        var datasetPathConfigured = datasetPath.Length > 0;
-        var datasetPathExists = datasetPathConfigured && (Directory.Exists(datasetPath) || File.Exists(datasetPath));
-        var warnings = new List<string>();
-        if (!settings.IMDb.Enabled)
-            warnings.Add("IMDb provider is disabled.");
-        if (settings.IMDb.Enabled && !datasetPathConfigured)
-            warnings.Add("IMDb dataset path is not configured.");
-        if (settings.IMDb.Enabled && datasetPathConfigured && !datasetPathExists)
-            warnings.Add("Configured IMDb dataset path was not found.");
-
-        return new()
-        {
-            Provider = ExternalProvider.IMDb,
-            Name = "IMDb",
-            Enabled = settings.IMDb.Enabled,
-            Configured = datasetPathExists,
-            Ready = settings.IMDb.Enabled && datasetPathExists,
-            CredentialConfigured = false,
-            ConfigurationSource = datasetPathConfigured ? "IMDb.DatasetPath" : null,
-            CacheExpirationDays = settings.IMDb.CacheExpirationDays,
-            CollectionBuilders = GetCollectionBuilders(ExternalProvider.IMDb),
             Warnings = warnings,
         };
     }

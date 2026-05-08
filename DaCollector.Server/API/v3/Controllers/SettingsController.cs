@@ -4,14 +4,10 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
-using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
-using DaCollector.Abstractions.Config;
 using DaCollector.Abstractions.Config.Exceptions;
 using DaCollector.Abstractions.Web.Attributes;
 using DaCollector.Server.API.Annotations;
 using DaCollector.Server.API.v3.Models.Common;
-using DaCollector.Server.Providers.AniDB.Interfaces;
 using DaCollector.Server.Settings;
 using DaCollector.Server.Utilities;
 
@@ -24,26 +20,20 @@ namespace DaCollector.Server.API.v3.Controllers;
 [Authorize(Roles = "admin,init")]
 [DatabaseBlockedExempt]
 [InitFriendly]
-public class SettingsController(ISettingsProvider settingsProvider, ConfigurationProvider<ServerSettings> configurationProvider, ILogger<SettingsController> logger, IUDPConnectionHandler udpHandler) : BaseController(settingsProvider)
+public class SettingsController(ISettingsProvider settingsProvider) : BaseController(settingsProvider)
 {
-    private readonly ConfigurationProvider<ServerSettings> _configurationProvider = configurationProvider;
-
-    private readonly IUDPConnectionHandler _udpHandler = udpHandler;
-
-    private readonly ILogger<SettingsController> _logger = logger;
-
     // As far as I can tell, only GET and PATCH should be supported, as we don't support unset settings.
     // Some may be patched to "", though.
 
     // TODO some way of distinguishing what a normal user vs an admin can set.
 
     /// <summary>
-    /// Get all settings
+    /// Get DaCollector WebUI settings.
     /// </summary>
     /// <returns></returns>
     [HttpGet]
-    public ActionResult<IServerSettings> GetSettings()
-        => new(SettingsProvider.GetSettings());
+    public ActionResult<DaCollectorWebUISettings> GetSettings()
+        => DaCollectorWebUISettings.From(SettingsProvider.GetSettings());
 
     /// <summary>
     /// JsonPatch the settings
@@ -67,45 +57,53 @@ public class SettingsController(ISettingsProvider settingsProvider, Configuratio
     }
 
     /// <summary>
-    /// Tests a Login with the given Credentials. This does not save the credentials.
-    /// </summary>
-    /// <param name="credentials">POST the body as a <see cref="Credentials"/> object</param>
-    /// <returns></returns>
-    [HttpPost("AniDB/TestLogin")]
-    public ActionResult TestAniDB([FromBody] Credentials credentials)
-    {
-        _logger.LogInformation("Testing AniDB Login and Connection");
-        if (string.IsNullOrWhiteSpace(credentials.Username))
-            ModelState.AddModelError(nameof(credentials.Username), "Username cannot be empty.");
-
-        if (string.IsNullOrWhiteSpace(credentials.Password))
-            ModelState.AddModelError(nameof(credentials.Password), "Password cannot be empty.");
-
-        if (!ModelState.IsValid)
-        {
-            _logger.LogInformation("Failed AniDB Login and Connection: {ModelState}", JsonConvert.SerializeObject(ModelState));
-            return ValidationProblem(ModelState);
-        }
-
-        var settings = SettingsProvider.GetSettings();
-        if (!_udpHandler.IsAlive)
-            _udpHandler.Init(credentials.Username, credentials.Password, settings.AniDb.UDPServerAddress, settings.AniDb.UDPServerPort, settings.AniDb.ClientPort);
-        else _udpHandler.ForceLogout();
-
-        if (!_udpHandler.TestLogin(credentials.Username, credentials.Password))
-        {
-            _logger.LogInformation("Failed AniDB Login and Connection");
-            return ValidationProblem("Failed to log in.", "Connection");
-        }
-
-        return Ok();
-    }
-
-    /// <summary>
     /// Get a list of all supported languages.
     /// </summary>
     /// <returns>A list of all supported languages.</returns>
     [HttpGet("SupportedLanguages")]
     public ActionResult<List<LanguageDetails>> GetAllSupportedLanguages() =>
         Languages.AllNamingLanguages.Select(a => new LanguageDetails(a.Language)).ToList();
+}
+
+public sealed record DaCollectorWebUISettings
+{
+    public required bool AutoGroupSeries { get; init; }
+
+    public required List<string> AutoGroupSeriesRelationExclusions { get; init; }
+
+    public required bool AutoGroupSeriesUseScoreAlgorithm { get; init; }
+
+    public required bool FileQualityFilterEnabled { get; init; }
+
+    public required ImportSettings Import { get; init; }
+
+    public required TMDBSettings TMDB { get; init; }
+
+    public required TVDBSettings TVDB { get; init; }
+
+    public required DatabaseSettings Database { get; init; }
+
+    public required LanguageSettings Language { get; init; }
+
+    public required PlexSettings Plex { get; init; }
+
+    public required TraktSettings TraktTv { get; init; }
+
+    public required CollectionManagerSettings CollectionManager { get; init; }
+
+    public static DaCollectorWebUISettings From(IServerSettings settings) => new()
+    {
+        AutoGroupSeries = settings.AutoGroupSeries,
+        AutoGroupSeriesRelationExclusions = settings.AutoGroupSeriesRelationExclusions,
+        AutoGroupSeriesUseScoreAlgorithm = settings.AutoGroupSeriesUseScoreAlgorithm,
+        FileQualityFilterEnabled = settings.FileQualityFilterEnabled,
+        Import = settings.Import,
+        TMDB = settings.TMDB,
+        TVDB = settings.TVDB,
+        Database = settings.Database,
+        Language = settings.Language,
+        Plex = settings.Plex,
+        TraktTv = settings.TraktTv,
+        CollectionManager = settings.CollectionManager,
+    };
 }

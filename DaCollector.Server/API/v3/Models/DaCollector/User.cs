@@ -42,7 +42,7 @@ public class User
     public bool IsAdmin { get; set; }
 
     /// <summary>
-    /// This is a list of services that the user is set to use. AniDB, Trakt, and Plex, for example
+    /// This is a list of services that the user is set to use. Trakt and Plex, for example.
     /// </summary>
     [JsonProperty(ItemConverterType = typeof(StringEnumConverter))]
     [Required]
@@ -76,8 +76,6 @@ public class User
         Username = user.Username;
         IsAdmin = user.IsAdmin == 1;
         CommunitySites = [];
-        if (user.IsAniDBUser == 1)
-            CommunitySites.Add(CommunitySite.AniDB);
         if (user.IsTraktUser == 1)
             CommunitySites.Add(CommunitySite.Trakt);
         if (!string.IsNullOrEmpty(user.PlexToken))
@@ -134,8 +132,6 @@ public class User
                         initialData.Password = Password;
                     if (IsAdmin.HasValue)
                         initialData.IsAdmin = IsAdmin.Value;
-                    if (CommunitySites is not null)
-                        initialData.IsAnidbUser = CommunitySites.Contains(CommunitySite.AniDB);
                     if (RestrictedTags is not null)
                         initialData.RestrictedTags = RestrictedTags
                             .Select(RepoFactory.AniDB_Tag.GetByTagID)
@@ -269,8 +265,6 @@ public class User
                         updateData.Username = Username;
                     if (IsAdmin.HasValue)
                         updateData.IsAdmin = IsAdmin.Value;
-                    if (CommunitySites is not null)
-                        updateData.IsAnidbUser = CommunitySites.Contains(CommunitySite.AniDB);
                     if (RestrictedTags is not null)
                         updateData.RestrictedTags = RestrictedTags
                             .Select(RepoFactory.AniDB_Tag.GetByTagID)

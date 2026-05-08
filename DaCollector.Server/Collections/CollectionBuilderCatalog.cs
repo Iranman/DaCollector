@@ -25,11 +25,6 @@ public static class CollectionBuilderCatalog
         ["tmdb_airing_today"] = Tmdb("tmdb_airing_today", MediaKind.Show, "Add TMDB shows airing today."),
         ["tmdb_on_the_air"] = Tmdb("tmdb_on_the_air", MediaKind.Show, "Add TMDB shows currently on the air."),
 
-        ["imdb_id"] = Imdb("imdb_id", MediaKind.Unknown, "Add a specific IMDb title."),
-        ["imdb_list"] = Imdb("imdb_list", MediaKind.Unknown, "Add titles from an IMDb list."),
-        ["imdb_chart"] = Imdb("imdb_chart", MediaKind.Unknown, "Add titles from an IMDb chart."),
-        ["imdb_search"] = Imdb("imdb_search", MediaKind.Unknown, "Add titles from an IMDb search."),
-
         ["tvdb_movie"] = Tvdb("tvdb_movie", MediaKind.Movie, "Add a specific TVDB movie."),
         ["tvdb_show"] = Tvdb("tvdb_show", MediaKind.Show, "Add a specific TVDB show."),
         ["tvdb_list"] = Tvdb("tvdb_list", MediaKind.Unknown, "Add titles from a TVDB list."),
@@ -48,9 +43,6 @@ public static class CollectionBuilderCatalog
 
     private static CollectionBuilderDescriptor Tmdb(string name, MediaKind kind, string description) =>
         Create(name, ExternalProvider.TMDB, kind, description);
-
-    private static CollectionBuilderDescriptor Imdb(string name, MediaKind kind, string description) =>
-        Create(name, ExternalProvider.IMDb, kind, description);
 
     private static CollectionBuilderDescriptor Tvdb(string name, MediaKind kind, string description) =>
         Create(name, ExternalProvider.TVDB, kind, description);

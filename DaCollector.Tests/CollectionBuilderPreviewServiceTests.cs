@@ -1,13 +1,11 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using DaCollector.Abstractions.Collections;
 using DaCollector.Abstractions.Metadata.Enums;
 using DaCollector.Server.Collections;
-using DaCollector.Server.Settings;
 using Xunit;
 
 #nullable enable
@@ -176,89 +174,21 @@ public class CollectionBuilderPreviewServiceTests
         Assert.Contains(preview.Warnings, warning => warning.Contains("does not support media kind"));
     }
 
-    [Fact]
-    public async Task Preview_ImdbId_ResolvesTitlesFromConfiguredDataset()
+    [Theory]
+    [InlineData("imdb_id")]
+    [InlineData("imdb_list")]
+    [InlineData("imdb_chart")]
+    [InlineData("imdb_search")]
+    public async Task Preview_ImdbBuilders_AreNotExposed(string builder)
     {
-        using var dataset = new ImdbDatasetTempDirectory();
-        var service = CreateService(imdb: CreateImdbClient(dataset.Path));
+        var service = CreateService();
 
-        var preview = await service.Preview(new()
+        await Assert.ThrowsAsync<ArgumentException>(() => service.Preview(new()
         {
-            Builder = "imdb_id",
-            Options = new Dictionary<string, string> { ["ids"] = "tt0111161,1375666" },
-        });
+            Builder = builder,
+        }));
 
-        Assert.Collection(
-            preview.Items,
-            item =>
-            {
-                Assert.Equal(MediaKind.Movie, item.ExternalID.Kind);
-                Assert.Equal("tt0111161", item.ExternalID.Value);
-                Assert.Equal("The Shawshank Redemption", item.Title);
-                Assert.Contains("IMDb 9.3", item.Summary ?? string.Empty);
-            },
-            item =>
-            {
-                Assert.Equal("tt1375666", item.ExternalID.Value);
-                Assert.Equal("Inception", item.Title);
-            }
-        );
-        Assert.Empty(preview.Warnings);
-    }
-
-    [Fact]
-    public async Task Preview_ImdbSearch_FiltersConfiguredDataset()
-    {
-        using var dataset = new ImdbDatasetTempDirectory();
-        var service = CreateService(imdb: CreateImdbClient(dataset.Path));
-
-        var preview = await service.Preview(new()
-        {
-            Builder = "imdb_search",
-            Options = new Dictionary<string, string>
-            {
-                ["query"] = "Game",
-                ["kind"] = "show",
-            },
-        });
-
-        var item = Assert.Single(preview.Items);
-        Assert.Equal(MediaKind.Show, item.ExternalID.Kind);
-        Assert.Equal("tt0944947", item.ExternalID.Value);
-        Assert.Equal("Game of Thrones", item.Title);
-        Assert.Empty(preview.Warnings);
-    }
-
-    [Fact]
-    public async Task Preview_ImdbChart_UsesRatingsOrderAndFilters()
-    {
-        using var dataset = new ImdbDatasetTempDirectory();
-        var service = CreateService(imdb: CreateImdbClient(dataset.Path));
-
-        var preview = await service.Preview(new()
-        {
-            Builder = "imdb_chart",
-            Options = new Dictionary<string, string>
-            {
-                ["kind"] = "show",
-                ["limit"] = "2",
-            },
-        });
-
-        Assert.Collection(
-            preview.Items,
-            item =>
-            {
-                Assert.Equal("tt0903747", item.ExternalID.Value);
-                Assert.Equal("Breaking Bad", item.Title);
-            },
-            item =>
-            {
-                Assert.Equal("tt0944947", item.ExternalID.Value);
-                Assert.Equal("Game of Thrones", item.Title);
-            }
-        );
-        Assert.Empty(preview.Warnings);
+        Assert.DoesNotContain(CollectionBuilderCatalog.All.Values, descriptor => descriptor.Provider == ExternalProvider.IMDb);
     }
 
     [Fact]
@@ -379,20 +309,6 @@ public class CollectionBuilderPreviewServiceTests
             tvdb ?? new FakeTvdbCollectionBuilderClient()
         );
 
-    private static IImdbCollectionBuilderClient CreateImdbClient(string datasetPath)
-    {
-        var settings = new ServerSettings
-        {
-            IMDb =
-            {
-                Enabled = true,
-                DatasetPath = datasetPath,
-            },
-        };
-
-        return new ImdbDatasetCollectionBuilderClient(new FakeSettingsProvider(settings));
-    }
-
     private sealed class FakeTmdbCollectionBuilderClient : ITmdbCollectionBuilderClient
     {
         public Dictionary<int, TmdbBuilderMovie> Movies { get; } = [];
@@ -466,57 +382,4 @@ public class CollectionBuilderPreviewServiceTests
         }
     }
 
-    private sealed class FakeSettingsProvider(IServerSettings settings) : ISettingsProvider
-    {
-        public IServerSettings GetSettings(bool copy = false) => settings;
-
-        public void SaveSettings(IServerSettings newSettings)
-        {
-        }
-
-        public void SaveSettings()
-        {
-        }
-
-        public void DebugSettingsToLog()
-        {
-        }
-    }
-
-    private sealed class ImdbDatasetTempDirectory : IDisposable
-    {
-        public string Path { get; } = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"daccollector-imdb-{Guid.NewGuid():N}");
-
-        public ImdbDatasetTempDirectory()
-        {
-            Directory.CreateDirectory(Path);
-            File.WriteAllText(
-                System.IO.Path.Combine(Path, "title.basics.tsv"),
-                string.Join(Environment.NewLine,
-                    "tconst\ttitleType\tprimaryTitle\toriginalTitle\tisAdult\tstartYear\tendYear\truntimeMinutes\tgenres",
-                    "tt0111161\tmovie\tThe Shawshank Redemption\tThe Shawshank Redemption\t0\t1994\t\\N\t142\tDrama",
-                    "tt1375666\tmovie\tInception\tInception\t0\t2010\t\\N\t148\tAction,Sci-Fi",
-                    "tt0944947\ttvSeries\tGame of Thrones\tGame of Thrones\t0\t2011\t2019\t57\tAdventure,Drama",
-                    "tt0903747\ttvSeries\tBreaking Bad\tBreaking Bad\t0\t2008\t2013\t49\tCrime,Drama",
-                    "tt0000001\tshort\tSkipped Short\tSkipped Short\t0\t1894\t\\N\t1\tDocumentary"
-                )
-            );
-            File.WriteAllText(
-                System.IO.Path.Combine(Path, "title.ratings.tsv"),
-                string.Join(Environment.NewLine,
-                    "tconst\taverageRating\tnumVotes",
-                    "tt0111161\t9.3\t2900000",
-                    "tt1375666\t8.8\t2500000",
-                    "tt0944947\t9.2\t2400000",
-                    "tt0903747\t9.5\t2200000"
-                )
-            );
-        }
-
-        public void Dispose()
-        {
-            if (Directory.Exists(Path))
-                Directory.Delete(Path, recursive: true);
-        }
-    }
 }
