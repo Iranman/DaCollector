@@ -1,6 +1,6 @@
 # Docker Installation
 
-DaCollector ships a Docker image on GHCR and a `docker-compose.yml` that is the recommended way to run it as a long-running server service.
+DaCollector ships a self-contained Docker image on GHCR and a `docker-compose.yml` that is the recommended way to run it as a long-running server service. The image includes the server and the React Web UI in one container.
 
 ## Requirements
 
@@ -12,7 +12,7 @@ DaCollector ships a Docker image on GHCR and a `docker-compose.yml` that is the 
 
 ## Step 1 — Get the files
 
-Download `docker-compose.yml` from the repository to a permanent folder on your server:
+Download `docker-compose.yml` from the repository to a permanent folder on your server. You do not need to clone the source repos for a normal install.
 
 ```bash
 mkdir ~/dacollector && cd ~/dacollector
@@ -117,6 +117,8 @@ http://<server-ip>:38111/webui
 ```
 
 The setup wizard runs on first boot. Create your admin account, then follow the [First Run](../../getting-started/first-run.md) guide to connect Plex and configure providers.
+
+No separate Web UI container is required. The GHCR image already contains the built DaCollector WebUI files and serves them from the same port as the API.
 
 ---
 
@@ -267,6 +269,8 @@ docker compose -f docker-compose.yml up -d
 
 ## Local build
 
+This section is for developers only. Server installs should use the prebuilt image above.
+
 To build from source and include the React Web UI, clone both repos next to each other:
 
 ```text
@@ -297,10 +301,9 @@ DACOLLECTOR_WEBUI_CONTEXT=/mnt/PLEX/Apps/DaCollector-WebUI docker compose up -d 
 
 No separate Web UI container is required.
 
-For ARM64 (e.g. Raspberry Pi, Apple Silicon), use the server-only Dockerfile until the combined Dockerfile has an ARM64 variant:
+For ARM64 (e.g. Raspberry Pi, Apple Silicon), the combined Dockerfile selects the correct Linux runtime automatically:
 
 ```bash
-# In compose.yaml, set: dockerfile: Dockerfile.aarch64
-docker compose -f compose.yaml build --no-cache dacollector
-docker compose -f compose.yaml up -d
+docker compose build --no-cache dacollector
+docker compose up -d
 ```

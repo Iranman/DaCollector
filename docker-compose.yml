@@ -6,9 +6,9 @@
 #   3. docker compose -f docker-compose.yml pull && docker compose -f docker-compose.yml up -d
 #   4. Open http://<server-ip>:38111/webui
 #
-# NOTE: The source repo also includes compose.yaml for local builds that bundle
-# the adjacent DaCollector-WebUI repo. If you run this image-only file from the
-# cloned repo, include "-f docker-compose.yml" as shown above.
+# NOTE: This file runs the prebuilt self-contained image. The WebUI is already
+# included in ghcr.io/iranman/dacollector:latest, so a normal install does not
+# need the DaCollector-WebUI repo or a separate WebUI container.
 #
 # Logs appear in ./logs/ next to this file as the server runs.
 

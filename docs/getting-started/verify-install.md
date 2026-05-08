@@ -13,16 +13,25 @@ Use this checklist after installing DaCollector on Windows or with Docker. It ve
 
 ## Quick Check with the Verification Script
 
-For a one-command check, run the included PowerShell script from the repository root:
+For a one-command check on Windows, run the included PowerShell script from the repository root:
 
 ```powershell
 .\scripts\verify-install.ps1
 ```
 
-Pass `-Port` to use a non-default port, or `-Docker` to also check the container health and print recent logs:
+Pass `-Port` to use a non-default local port, `-BaseUrl` to verify another machine, or `-Docker` to also check the container health and print recent logs:
 
 ```powershell
 .\scripts\verify-install.ps1 -Port 38112 -Docker
+.\scripts\verify-install.ps1 -BaseUrl http://192.168.1.50:38111
+```
+
+On a Linux Docker host, use the shell verifier:
+
+```bash
+chmod +x ./scripts/verify-install.sh
+./scripts/verify-install.sh --docker
+./scripts/verify-install.sh --base-url http://192.168.1.50:38111
 ```
 
 The script exits `0` when all checks pass and `1` when any check fails.
@@ -61,7 +70,7 @@ After the Web UI loads, inspect the log folder under `$env:DACOLLECTOR_HOME`. Th
 
 Start the recommended Compose service:
 
-```powershell
+```bash
 docker compose up -d
 docker compose ps
 ```
@@ -70,21 +79,20 @@ The `dacollector` service should be running and should publish `38111:38111`.
 
 Verify the HTTP endpoints:
 
-```powershell
-$baseUrl = "http://127.0.0.1:38111"
-Invoke-WebRequest "$baseUrl/api/v3/Init/Status" -UseBasicParsing
-Invoke-WebRequest "$baseUrl/webui" -UseBasicParsing
+```bash
+curl -i http://127.0.0.1:38111/api/v3/Init/Status
+curl -i http://127.0.0.1:38111/webui
 ```
 
 Check logs for startup or migration errors:
 
-```powershell
+```bash
 docker compose logs --tail 200 dacollector
 ```
 
 For a clean SQLite startup test, stop the service, remove only the DaCollector data volume for this test instance, then start it again:
 
-```powershell
+```bash
 docker compose down
 docker volume rm dacollector_dacollector-data
 docker compose up -d

@@ -482,6 +482,8 @@ Tasks:
   ```
 - Confirm the build logs show the WebUI stage running `npm run build`.
 - Confirm container startup passes ownership repair and does not crash at `PluginManager.cs:line 50`.
+- Push the updated `.github/workflows/docker-ghcr.yml` so `ghcr.io/iranman/dacollector:latest` is built from `Dockerfile.combined`.
+- After GHCR publish completes, verify a fresh server can use only `docker-compose.yml` and does not need the source repos.
 
 Acceptance criteria:
 - `docker compose up -d --build` creates one `dacollector` container that includes the React WebUI.
@@ -490,14 +492,19 @@ Acceptance criteria:
 Local blocker:
 - Docker is not installed in the local Windows shell (`docker` command not found).
 - This must be executed on the TrueNAS/Linux Docker host.
+- Added `scripts/verify-install.sh` so the Docker host can run endpoint and container checks without PowerShell.
+- Updated `.github/workflows/docker-ghcr.yml` to check out `Iranman/DaCollector-WebUI` and publish the combined server-plus-WebUI image from `Dockerfile.combined`.
+- Updated `Dockerfile.combined` to build both `linux/amd64` and `linux/arm64` using Docker's target architecture.
+- Ran `npm run build` in `DaCollector-WebUI`; production WebUI build passed locally. Docker/GHCR still needs to run the same step inside the image build.
 
-### P0.3 — Verify First-Run Endpoints
+### ◐ P0.3 — Verify First-Run Endpoints — LOCAL PASS, DOCKER PENDING
 
 Tasks:
 - Run from the Docker host:
   ```bash
   curl -i http://127.0.0.1:38111/api/v3/Init/Status
   curl -i http://127.0.0.1:38111/webui
+  ./scripts/verify-install.sh --docker
   ```
 - Run the install verification script where PowerShell is available:
   ```powershell
@@ -511,7 +518,20 @@ Acceptance criteria:
 - `/webui` returns the React WebUI.
 - First-run setup can create the admin account and reach login/dashboard.
 
-### P0.4 — Verify Minimal Plex Path
+Local result:
+- Port `38111` was already occupied by a Node mock server (`node mock-server.mjs`), so local smoke used `DACOLLECTOR_PORT=38112`.
+- Started `DaCollector.CLI.dll` from `DaCollector.Server/bin/Release/net10.0` with a temporary `DACOLLECTOR_HOME`.
+- `scripts/verify-install.ps1 -BaseUrl http://127.0.0.1:38112` passed:
+  - `/api/v3/Init/Status` returned HTTP `200`.
+  - `/webui` returned HTTP `200`.
+- The temporary first-run server reported `State=Waiting`, which is expected before admin setup.
+
+Remaining:
+- Repeat this against the TrueNAS Docker container on port `38111`.
+- Confirm `/webui` is the React WebUI from `DaCollector-WebUI`, not only the bundled static fallback.
+- Complete first-run admin setup in a browser and confirm login/dashboard.
+
+### ◐ P0.4 — Verify Minimal Plex Path — LOCAL PLEX PASS, DOCKER PENDING
 
 Tasks:
 - Configure Plex base URL, token, and section key.
@@ -524,6 +544,21 @@ Acceptance criteria:
 - At least one Plex library section can be read.
 - Collection and duplicate pages show real data or a clear actionable error.
 - No duplicate deletion behavior is enabled by default.
+
+Local result:
+- Confirmed Plex is listening on local port `32400`.
+- Direct Plex API calls to `/identity` and `/library/sections` succeeded.
+- Plex server reported version `1.43.2.10687-563d026ea`.
+- Plex returned one library section: key `4`, type `movie`, title `Movies`.
+- Started DaCollector locally on port `38112` with a temporary `DACOLLECTOR_HOME`.
+- Completed first-run setup using a temporary admin account and waited until `/api/v3/Init/Status` reported `State=Started`.
+- DaCollector Plex target endpoints successfully read Plex identity and library sections through the API.
+
+Remaining:
+- Repeat the Plex connectivity test from inside the TrueNAS Docker container.
+- In Docker, do not use `http://127.0.0.1:32400` for Plex unless Plex is running inside the same container. Use a host-reachable URL such as `http://host.docker.internal:32400` when available, or the TrueNAS/Plex LAN IP.
+- Run a collection preview/safe sync against section key `4`.
+- Run duplicate review in read-only mode and verify it reports results without enabling deletion behavior.
 
 ### P0.5 — Document Any New Startup Issue
 

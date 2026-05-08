@@ -8,8 +8,7 @@ on:
     paths:
       - .github/workflows/docker-ghcr.yml
       - .dockerignore
-      - Dockerfile
-      - Dockerfile.aarch64
+      - Dockerfile.combined
       - dockerentry.sh
       - global.json
       - SharedAssemblyInfo.cs
@@ -22,8 +21,7 @@ on:
     paths:
       - .github/workflows/docker-ghcr.yml
       - .dockerignore
-      - Dockerfile
-      - Dockerfile.aarch64
+      - Dockerfile.combined
       - dockerentry.sh
       - global.json
       - SharedAssemblyInfo.cs
@@ -37,6 +35,10 @@ on:
       tag:
         description: Container tag to publish.
         default: latest
+        required: true
+      webui_ref:
+        description: DaCollector-WebUI git ref to bundle into the image.
+        default: main
         required: true
 
 permissions:
@@ -57,16 +59,21 @@ jobs:
         include:
           - arch: amd64
             platform: linux/amd64
-            dockerfile: Dockerfile
           - arch: arm64
             platform: linux/arm64
-            dockerfile: Dockerfile.aarch64
 
     steps:
-      - name: Checkout
+      - name: Checkout Server
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Checkout WebUI
+        uses: actions/checkout@v4
+        with:
+          repository: Iranman/DaCollector-WebUI
+          ref: ${{ github.event.inputs.webui_ref || 'main' }}
+          path: DaCollector-WebUI
 
       - name: Compute image metadata
         id: meta
@@ -110,7 +117,9 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: ${{ matrix.dockerfile }}
+          file: Dockerfile.combined
+          build-contexts: |
+            dacollector_webui=DaCollector-WebUI
           platforms: ${{ matrix.platform }}
           push: ${{ github.event_name != 'pull_request' }}
           tags: |

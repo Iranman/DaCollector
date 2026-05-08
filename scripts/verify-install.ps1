@@ -4,20 +4,30 @@
     Verifies a DaCollector installation is reachable on the expected port.
 .PARAMETER Port
     Host port DaCollector listens on. Defaults to 38111.
+.PARAMETER BaseUrl
+    Full base URL to verify. Overrides Port when provided.
 .PARAMETER Docker
     Also check the Docker container health status for the 'dacollector' container.
 .EXAMPLE
     .\verify-install.ps1
 .EXAMPLE
     .\verify-install.ps1 -Port 38112 -Docker
+.EXAMPLE
+    .\verify-install.ps1 -BaseUrl http://192.168.1.50:38111
 #>
 [CmdletBinding()]
 param (
     [int]$Port = 38111,
+    [string]$BaseUrl,
     [switch]$Docker
 )
 
-$baseUrl = "http://127.0.0.1:$Port"
+if ([string]::IsNullOrWhiteSpace($BaseUrl)) {
+    $baseUrl = "http://127.0.0.1:$Port"
+}
+else {
+    $baseUrl = $BaseUrl.TrimEnd('/')
+}
 $failed = 0
 
 function Test-Endpoint {

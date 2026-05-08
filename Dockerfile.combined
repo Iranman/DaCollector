@@ -2,6 +2,10 @@
 
 FROM node:20-bookworm-slim AS webui-build
 
+ARG version=0.0.1-local
+ARG commit=local
+ARG date=local
+
 WORKDIR /usr/src/app/webui
 
 # The dacollector_webui build context is supplied by compose.yaml.
@@ -11,8 +15,14 @@ RUN npm ci
 COPY --from=dacollector_webui . .
 RUN npm run build
 
+# Generate version.json so the server knows the bundled WebUI version.
+RUN printf '{"package":"%s","minimumServerVersion":"0.0.1","tag":"v%s","git":"%s","date":"%s","channel":"Stable"}' \
+      "$version" "$version" "$commit" "$date" \
+    > dist/version.json
+
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 
+ARG TARGETARCH=amd64
 ARG version=0.0.1-local
 ARG channel=local
 ARG commit=local
@@ -28,7 +38,12 @@ COPY --from=webui-build /usr/src/app/webui/dist/ /usr/src/app/source/DaCollector
 
 WORKDIR /usr/src/app/source
 
-RUN dotnet build -c=Release -r linux-x64 -f net10.0 -o=/usr/src/app/build/ DaCollector.CLI/DaCollector.CLI.csproj /p:Version="${version}" /p:InformationalVersion="\"channel=${channel},commit=${commit},tag=${tag},date=${date},\""
+RUN case "${TARGETARCH}" in \
+      amd64) runtime_id="linux-x64" ;; \
+      arm64) runtime_id="linux-arm64" ;; \
+      *) echo "Unsupported Docker target architecture: ${TARGETARCH}" >&2; exit 1 ;; \
+    esac \
+    && dotnet build -c=Release -r="${runtime_id}" -f net10.0 -o=/usr/src/app/build/ DaCollector.CLI/DaCollector.CLI.csproj /p:Version="${version}" /p:InformationalVersion="\"channel=${channel},commit=${commit},tag=${tag},date=${date},\""
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0
 ENV PUID=1000 \
