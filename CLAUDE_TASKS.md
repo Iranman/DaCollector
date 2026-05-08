@@ -464,38 +464,45 @@ Notes:
 - Release build still emits one analyzer warning in `MediaDuplicateReviewServiceTests.cs` about using `Assert.Single` instead of `Assert.Equal` for collection size.
 - Integration test logs include repeated ASP.NET Data Protection DPAPI decrypt warnings, but the migration/startup test still passed. Investigate separately if these appear in normal installs.
 
-### ⏸ P0.2 — Verify Combined Docker Build on TrueNAS/Linux Docker — BLOCKED LOCALLY
+### ◐ P0.2 — Verify Combined Docker Build on TrueNAS/Linux Docker — GHCR TRIGGERED, HOST PENDING
 
-Tasks:
-- Clone or place repos side by side:
-  ```text
-  /mnt/PLEX/Apps/
-  ├── DaCollector/
-  └── DaCollector-WebUI/
-  ```
-- From `DaCollector`, run:
-  ```bash
-  docker compose down
-  docker compose build --no-cache dacollector
-  docker compose up -d
-  docker logs dacollector -f
-  ```
-- Confirm the build logs show the WebUI stage running `npm run build`.
-- Confirm container startup passes ownership repair and does not crash at `PluginManager.cs:line 50`.
-- Push the updated `.github/workflows/docker-ghcr.yml` so `ghcr.io/iranman/dacollector:latest` is built from `Dockerfile.combined`.
-- After GHCR publish completes, verify a fresh server can use only `docker-compose.yml` and does not need the source repos.
+GitHub Actions status:
+- Committed and pushed `904d0fe` to `main` which includes:
+  - `docker-ghcr.yml` updated (path-triggers on `Dockerfile.combined`, WebUI checkout step, `webui_ref` input, `dacollector_webui` build-context)
+  - `Dockerfile.combined` updated (TARGETARCH support → correct runtime ID for amd64/arm64)
+- GHCR workflow triggered on push. Expected output: `ghcr.io/iranman/dacollector:latest` with React WebUI embedded.
+- `scripts/verify-install.sh` added for shell-based endpoint and Docker health checks on the Docker host.
+
+Remaining tasks (require TrueNAS Docker host):
+
+**Option A — Pull prebuilt GHCR image (recommended for production):**
+```bash
+# On TrueNAS host, place docker-compose.yml alongside a .env
+curl -O https://raw.githubusercontent.com/Iranman/DaCollector/main/docker-compose.yml
+docker compose -f docker-compose.yml pull
+docker compose -f docker-compose.yml up -d
+docker logs dacollector -f
+bash <(curl -s https://raw.githubusercontent.com/Iranman/DaCollector/main/scripts/verify-install.sh)
+```
+
+**Option B — Local build from source (for dev/testing):**
+```bash
+# Repos must be side by side:
+# /mnt/PLEX/Apps/DaCollector/
+# /mnt/PLEX/Apps/DaCollector-WebUI/
+cd /mnt/PLEX/Apps/DaCollector
+docker compose down
+docker compose build --no-cache dacollector
+docker compose up -d
+docker logs dacollector -f
+./scripts/verify-install.sh --docker
+```
 
 Acceptance criteria:
-- `docker compose up -d --build` creates one `dacollector` container that includes the React WebUI.
+- Container starts and `docker logs dacollector` shows ownership repair completing without crash.
+- `/api/v3/Init/Status` returns HTTP 200.
+- `/webui` returns the React WebUI (not the old static HTML fallback).
 - Startup reaches Kestrel on port `38111`.
-
-Local blocker:
-- Docker is not installed in the local Windows shell (`docker` command not found).
-- This must be executed on the TrueNAS/Linux Docker host.
-- Added `scripts/verify-install.sh` so the Docker host can run endpoint and container checks without PowerShell.
-- Updated `.github/workflows/docker-ghcr.yml` to check out `Iranman/DaCollector-WebUI` and publish the combined server-plus-WebUI image from `Dockerfile.combined`.
-- Updated `Dockerfile.combined` to build both `linux/amd64` and `linux/arm64` using Docker's target architecture.
-- Ran `npm run build` in `DaCollector-WebUI`; production WebUI build passed locally. Docker/GHCR still needs to run the same step inside the image build.
 
 ### ◐ P0.3 — Verify First-Run Endpoints — LOCAL PASS, DOCKER PENDING
 
