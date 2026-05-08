@@ -406,8 +406,9 @@ Current status:
 - Docker is not installed in the local Windows shell, so Docker validation must run on a Docker host such as TrueNAS.
 - The React `DaCollector-WebUI` build has been validated with `npm run build`.
 - `compose.yaml` now targets `Dockerfile.combined`, which builds the adjacent `../DaCollector-WebUI` repo and copies its `dist/` output into `DaCollector.Server/webui`.
-- P0.1 local build and tests pass.
+- P0.1 local build and tests pass (121/121 as of commit `ecccb2f`).
 - P0.5 startup crash (empty config file) has been identified and fixed in commit `6ef5b0e`.
+- Commit `ecccb2f` trims WebUI-facing public surface to TMDB/TVDB only (removes AniDB actions, IMDb provider status, IMDb builders from catalog, AniDB user community site); tests updated to 121/121.
 - GHCR workflow was re-triggered by `6ef5b0e`; Docker host verification (P0.2–P0.4) still pending.
 
 Files in scope:
