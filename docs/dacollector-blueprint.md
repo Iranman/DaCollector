@@ -16,10 +16,26 @@ Build DaCollector as a self-hosted movie and TV show collection manager with:
 
 - Local library scanning across managed folders.
 - First-class movies, shows, seasons, episodes, files, collections, and duplicate sets.
-- Metadata and cross-provider identity from TMDB and TVDB.
+- File fingerprinting, technical metadata extraction, and local database tracking.
+- Matching against TMDB and TVDB for the first public provider surface.
+- Future metadata enrichment from IMDb or other legal provider feeds only as explicit provider modules with settings, tests, and docs.
 - Collection automation inspired by upstream provider builders.
 - Exact and near-duplicate detection with safe review before deletion.
+- Missing-file and corrupt-file review.
+- Safe rename/move planning and execution.
 - API-first design so a Web UI, Plex/Jellyfin integrations, and automation jobs can all use the same backend.
+
+Product boundaries:
+
+- DaCollector manages local files the user already has and has mounted/provided to the server.
+- DaCollector does not download media, stream from websites, bypass filesystem permissions, or access files outside configured folders.
+- Destructive file operations must be opt-in, reviewed, and admin-confirmed.
+
+Project split:
+
+- **DaCollector Server** is the backend source of truth for scanning, fingerprinting, matching, metadata, watch state, duplicate/missing/corrupt review, rename/move operations, collections, and APIs.
+- **DaCollector WebUI** is the browser interface over server workflows. It must not own filesystem scanning, provider matching, or Plex scanner/agent logic.
+- **DaCollector Relay** is the planned Plex scanner/agent/adapter that projects DaCollector-managed movies and TV shows into Plex while keeping Server as the source of truth.
 
 ## Current Conversion State
 

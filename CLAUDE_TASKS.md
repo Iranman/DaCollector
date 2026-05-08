@@ -2,11 +2,19 @@
 
 Context:
 - Branch: `daccollector-main`
-- Latest commits: `becf507 Fix local Docker build startup version fallback`
+- Use `git log --oneline -5` for the latest local commits before resuming work.
 - Follow `CLAUDE.md`: append database migrations; **never rewrite historical migration strings**.
 - Keep legacy API contract class names like `CL_AnimeSeries_User` unless intentionally versioning the public API.
 - `.NET SDK 10.0.203` may not be in PATH in the sandbox — use `& "C:\Program Files\dotnet\dotnet.exe"` if needed.
 - Current provider scope for user-facing WebUI/server surfaces is TMDB and TVDB only. Do not reintroduce legacy anime-only provider settings/actions into WebUI-facing endpoints.
+
+Product direction for Claude:
+- DaCollector is a local media collection manager for movie and TV files the user already has. Treat it like a librarian for mounted folders, not a media downloader.
+- DaCollector Server is the main backend and source of truth. It owns local folder scanning, file fingerprinting/hashing, MediaInfo, provider matching, local databases, collection rules, watched status, missing/duplicate/corrupt file review, rename/move workflows, and all write operations.
+- DaCollector WebUI is the browser interface. It should present server workflows and call APIs; do not put direct scanner, filesystem, provider, or Plex agent logic in the WebUI.
+- DaCollector Relay is the planned Plex scanner/agent/adapter. It should integrate DaCollector-managed movies and TV shows into Plex, preferably supporting a combined movie/TV library where Plex allows it, while keeping DaCollector Server as the source of truth.
+- Non-goals: no media downloads, no streaming from websites, no torrent/usenet/media acquisition, no bypassing permissions, and no access to files that are not mounted/provided by the user.
+- Provider policy: current matching and user-facing provider settings are TMDB and TVDB. Future metadata sources such as IMDb or other legal provider feeds can be planned as explicit provider work, but do not re-add them as hidden leftovers or legacy anime-only settings.
 
 ---
 
@@ -648,6 +656,40 @@ Note: if the error persists after a clean volume AND the new image, confirm whic
 docker inspect dacollector --format '{{.Image}}'
 ```
 Compare to the digest from `docker images dacollector:local`. If they differ the container is still on the old image.
+
+---
+
+## P1 — DaCollector Relay and Movie/TV Source-of-Truth Track — PLANNED
+
+Goal: make the product direction concrete after first-run Docker is stable. DaCollector should manage local movie/TV files through Server, expose that management through WebUI, and project the managed library into Plex through DaCollector Relay.
+
+Component boundaries:
+- Server owns media identity, provider matching, watch status, duplicate/missing/corrupt review, rename/move actions, and all persistent state.
+- WebUI owns user workflows only: setup, folders, providers, Plex target settings, collections, duplicate review, missing/corrupt review, and rename/move review once APIs exist.
+- Relay owns Plex scanner/agent/adapter behavior only. It should authenticate to DaCollector, resolve Plex file paths/media IDs through server APIs, and send Plex metadata/collection/watch-state updates based on server data.
+
+Server tasks:
+- Define generic media APIs Relay can consume without anime-only assumptions:
+  - `GET /api/v3/Media/File/PathEndsWith`
+  - movie, show, season, episode read endpoints
+  - media image, cast/crew, tags/genres, collection, watched/rating endpoints
+  - stable external ID DTOs for TMDB and TVDB now, with room for future legal metadata providers.
+- Add a local media matching queue for uncertain files, with candidate reasons and approve/reject endpoints.
+- Add missing-file, corrupt-file, and rename/move review endpoints as safe plans first; destructive changes must require explicit admin confirmation.
+- Keep provider matching TMDB/TVDB-first. Any IMDb or other source work must be introduced as a new provider module with tests, settings, docs, and no dependency on old anime-specific actions.
+
+Relay tasks:
+- Create or scaffold the DaCollector Relay repo/package after Server has stable generic media endpoints.
+- Use the old Plex relay only as behavioral reference. Do not copy code unless licensing is resolved.
+- Support movies and TV shows as first-class targets; do not force movies through series/episode semantics.
+- Keep Plex as a projection of DaCollector data. Plex should not become the source of truth for media identity or local file state.
+- Read from Plex where needed for library paths, rating keys, watched state, and collection application; write only controlled metadata/collection/watch-state updates through explicit Relay workflows.
+
+Acceptance criteria:
+- A user can point DaCollector Server at local movie/TV folders, scan/fingerprint files, match against TMDB/TVDB, and review the results in WebUI.
+- Relay can map Plex library items back to DaCollector-managed media using file path or provider IDs.
+- Relay can expose DaCollector metadata and managed collections in Plex without downloading media or streaming from third-party sites.
+- Any future metadata provider expansion is documented as provider work and does not reintroduce legacy anime-only public surfaces.
 
 ---
 

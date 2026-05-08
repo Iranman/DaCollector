@@ -2,6 +2,18 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Product Direction
+
+DaCollector is an open-source media collection manager for movie and TV files the user already owns and mounts into the system. Think of it as a librarian for local media folders: it scans files, fingerprints them, stores local file identity in the server database, matches titles against TMDB and TVDB, enriches metadata, tracks watch status, detects missing/duplicate/corrupt files, and can help plan or perform safe rename/move workflows.
+
+The product is split into three parts:
+
+- **DaCollector Server** is the backend and source of truth. It owns scanning, hashing/fingerprinting, metadata/provider matching, the local database, collection rules, duplicate review, missing/corrupt file review, watch status, rename/move operations, and APIs.
+- **DaCollector WebUI** is the browser interface. It should call server APIs and present workflows; it must not implement direct filesystem scanning, media fingerprinting, provider matching, or Plex scanner/agent behavior.
+- **DaCollector Relay** is the planned Plex scanner/agent/adapter. It should let Plex project DaCollector-managed movies and TV shows into one organized Plex library where possible, using DaCollector Server as the source of truth.
+
+Non-goals are explicit: DaCollector does not download media, stream from websites, bypass file permissions, or access files the user has not provided through local folders or mounted volumes. Future metadata sources such as IMDb or other legal provider feeds must be added deliberately behind server-side provider support and must not revive legacy anime-only settings or actions.
+
 ## Commands
 
 ```bash

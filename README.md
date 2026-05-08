@@ -4,22 +4,25 @@
 
 # DaCollector
 
-DaCollector is a self-hosted movie and TV collection manager. It combines a server-first media library backend with provider-driven collection automation and Plex-facing relay workflows.
+DaCollector is a self-hosted movie and TV collection manager. It is a librarian for movie and TV files you already have: it scans local folders, fingerprints files, matches media against provider metadata, tracks watch status, reviews missing/duplicate/corrupt files, and helps with safe organization workflows.
 
 The project direction is:
 
 - Local movie and TV library scanning across managed folders.
-- Metadata identity from TMDB and TVDB.
+- Metadata identity from TMDB and TVDB today, with future provider expansion handled deliberately in the server provider layer.
 - Rule-driven collection management inspired by provider builders.
 - Duplicate detection for exact file duplicates, duplicate media releases, and likely fuzzy matches.
-- Plex adapter support based on a server-as-source-of-truth model.
+- Missing/corrupt file review plus safe rename/move planning.
+- DaCollector Relay support for projecting the DaCollector-managed library into Plex.
 - API-first backend for web UI, automation, and media-server integrations.
+
+DaCollector does not download media, stream from websites, bypass file permissions, or access files you have not mounted or provided.
 
 ## Source Lineage
 
 The active project home is `Iranman/DaCollector`.
 
-DaCollector is being built from upstream server, collection automation, and Plex relay references. Upstream copyright, license, and attribution notices are maintained in `NOTICE.md`. Public branding and new project-facing behavior should use **DaCollector**.
+DaCollector is being built from upstream server, collection automation, and Plex relay references. Upstream copyright, license, and attribution notices are maintained in `NOTICE.md`. Public branding and new project-facing behavior should use **DaCollector**. The main backend is DaCollector Server, the browser interface is DaCollector WebUI, and the planned Plex scanner/agent integration is DaCollector Relay.
 
 ## Development
 
