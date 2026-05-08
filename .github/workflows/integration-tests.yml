@@ -10,6 +10,9 @@ on:
       - master
       - daccollector-main
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   test-sqlite:
     runs-on: ubuntu-latest
@@ -23,7 +26,7 @@ jobs:
         run: sudo apt-get install -y mediainfo librhash-dev
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.x'
 
@@ -58,7 +61,7 @@ jobs:
         run: sudo apt-get install -y mediainfo librhash-dev
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.x'
 
@@ -98,7 +101,7 @@ jobs:
         run: sudo apt-get install -y mediainfo librhash-dev
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.x'
 
