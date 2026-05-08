@@ -1,0 +1,58 @@
+# syntax=docker/dockerfile:1.7
+
+FROM node:20-bookworm-slim AS webui-build
+
+WORKDIR /usr/src/app/webui
+
+# The dacollector_webui build context is supplied by compose.yaml.
+COPY --from=dacollector_webui package*.json ./
+RUN npm ci
+
+COPY --from=dacollector_webui . .
+RUN npm run build
+
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+
+ARG version=0.0.1-local
+ARG channel=local
+ARG commit=local
+ARG tag=local
+ARG date=local
+
+RUN mkdir -p /usr/src/app/source /usr/src/app/build
+COPY . /usr/src/app/source
+
+# Replace the bundled static bootstrap pages with the React WebUI build.
+RUN rm -rf /usr/src/app/source/DaCollector.Server/webui/*
+COPY --from=webui-build /usr/src/app/webui/dist/ /usr/src/app/source/DaCollector.Server/webui/
+
+WORKDIR /usr/src/app/source
+
+RUN dotnet build -c=Release -r linux-x64 -f net10.0 -o=/usr/src/app/build/ DaCollector.CLI/DaCollector.CLI.csproj /p:Version="${version}" /p:InformationalVersion="\"channel=${channel},commit=${commit},tag=${tag},date=${date},\""
+
+FROM mcr.microsoft.com/dotnet/aspnet:10.0
+ENV PUID=1000 \
+    PGID=100 \
+    LANG=C.UTF-8 \
+    LC_CTYPE=C.UTF-8 \
+    LC_ALL=C.UTF-8
+
+RUN apt-get update && apt-get install -y gnupg curl
+
+RUN curl --retry 3 -O https://mediaarea.net/repo/deb/debian/pubkey.gpg
+RUN gpg --no-default-keyring --keyring ./temp-keyring.gpg --import pubkey.gpg && gpg --no-default-keyring --keyring ./temp-keyring.gpg --export --output /usr/share/keyrings/mediainfo.gpg && rm pubkey.gpg
+RUN echo "deb [signed-by=/usr/share/keyrings/mediainfo.gpg] https://mediaarea.net/repo/deb/debian/ bookworm main" | tee -a /etc/apt/sources.list
+
+RUN apt-get update && apt-get install -y apt-utils gosu mediainfo librhash-dev
+
+WORKDIR /usr/src/app/build
+COPY --from=build /usr/src/app/build .
+COPY ./dockerentry.sh /dockerentry.sh
+
+VOLUME /home/dacollector/.dacollector/
+
+HEALTHCHECK --start-period=5m CMD curl -s -H "Content-Type: application/json" -H 'Accept: application/json' 'http://localhost:38111/api/v3/Init/Status' || exit 1
+
+EXPOSE 38111
+
+ENTRYPOINT ["/bin/bash", "/dockerentry.sh"]

@@ -9,6 +9,7 @@ using DaCollector.Abstractions.Metadata.Enums;
 using DaCollector.Server.Plex;
 using DaCollector.Server.Services;
 using DaCollector.Server.Settings;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
 
@@ -76,7 +77,8 @@ public class DaCollectorStatusServiceTests
 
         var plexService = new PlexTargetService(
             settingsProvider.Object,
-            new TestHttpClientFactory(new DelegateHttpMessageHandler(responder))
+            new TestHttpClientFactory(new DelegateHttpMessageHandler(responder)),
+            NullLogger<PlexTargetService>.Instance
         );
         return new(settingsProvider.Object, plexService);
     }

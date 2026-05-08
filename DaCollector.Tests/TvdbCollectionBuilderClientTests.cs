@@ -192,7 +192,7 @@ public class TvdbCollectionBuilderClientTests
     }
 
     private static HttpResponseMessage LoginResponse(string token) =>
-        JsonResponse($$"""{"data":{"token":"{{token}}"}}""");
+        JsonResponse($"{{\"data\":{{\"token\":\"{token}\"}}}}");
 
     private static HttpResponseMessage JsonResponse(string json) =>
         new(HttpStatusCode.OK) { Content = new StringContent(json, Encoding.UTF8, "application/json") };

@@ -12,29 +12,27 @@ DaCollector ships a Docker image on GHCR and a `docker-compose.yml` that is the 
 
 ## Step 1 — Get the files
 
-Download `docker-compose.yml` and `.env.example` from the repository to a permanent folder on your server:
+Download `docker-compose.yml` from the repository to a permanent folder on your server:
 
 ```bash
 mkdir ~/dacollector && cd ~/dacollector
 
 curl -O https://raw.githubusercontent.com/Iranman/DaCollector/main/docker-compose.yml
-curl -O https://raw.githubusercontent.com/Iranman/DaCollector/main/.env.example
 ```
 
-Or clone the repo and copy only the two files you need:
+Or clone the repo and copy the compose file:
 
 ```bash
-cp docker-compose.yml .env.example ~/dacollector/
+cp docker-compose.yml ~/dacollector/
 cd ~/dacollector
 ```
 
 ---
 
-## Step 2 — Create your `.env` file
+## Step 2 — Edit `docker-compose.yml`
 
 ```bash
-cp .env.example .env
-nano .env      # or any editor
+nano docker-compose.yml      # or any editor
 ```
 
 Fill in at minimum:
@@ -64,18 +62,12 @@ The `key` attribute on each `<Directory>` element is the section key. Use the nu
 
 ## Step 3 — Add your media paths
 
-Open `docker-compose.yml` and uncomment the media volume lines that apply to you, then update the `MEDIA_MOVIES` and `MEDIA_TV` variables in `.env` to your actual paths:
+Open `docker-compose.yml` and uncomment the media volume lines that apply to you, then replace the example host paths with your actual paths:
 
 ```yaml
-# In docker-compose.yml — uncomment these lines:
-- "${MEDIA_MOVIES:-/mnt/media/movies}:/media/movies:ro"
-- "${MEDIA_TV:-/mnt/media/tv}:/media/tv:ro"
-```
-
-```bash
-# In .env — set your real paths:
-MEDIA_MOVIES=/mnt/media/movies
-MEDIA_TV=/mnt/media/tv
+# In docker-compose.yml, uncomment and edit these lines:
+- "/mnt/media/movies:/media/movies:ro"
+- "/mnt/media/tv:/media/tv:ro"
 ```
 
 Keep `:ro` (read-only) unless you intentionally want DaCollector to delete duplicate files from that location.
@@ -85,8 +77,8 @@ Keep `:ro` (read-only) unless you intentionally want DaCollector to delete dupli
 ## Step 4 — Start the container
 
 ```bash
-docker compose pull
-docker compose up -d
+docker compose -f docker-compose.yml pull
+docker compose -f docker-compose.yml up -d
 ```
 
 The first pull downloads the image. The first start creates the data volume, runs database migrations, and starts the server.
@@ -94,13 +86,13 @@ The first pull downloads the image. The first start creates the data volume, run
 Check that the container is running:
 
 ```bash
-docker compose ps
+docker compose -f docker-compose.yml ps
 ```
 
 Watch the startup logs until the server is ready:
 
 ```bash
-docker compose logs -f dacollector
+docker compose -f docker-compose.yml logs -f dacollector
 ```
 
 You should see a startup summary block followed by the Kestrel listener line:
@@ -143,7 +135,7 @@ ls logs/
 You can also stream container stdout (entrypoint messages only):
 
 ```bash
-docker compose logs --tail 100 dacollector
+docker compose -f docker-compose.yml logs --tail 100 dacollector
 ```
 
 ---
@@ -151,35 +143,36 @@ docker compose logs --tail 100 dacollector
 ## Update
 
 ```bash
-docker compose pull
-docker compose up -d
+docker compose -f docker-compose.yml pull
+docker compose -f docker-compose.yml up -d
 ```
 
 The named data volume is preserved. Database migrations run automatically on startup. Back up the data volume before testing a release that may run migrations:
 
 ```bash
-docker compose down
+docker compose -f docker-compose.yml down
 docker run --rm \
   -v dacollector_dacollector-data:/data \
   -v "$(pwd)":/backup \
   alpine tar czf /backup/dacollector-data.tgz -C /data .
-docker compose up -d
+docker compose -f docker-compose.yml up -d
 ```
 
 ---
 
 ## Change the port
 
-In `.env`:
+In `docker-compose.yml`, change the host side of the port mapping:
 
-```bash
-DACOLLECTOR_PORT=38112
+```yaml
+ports:
+  - "38112:38111"
 ```
 
 Then restart:
 
 ```bash
-docker compose up -d
+docker compose -f docker-compose.yml up -d
 ```
 
 ---
@@ -203,20 +196,21 @@ The container is recursively `chown`-ing the data directory to match `PUID:PGID`
 stat -c '%u:%g' /mnt/your-pool/dacollector-data
 ```
 
-Set the matching values in `.env`:
+Set the matching values in `docker-compose.yml`:
 
-```bash
-PUID=1000
-PGID=1000
+```yaml
+environment:
+  PUID: "1000"
+  PGID: "1000"
 ```
 
 On the next start, the ownership check passes immediately and `chown` is skipped.
 
 **Alternative — skip `chown` entirely for ACL-managed datasets:**
 
-```bash
-# In .env:
-SKIP_CHOWN=true
+```yaml
+# In docker-compose.yml:
+SKIP_CHOWN: "true"
 ```
 
 The startup log will confirm:
@@ -229,16 +223,16 @@ Ownership repair skipped (SKIP_CHOWN=true). Owner of /home/dacollector/.dacollec
 
 ```bash
 # Is the container alive?
-docker compose ps
+docker compose -f docker-compose.yml ps
 
 # What is it doing?
-docker compose logs --tail 30 dacollector
+docker compose -f docker-compose.yml logs --tail 30 dacollector
 
 # Check current ownership
 docker exec dacollector stat -c '%u:%g %n' /home/dacollector/.dacollector/DaCollector
 ```
 
-If the log shows `Starting ownership repair...` but nothing after it, the recursive `chown` is still running. Wait for it to finish, or stop the container and set `SKIP_CHOWN=true` in `.env`.
+If the log shows `Starting ownership repair...` but nothing after it, the recursive `chown` is still running. Wait for it to finish, or stop the container and set `SKIP_CHOWN: "true"` in `docker-compose.yml`.
 
 ### Media mounts on TrueNAS
 
@@ -251,7 +245,7 @@ Mount media under `/media/movies`, `/media/tv`, etc. — not under `/home/dacoll
 Stop the container before backing up:
 
 ```bash
-docker compose down
+docker compose -f docker-compose.yml down
 docker run --rm \
   -v dacollector_dacollector-data:/data \
   -v "$(pwd)":/backup \
@@ -261,25 +255,49 @@ docker run --rm \
 Restore (replaces current data):
 
 ```bash
-docker compose down
+docker compose -f docker-compose.yml down
 docker run --rm \
   -v dacollector_dacollector-data:/data \
   -v "$(pwd)":/backup \
   alpine sh -c "cd /data && tar xzf /backup/dacollector-data.tgz"
-docker compose up -d
+docker compose -f docker-compose.yml up -d
 ```
 
 ---
 
 ## Local build
 
-To build the image from source instead of pulling from GHCR:
+To build from source and include the React Web UI, clone both repos next to each other:
 
-```bash
-docker compose -f compose.yaml up -d --build
+```text
+/mnt/PLEX/Apps/
+├── DaCollector/
+└── DaCollector-WebUI/
 ```
 
-For ARM64 (e.g. Raspberry Pi, Apple Silicon):
+Then run Compose from the server repo:
+
+```bash
+cd /mnt/PLEX/Apps/DaCollector
+docker compose up -d --build
+```
+
+The source compose file uses `Dockerfile.combined`. That build:
+
+1. Builds `../DaCollector-WebUI` with `npm run build`.
+2. Copies the Web UI `dist/` files into `DaCollector.Server/webui`.
+3. Builds the DaCollector server image.
+4. Serves the Web UI from the same container at `http://<server-ip>:38111/webui`.
+
+If your Web UI repo is not next to the server repo, pass the path inline:
+
+```bash
+DACOLLECTOR_WEBUI_CONTEXT=/mnt/PLEX/Apps/DaCollector-WebUI docker compose up -d --build
+```
+
+No separate Web UI container is required.
+
+For ARM64 (e.g. Raspberry Pi, Apple Silicon), use the server-only Dockerfile until the combined Dockerfile has an ARM64 variant:
 
 ```bash
 # In compose.yaml, set: dockerfile: Dockerfile.aarch64

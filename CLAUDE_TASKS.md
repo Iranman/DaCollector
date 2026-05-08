@@ -389,6 +389,157 @@ Acceptance criteria:
 
 ---
 
+## 🚧 P0 — Server Completion Readiness: Boot, Build, and First-Run Verification — IN PROGRESS
+
+Goal: determine whether DaCollector is actually runnable as a first-install server and fix the blockers before moving to feature polish.
+
+Current status:
+- The codebase is not yet considered complete.
+- A local .NET SDK `10.0.203` was bootstrapped to `F:\Collection manager\.dotnet-sdk`.
+- `global.json` requires SDK `10.0.203` with `rollForward: latestFeature`.
+- Docker is not installed in the local Windows shell, so Docker validation must run on a Docker host such as TrueNAS.
+- The React `DaCollector-WebUI` build has been validated with `npm run build`.
+- `compose.yaml` now targets `Dockerfile.combined`, which builds the adjacent `../DaCollector-WebUI` repo and copies its `dist/` output into `DaCollector.Server/webui`.
+
+Files in scope:
+- `global.json`
+- `DaCollector.sln`
+- `Dockerfile.combined`
+- `compose.yaml`
+- `docker-compose.yml`
+- `docker-compose.example.yml`
+- `.dockerignore`
+- `docs/getting-started/installation/docker.md`
+- `scripts/verify-install.ps1`
+- Startup/logging code touched by any new crash.
+
+### ✅ P0.1 — Restore Local .NET Build Verification — DONE
+
+Tasks:
+- Install or bootstrap SDK `10.0.203` without requiring global machine changes if possible.
+- Run:
+  ```powershell
+  dotnet restore DaCollector.sln
+  dotnet build DaCollector.sln -c Release --no-restore
+  ```
+- If tests are buildable, run:
+  ```powershell
+  dotnet test DaCollector.Tests/DaCollector.Tests.csproj -c Release --no-build
+  dotnet test DaCollector.IntegrationTests/DaCollector.IntegrationTests.csproj -c Release --no-build
+  ```
+- Record any SDK/build/test failure with exact command output and file pointers.
+
+Acceptance criteria:
+- Release build succeeds locally, or the exact missing SDK/build blocker is documented.
+- Test status is known, not assumed.
+
+Result:
+- Bootstrapped SDK:
+  ```powershell
+  F:\Collection manager\.dotnet-sdk\dotnet.exe --info
+  ```
+  SDK `10.0.203` is available locally.
+- Restore passed:
+  ```powershell
+  & 'F:\Collection manager\.dotnet-sdk\dotnet.exe' restore DaCollector.sln
+  ```
+- Release build passed:
+  ```powershell
+  & 'F:\Collection manager\.dotnet-sdk\dotnet.exe' build DaCollector.sln -c Release --no-restore
+  ```
+- Unit tests passed: `120/120`.
+  ```powershell
+  & 'F:\Collection manager\.dotnet-sdk\dotnet.exe' test DaCollector.Tests/DaCollector.Tests.csproj -c Release --no-build
+  ```
+- Integration tests passed: `1/1`.
+  ```powershell
+  & 'F:\Collection manager\.dotnet-sdk\dotnet.exe' test DaCollector.IntegrationTests/DaCollector.IntegrationTests.csproj -c Release --no-build
+  ```
+- Build/test fixes made:
+  - `DaCollector.Tests/TvdbCollectionBuilderClientTests.cs`: replaced invalid interpolated raw string with a normal interpolated JSON string.
+  - `DaCollector.Tests/DaCollectorStatusServiceTests.cs`: supplied `NullLogger<PlexTargetService>.Instance`.
+  - `DaCollector.Tests/PlexTargetServiceTests.cs`: supplied `NullLogger<PlexTargetService>.Instance`.
+
+Notes:
+- Release build still emits one analyzer warning in `MediaDuplicateReviewServiceTests.cs` about using `Assert.Single` instead of `Assert.Equal` for collection size.
+- Integration test logs include repeated ASP.NET Data Protection DPAPI decrypt warnings, but the migration/startup test still passed. Investigate separately if these appear in normal installs.
+
+### ⏸ P0.2 — Verify Combined Docker Build on TrueNAS/Linux Docker — BLOCKED LOCALLY
+
+Tasks:
+- Clone or place repos side by side:
+  ```text
+  /mnt/PLEX/Apps/
+  ├── DaCollector/
+  └── DaCollector-WebUI/
+  ```
+- From `DaCollector`, run:
+  ```bash
+  docker compose down
+  docker compose build --no-cache dacollector
+  docker compose up -d
+  docker logs dacollector -f
+  ```
+- Confirm the build logs show the WebUI stage running `npm run build`.
+- Confirm container startup passes ownership repair and does not crash at `PluginManager.cs:line 50`.
+
+Acceptance criteria:
+- `docker compose up -d --build` creates one `dacollector` container that includes the React WebUI.
+- Startup reaches Kestrel on port `38111`.
+
+Local blocker:
+- Docker is not installed in the local Windows shell (`docker` command not found).
+- This must be executed on the TrueNAS/Linux Docker host.
+
+### P0.3 — Verify First-Run Endpoints
+
+Tasks:
+- Run from the Docker host:
+  ```bash
+  curl -i http://127.0.0.1:38111/api/v3/Init/Status
+  curl -i http://127.0.0.1:38111/webui
+  ```
+- Run the install verification script where PowerShell is available:
+  ```powershell
+  ./scripts/verify-install.ps1 -BaseUrl http://127.0.0.1:38111
+  ```
+- Open `http://<server-ip>:38111/webui`.
+- Complete first-run admin setup if the server reports setup is required.
+
+Acceptance criteria:
+- `/api/v3/Init/Status` returns a valid status response.
+- `/webui` returns the React WebUI.
+- First-run setup can create the admin account and reach login/dashboard.
+
+### P0.4 — Verify Minimal Plex Path
+
+Tasks:
+- Configure Plex base URL, token, and section key.
+- Confirm Plex connectivity from the container.
+- Run one collection sync preview or safe sync.
+- Run duplicate review scan in read-only mode.
+
+Acceptance criteria:
+- DaCollector can authenticate to Plex.
+- At least one Plex library section can be read.
+- Collection and duplicate pages show real data or a clear actionable error.
+- No duplicate deletion behavior is enabled by default.
+
+### P0.5 — Document Any New Startup Issue
+
+Tasks:
+- If a new Docker/server crash appears, add a new P0.x section with:
+  - exact log excerpt
+  - failing endpoint or command
+  - suspected files
+  - acceptance criteria
+- Do not move to P1 polish until P0.1-P0.4 are either passing or explicitly blocked.
+
+Acceptance criteria:
+- Server readiness status is factual and reproducible.
+
+---
+
 ## Verification Commands
 
 ```powershell

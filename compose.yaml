@@ -3,7 +3,9 @@ services:
     image: dacollector:local
     build:
       context: .
-      dockerfile: "${DACOLLECTOR_DOCKERFILE:-Dockerfile}"
+      dockerfile: "${DACOLLECTOR_DOCKERFILE:-Dockerfile.combined}"
+      additional_contexts:
+        dacollector_webui: "${DACOLLECTOR_WEBUI_CONTEXT:-../DaCollector-WebUI}"
       args:
         version: "${DACOLLECTOR_BUILD_VERSION:-0.0.1-local}"
         channel: "${DACOLLECTOR_BUILD_CHANNEL:-local}"

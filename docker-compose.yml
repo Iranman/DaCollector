@@ -1,11 +1,14 @@
-# DaCollector — Plex collection and duplicate manager
+# DaCollector - Plex collection and duplicate manager
 #
 # QUICK START
-#   1. cp .env.example .env
-#   2. Edit .env — set your Plex token, section key, and TMDB/TVDB keys.
-#   3. Uncomment the media volume lines below and set MEDIA_MOVIES / MEDIA_TV in .env.
-#   4. docker compose pull && docker compose up -d
-#   5. Open http://<server-ip>:${DACOLLECTOR_PORT:-38111}/webui
+#   1. Edit the environment values in this file.
+#   2. Uncomment the media volume lines below and set your real host paths.
+#   3. docker compose -f docker-compose.yml pull && docker compose -f docker-compose.yml up -d
+#   4. Open http://<server-ip>:38111/webui
+#
+# NOTE: The source repo also includes compose.yaml for local builds that bundle
+# the adjacent DaCollector-WebUI repo. If you run this image-only file from the
+# cloned repo, include "-f docker-compose.yml" as shown above.
 #
 # Logs appear in ./logs/ next to this file as the server runs.
 
@@ -16,26 +19,31 @@ services:
     restart: unless-stopped
 
     ports:
-      - "${DACOLLECTOR_PORT:-38111}:38111"
+      - "38111:38111"
 
     environment:
-      PUID: "${PUID:-1000}"
-      PGID: "${PGID:-1000}"
-      UMASK: "${UMASK:-002}"
-      TZ: "${TZ:-Etc/UTC}"
+      # Set PUID/PGID to the owner of your media folders. On Linux/TrueNAS, run: id <user>
+      PUID: "1000"
+      PGID: "1000"
+      UMASK: "002"
+      TZ: "Etc/UTC"
       DACOLLECTOR_HOME: /home/dacollector/.dacollector/DaCollector
-      SKIP_CHOWN: "${SKIP_CHOWN:-false}"
 
-      PLEX_TARGET_BASE_URL: "${PLEX_TARGET_BASE_URL:-http://host.docker.internal:32400}"
-      PLEX_TARGET_SECTION_KEY: "${PLEX_TARGET_SECTION_KEY:-}"
-      PLEX_TARGET_TOKEN: "${PLEX_TARGET_TOKEN:-}"
+      # Set to "true" on TrueNAS/ZFS or ACL-managed datasets only if permissions are already correct.
+      SKIP_CHOWN: "false"
 
-      TMDB_API_KEY: "${TMDB_API_KEY:-}"
-      TVDB_API_KEY: "${TVDB_API_KEY:-}"
-      TVDB_PIN: "${TVDB_PIN:-}"
-      IMDB_DATASET_PATH: "${IMDB_DATASET_PATH:-}"
-      IMDB_CACHE_EXPIRATION_DAYS: "${IMDB_CACHE_EXPIRATION_DAYS:-7}"
-      TVDB_CACHE_EXPIRATION_DAYS: "${TVDB_CACHE_EXPIRATION_DAYS:-7}"
+      # Plex. Use a LAN IP if Plex is not on the Docker host.
+      PLEX_TARGET_BASE_URL: "http://host.docker.internal:32400"
+      PLEX_TARGET_SECTION_KEY: ""
+      PLEX_TARGET_TOKEN: ""
+
+      # Metadata providers. Leave blank to disable a provider for now.
+      TMDB_API_KEY: ""
+      TVDB_API_KEY: ""
+      TVDB_PIN: ""
+      IMDB_DATASET_PATH: ""
+      IMDB_CACHE_EXPIRATION_DAYS: "7"
+      TVDB_CACHE_EXPIRATION_DAYS: "7"
 
     volumes:
       # Application data: settings, SQLite databases, provider cache, Web UI files.
@@ -44,16 +52,14 @@ services:
       # Logs: written to ./logs/ on the host so you can tail them without docker exec.
       - ./logs:/home/dacollector/.dacollector/DaCollector/logs
 
-      # ── Media libraries ────────────────────────────────────────────────────
       # Uncomment and add your library paths, then register them inside DaCollector
-      # at Settings → Managed Folders.
+      # at Settings > Managed Folders.
       # Keep :ro unless you want DaCollector to delete duplicate files from that path.
-      #- "${MEDIA_MOVIES:-/mnt/media/movies}:/media/movies:ro"
-      #- "${MEDIA_TV:-/mnt/media/tv}:/media/tv:ro"
+      # - "/mnt/media/movies:/media/movies:ro"
+      # - "/mnt/media/tv:/media/tv:ro"
 
-      # ── IMDb dataset ────────────────────────────────────────────────────────
-      # Needed only for IMDb builders.  Set IMDB_DATASET_PATH in .env, then uncomment.
-      #- "${IMDB_DATASET_PATH:-/mnt/media/imdb}:/metadata/imdb:ro"
+      # Needed only for IMDb builders. Set IMDB_DATASET_PATH above to /metadata/imdb, then uncomment.
+      # - "/mnt/media/imdb:/metadata/imdb:ro"
 
     extra_hosts:
       - "host.docker.internal:host-gateway"

@@ -9,6 +9,7 @@ using DaCollector.Abstractions.Collections;
 using DaCollector.Abstractions.Metadata;
 using DaCollector.Server.Plex;
 using DaCollector.Server.Settings;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
 
@@ -180,7 +181,8 @@ public class PlexTargetServiceTests
             {
                 requests.Add(new(request.Method, request.RequestUri?.AbsolutePath ?? string.Empty, request.RequestUri?.Query ?? string.Empty));
                 return responder(request);
-            }))
+            })),
+            NullLogger<PlexTargetService>.Instance
         );
     }
 
