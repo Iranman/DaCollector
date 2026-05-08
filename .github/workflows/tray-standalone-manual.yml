@@ -16,6 +16,9 @@ on:
         default: dev
         required: true
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   webui:
     runs-on: ubuntu-latest
@@ -97,13 +100,13 @@ jobs:
           prefixRegex: "[vV]?"
 
       - name: Setup dotnet
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
       - run: dotnet publish -c Release -r win-x64 --self-contained true DaCollector.TrayService /p:Version="${{ steps.release_info.outputs.version }}" /p:InformationalVersion="channel=${{ github.event.inputs.release }}%2ccommit=${{ github.sha }}%2cdate=${{ steps.release_info.outputs.date }}%2c" # %2c is comma, blame windows/pwsh
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: DaCollector.TrayService
           path: DaCollector.Server/bin/Release/net10.0/win-x64/publish/
