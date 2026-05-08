@@ -405,7 +405,8 @@ Current status:
 - P0.5 startup crash (empty config file) has been identified and fixed in commit `6ef5b0e`.
 - Commit `ecccb2f` trims WebUI-facing public surface to TMDB/TVDB only by removing legacy provider actions, provider status entries, and builder catalog entries; tests updated to 121/121.
 - Commit `e8f0a60` makes the Docker build fully self-contained: `Dockerfile.combined` clones `DaCollector-WebUI` from GitHub (ARG WEBUI_REPO/WEBUI_REF), `compose.yaml` drops `additional_contexts`, and `docker-ghcr.yml` removes the WebUI checkout step. Anyone can now `docker compose up --build` from a single repo clone.
-- GHCR workflow will be re-triggered by `e8f0a60`; Docker host verification (P0.2–P0.4) still pending.
+- Commits `be06b42` and `2718071` opt all CI workflows into Node.js 24 (FORCE_JAVASCRIPT_ACTIONS_TO_NODE24) and bump v2 Docker actions to v3 / setup-dotnet to v4 to eliminate deprecation warnings.
+- **P0.6 (new)** — First-run setup still fails with "Error reading JToken from JsonReader. Path '', line 0, position 0." after `6ef5b0e` fix. Root cause: container is running an OLD image (pre-`6ef5b0e`) or the Docker volume has a stale empty `settings-server.json` left by a prior failed run. The fix in `6ef5b0e` handles the empty-file case; the container must be rebuilt/re-pulled AND the volume must be clean for the fix to take effect. See P0.6 below.
 
 Files in scope:
 - `global.json`
@@ -598,6 +599,55 @@ Result:
 
 Acceptance criteria:
 - Server readiness status is factual and reproducible.
+
+### 🚧 P0.6 — First-Run Setup Still Crashes After Empty-Config Fix — NEEDS DOCKER HOST VERIFICATION
+
+Symptom (TrueNAS Docker, reported after `6ef5b0e`):
+- Setup screen renders (React WebUI), user enters credentials, "Setting up..." is displayed.
+- Error: **"Server failed to start: Error reading JToken from JsonReader. Path '', line 0, position 0."**
+
+Root-cause analysis:
+- The error "Error reading JToken" is the RAW Newtonsoft.Json exception from `JsonSchemaValidatorBase.cs:45` (`JToken.ReadFrom(jsonReader)` with empty input).
+- The `6ef5b0e` fix changes this to throw "Configuration data is empty." BEFORE reaching line 45.
+- The fact that the user sees the OLD raw error proves the running container does NOT have the `6ef5b0e` fix.
+- Cause A: **Old image cached locally** — the image was built before `6ef5b0e` was pushed and Docker is reusing the cached `dacollector:local` layer.
+- Cause B: **Stale volume** — a prior failed run left an empty `settings-server.json` on the named volume. The old container wrote the file as zero bytes when it crashed during the first save. Even with the new image, the volume must be cleared so the file can be recreated with defaults.
+
+Fix (run on TrueNAS Docker host):
+```bash
+# Step 1 — stop the container and remove it
+docker compose down
+
+# Step 2 — rebuild the image from scratch (required if using local compose.yaml build)
+docker compose build --no-cache dacollector
+
+# Step 3 — remove the stale data volume so settings-server.json is regenerated clean
+docker volume rm dacollector_dacollector-data    # adjust name to match your compose project
+
+# Step 4 — start fresh
+docker compose up -d
+docker logs dacollector -f
+```
+
+If using the GHCR image instead of a local build:
+```bash
+docker compose down
+docker compose pull
+docker volume rm dacollector_dacollector-data
+docker compose up -d
+```
+
+Acceptance criteria:
+- Server reaches `State=Waiting` (setup screen) without error.
+- User completes admin setup and server transitions to `State=Started`.
+- `/api/v3/Init/Status` returns `{"State":"Started"}`.
+- `/webui` loads the React UI.
+
+Note: if the error persists after a clean volume AND the new image, confirm which image digest is running:
+```bash
+docker inspect dacollector --format '{{.Image}}'
+```
+Compare to the digest from `docker images dacollector:local`. If they differ the container is still on the old image.
 
 ---
 
