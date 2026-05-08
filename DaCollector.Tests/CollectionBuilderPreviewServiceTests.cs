@@ -300,12 +300,10 @@ public class CollectionBuilderPreviewServiceTests
 
     private static CollectionBuilderPreviewService CreateService(
         ITmdbCollectionBuilderClient? tmdb = null,
-        IImdbCollectionBuilderClient? imdb = null,
         ITvdbCollectionBuilderClient? tvdb = null
     ) =>
         new(
             tmdb ?? new FakeTmdbCollectionBuilderClient(),
-            imdb ?? new FakeImdbCollectionBuilderClient(),
             tvdb ?? new FakeTvdbCollectionBuilderClient()
         );
 
@@ -341,18 +339,6 @@ public class CollectionBuilderPreviewServiceTests
 
         public Task<IReadOnlyList<TmdbBuilderShow>> DiscoverShows(TmdbBuilderQuery query, CancellationToken cancellationToken = default) =>
             Task.FromResult<IReadOnlyList<TmdbBuilderShow>>([]);
-    }
-
-    private sealed class FakeImdbCollectionBuilderClient : IImdbCollectionBuilderClient
-    {
-        public Task<IReadOnlyList<ImdbBuilderTitle>> GetByIds(IReadOnlyList<string> imdbIds, MediaKind kind, CancellationToken cancellationToken = default) =>
-            Task.FromResult<IReadOnlyList<ImdbBuilderTitle>>([]);
-
-        public Task<IReadOnlyList<ImdbBuilderTitle>> Search(ImdbBuilderQuery query, CancellationToken cancellationToken = default) =>
-            Task.FromResult<IReadOnlyList<ImdbBuilderTitle>>([]);
-
-        public Task<IReadOnlyList<ImdbBuilderTitle>> GetChart(ImdbBuilderQuery query, CancellationToken cancellationToken = default) =>
-            Task.FromResult<IReadOnlyList<ImdbBuilderTitle>>([]);
     }
 
     private sealed class FakeTvdbCollectionBuilderClient : ITvdbCollectionBuilderClient

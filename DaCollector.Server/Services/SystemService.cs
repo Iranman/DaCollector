@@ -389,7 +389,6 @@ public class SystemService : ISystemService
             services.AddSingleton<TmdbSearchService>();
             services.AddSingleton<ITmdbSearchService>(sp => sp.GetRequiredService<TmdbSearchService>());
             services.AddSingleton<ITmdbCollectionBuilderClient, TmdbCollectionBuilderClient>();
-            services.AddSingleton<IImdbCollectionBuilderClient, ImdbDatasetCollectionBuilderClient>();
             services.AddSingleton<ITvdbCollectionBuilderClient, TvdbCollectionBuilderClient>();
             services.AddSingleton<TvdbMetadataService>();
             services.AddSingleton<CollectionBuilderPreviewService>();
