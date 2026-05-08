@@ -37,6 +37,9 @@ public class JsonSchemaValidatorBase
 
     public (JToken Token, ICollection<ValidationError> Errors) Validate(string jsonData, JsonSchema schema, SchemaType schemaType = SchemaType.JsonSchema)
     {
+        if (string.IsNullOrWhiteSpace(jsonData))
+            throw new Newtonsoft.Json.JsonReaderException("Configuration data is empty. The configuration file may be corrupt or missing content.");
+
         using var reader = new StringReader(jsonData);
         using var jsonReader = new JsonTextReader(reader) { DateParseHandling = DateParseHandling.None };
         var token = JToken.ReadFrom(jsonReader);

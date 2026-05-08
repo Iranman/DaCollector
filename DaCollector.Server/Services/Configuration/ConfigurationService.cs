@@ -820,6 +820,20 @@ public partial class ConfigurationService : IConfigurationService
         lock (info)
         {
             json = File.ReadAllText(info.Path);
+            if (string.IsNullOrWhiteSpace(json))
+            {
+                _logger.LogWarning("Configuration file for {Name} at {Path} exists but is empty or whitespace. Replacing with default configuration.", info.Name, info.Path);
+                config = New<TConfig>();
+                json = SerializeInternal(config);
+                SaveInternal(info, json, config);
+                var (emptyToken, emptyErrors) = ValidateInternal(info, json, config, loadValidation: true);
+                config = DeserializeInternal<TConfig>(emptyToken.ToJson());
+                _loadedConfigurations[info.ID] = config;
+                if (emptyErrors.Count > 0)
+                    throw new ConfigurationValidationException("load", info, emptyErrors);
+                return copy ? config.DeepClone() : config;
+            }
+
             if (typeof(TConfig).IsAssignableTo(typeof(IConfigurationWithMigrations)))
             {
                 var migratedJson = (string)typeof(TConfig)
