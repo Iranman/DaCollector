@@ -1,18 +1,31 @@
 # syntax=docker/dockerfile:1.7
+#
+# Self-contained three-stage build.
+# Stage 1 (webui-build): clones and builds the React WebUI from GitHub.
+# Stage 2 (build):       compiles the .NET server and embeds the WebUI dist.
+# Stage 3 (runtime):     minimal ASP.NET image with the compiled binaries.
+#
+# Override WEBUI_REPO / WEBUI_REF to build from a fork or a specific branch,
+# tag, or reachable commit SHA. compose.yaml passes these args by default so a
+# source build can bundle the WebUI without a sibling DaCollector-WebUI checkout.
 
 FROM node:20-bookworm-slim AS webui-build
 
+ARG WEBUI_REPO=https://github.com/Iranman/DaCollector-WebUI.git
+ARG WEBUI_REF=main
 ARG version=0.0.1-local
 ARG commit=local
 ARG date=local
 
+RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates && rm -rf /var/lib/apt/lists/*
+RUN git init /usr/src/app/webui \
+    && cd /usr/src/app/webui \
+    && git remote add origin "${WEBUI_REPO}" \
+    && git fetch --depth 1 origin "${WEBUI_REF}" \
+    && git checkout --detach FETCH_HEAD
+
 WORKDIR /usr/src/app/webui
-
-# The dacollector_webui build context is supplied by compose.yaml.
-COPY --from=dacollector_webui package*.json ./
 RUN npm ci
-
-COPY --from=dacollector_webui . .
 RUN npm run build
 
 # Generate version.json so the server knows the bundled WebUI version.

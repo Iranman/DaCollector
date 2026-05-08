@@ -68,13 +68,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Checkout WebUI
-        uses: actions/checkout@v4
-        with:
-          repository: Iranman/DaCollector-WebUI
-          ref: ${{ github.event.inputs.webui_ref || 'main' }}
-          path: DaCollector-WebUI
-
       - name: Compute image metadata
         id: meta
         shell: bash
@@ -118,14 +111,14 @@ jobs:
         with:
           context: .
           file: Dockerfile.combined
-          build-contexts: |
-            dacollector_webui=DaCollector-WebUI
           platforms: ${{ matrix.platform }}
           push: ${{ github.event_name != 'pull_request' }}
           tags: |
             ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.image_tag }}-${{ matrix.arch }}
             ${{ env.IMAGE_NAME }}:sha-${{ steps.meta.outputs.short_sha }}-${{ matrix.arch }}
           build-args: |
+            WEBUI_REPO=https://github.com/Iranman/DaCollector-WebUI.git
+            WEBUI_REF=${{ github.event.inputs.webui_ref || 'main' }}
             version=0.0.1
             channel=${{ steps.meta.outputs.channel }}
             commit=${{ github.sha }}
