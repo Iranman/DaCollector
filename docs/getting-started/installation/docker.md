@@ -46,7 +46,7 @@ Fill in at minimum:
 | `PLEX_TARGET_SECTION_KEY` | Numeric library section key (see below) |
 | `TMDB_API_KEY` | Free key from [themoviedb.org/settings/api](https://www.themoviedb.org/settings/api) |
 
-Leave `TVDB_API_KEY`, `TVDB_PIN`, and `IMDB_DATASET_PATH` blank to disable those providers for now. You can add them later.
+Leave `TVDB_API_KEY` and `TVDB_PIN` blank to disable TVDB for now. You can add them later.
 
 ### Finding your Plex library section key
 
@@ -271,32 +271,26 @@ docker compose -f docker-compose.yml up -d
 
 This section is for developers only. Server installs should use the prebuilt image above.
 
-To build from source and include the React Web UI, clone both repos next to each other:
-
-```text
-/mnt/PLEX/Apps/
-├── DaCollector/
-└── DaCollector-WebUI/
-```
-
-Then run Compose from the server repo:
+To build from source and include the React Web UI, clone the server repo and run Compose from the repo root:
 
 ```bash
-cd /mnt/PLEX/Apps/DaCollector
+git clone https://github.com/Iranman/DaCollector.git
+cd DaCollector
 docker compose up -d --build
 ```
 
 The source compose file uses `Dockerfile.combined`. That build:
 
-1. Builds `../DaCollector-WebUI` with `npm run build`.
-2. Copies the Web UI `dist/` files into `DaCollector.Server/webui`.
-3. Builds the DaCollector server image.
-4. Serves the Web UI from the same container at `http://<server-ip>:38111/webui`.
+1. Clones `Iranman/DaCollector-WebUI` during the Docker build.
+2. Builds the Web UI with `npm run build`.
+3. Copies the Web UI `dist/` files into `DaCollector.Server/webui`.
+4. Builds the DaCollector server image.
+5. Serves the Web UI from the same container at `http://<server-ip>:38111/webui`.
 
-If your Web UI repo is not next to the server repo, pass the path inline:
+To build a fork or a specific Web UI branch/tag/SHA, pass the repo and ref inline:
 
 ```bash
-DACOLLECTOR_WEBUI_CONTEXT=/mnt/PLEX/Apps/DaCollector-WebUI docker compose up -d --build
+DACOLLECTOR_WEBUI_REPO=https://github.com/Iranman/DaCollector-WebUI.git DACOLLECTOR_WEBUI_REF=main docker compose up -d --build
 ```
 
 No separate Web UI container is required.

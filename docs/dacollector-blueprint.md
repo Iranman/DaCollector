@@ -16,7 +16,7 @@ Build DaCollector as a self-hosted movie and TV show collection manager with:
 
 - Local library scanning across managed folders.
 - First-class movies, shows, seasons, episodes, files, collections, and duplicate sets.
-- Metadata and cross-provider identity from TMDB, IMDb, and TVDB.
+- Metadata and cross-provider identity from TMDB and TVDB.
 - Collection automation inspired by upstream provider builders.
 - Exact and near-duplicate detection with safe review before deletion.
 - API-first design so a Web UI, Plex/Jellyfin integrations, and automation jobs can all use the same backend.
@@ -29,7 +29,7 @@ DaCollector is no longer just a rename of the inherited server. The repository n
 - Default Web UI/API port `38111`.
 - Hosted Web UI pages for managed collections and exact duplicate review.
 - Managed collection APIs, collection-builder preview support, and Plex target APIs.
-- TMDB, IMDb dataset, and TVDB settings surfaces.
+- TMDB and TVDB settings surfaces.
 - Cached TVDB show/movie/season/episode models, repositories, jobs, and metadata service work in progress.
 - Internal domain rename work from `AnimeSeries`/`AnimeGroup`/`AnimeEpisode` toward `MediaSeries`/`MediaGroup`/`MediaEpisode`.
 
@@ -62,7 +62,7 @@ Use upstream collection-builder behavior as a reference, not as an embedded Pyth
 Port concepts:
 
 - Collection files and rule-driven builders.
-- TMDB, IMDb, TVDB, Trakt, Radarr, and Sonarr source vocabulary.
+- TMDB and TVDB source vocabulary for the first public version.
 - Builder validation, missing media reports, sync modes, and item filters.
 - Collection metadata updates such as posters, summaries, labels, sort titles, and visibility flags.
 
@@ -116,7 +116,7 @@ Longer-term generic media concepts should be introduced without breaking the exi
 - `Episode`: one TV episode.
 - `MediaFile`: local video file and technical metadata.
 - `MediaFileLocation`: one physical path for a file.
-- `ExternalMediaId`: provider IDs for TMDB, IMDb, TVDB, Trakt, Plex, Jellyfin, and future providers.
+- `ExternalMediaId`: provider IDs for TMDB, TVDB, Plex, Jellyfin, and future providers.
 - `CollectionDefinition`: user or automation-managed collection.
 - `CollectionRule`: one builder/filter rule inside a collection definition.
 - `CollectionItem`: title membership with source and sync state.
@@ -129,12 +129,6 @@ TMDB:
 - Reuse `DaCollector.Server/Providers/TMDB`.
 - Reuse existing `TMDB_Movie`, `TMDB_Show`, `TMDB_Season`, `TMDB_Episode`, image, person, company, network, and collection models.
 - Promote TMDB movie/show IDs to first-class media identity for the first version.
-
-IMDb:
-
-- Support IMDb IDs as external IDs on every media title.
-- Start with list/chart/search builders modeled after the upstream `modules/imdb.py`.
-- Prefer IMDb datasets or official/public structured endpoints over brittle page scraping.
 
 TVDB:
 
@@ -156,7 +150,6 @@ Port collection-builder behavior into a .NET service layer:
 Initial builders:
 
 - `tmdb_movie`, `tmdb_show`, `tmdb_collection`, `tmdb_popular`, `tmdb_top_rated`, `tmdb_trending_daily`, `tmdb_trending_weekly`, `tmdb_discover`
-- `imdb_id`, `imdb_list`, `imdb_chart`, `imdb_search`
 - `tvdb_movie`, `tvdb_show`, `tvdb_list`
 
 Initial sync modes:
@@ -178,7 +171,7 @@ The Plex-facing layer should be built around Relay's proven data flow:
 Required server support for the adapter:
 
 - Path lookup endpoint that works for movies and episodes.
-- Generic media DTOs with TMDB, IMDb, and TVDB IDs.
+- Generic media DTOs with TMDB and TVDB IDs.
 - Collection DTOs with poster/backdrop image URLs.
 - Duplicate-safe file identity data so Plex file matching does not choose the wrong item.
 - Watched/rating endpoints for movies and episodes.
@@ -244,7 +237,7 @@ Proposed v3 endpoints:
 
 3. Provider layer
    - Wrap existing TMDB services behind generic media provider interfaces.
-   - Add IMDb and TVDB settings.
+   - Add TVDB settings.
    - Add provider result DTOs and cache tables.
 
 4. Scanner and matcher
@@ -255,7 +248,7 @@ Proposed v3 endpoints:
 5. Collection engine
    - Implement rule parser and first TMDB builders.
    - Add collection preview and sync APIs.
-   - Add IMDb/TVDB builders after TMDB path is stable.
+   - Add TVDB builders after TMDB path is stable.
 
 6. Duplicate manager
    - Add exact duplicate APIs on generic media files.

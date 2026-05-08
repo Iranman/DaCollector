@@ -20,8 +20,6 @@
 | `DACOLLECTOR_HOME` | Override the application data directory. |
 | `DACOLLECTOR_PORT` | Override the HTTP port. |
 | `TMDB_API_KEY` | Set the TMDB API key. |
-| `IMDB_DATASET_PATH` | Set the local IMDb dataset folder. |
-| `IMDB_CACHE_EXPIRATION_DAYS` | Set IMDb cache retention. |
 | `TVDB_API_KEY` | Set the TVDB API key. |
 | `TVDB_PIN` | Set the TVDB subscriber PIN. |
 | `TVDB_CACHE_EXPIRATION_DAYS` | Set TVDB cache retention. |

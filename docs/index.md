@@ -1,6 +1,6 @@
 # DaCollector Docs
 
-DaCollector is a self-hosted movie and TV collection manager. It keeps a local server-side library database, connects that library to TMDB, IMDb, and TVDB identities, manages provider-driven collections, and exposes Plex-facing workflows for matching and applying collection membership.
+DaCollector is a self-hosted movie and TV collection manager. It keeps a local server-side library database, connects that library to TMDB and TVDB identities, manages provider-driven collections, and exposes Plex-facing workflows for matching and applying collection membership.
 
 ## Start Here
 
@@ -19,7 +19,7 @@ DaCollector is a self-hosted movie and TV collection manager. It keeps a local s
 
 - Movie and TV library files imported from managed folders.
 - Local metadata and cross-reference records backed by a server database.
-- TMDB, IMDb, and TVDB provider settings for identity and collection builders.
+- TMDB and TVDB provider settings for identity and collection builders.
 - Managed collections that can be previewed, synced, and applied to Plex.
 - Exact duplicate cleanup plans, with a dry-run first and admin confirmation for deletes.
 

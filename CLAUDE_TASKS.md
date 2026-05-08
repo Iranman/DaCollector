@@ -39,7 +39,7 @@ All domain model references already use Media* names throughout.
 
 ## ⏸ P1 — Clean Up AniDB Settings Exposure — DEFERRED
 
-`AniDbSettings` follows the same naming convention as `TMDBSettings`, `TVDBSettings`, `TraktSettings`, `IMDbSettings`.
+`AniDbSettings` follows the same naming convention as the remaining provider settings classes such as `TMDBSettings`, `TVDBSettings`, and `TraktSettings`.
 Renaming to `SourceSettings` would be inconsistent and break existing `settings-server.json` configs.
 The class name is internal (not user-facing). The JSON key `"AniDb"` in the settings file would need a migration.
 **Decision: do not rename** — it accurately identifies the AniDB provider settings.
@@ -193,7 +193,7 @@ Files:
 
 Tasks:
 - Create a review queue for unmatched or low-confidence movie/TV titles.
-- Store candidate matches from TMDB, TVDB, and IMDb with confidence reasons:
+- Store candidate matches from TMDB and TVDB with confidence reasons:
   - title similarity
   - year
   - provider IDs
@@ -208,24 +208,21 @@ Acceptance criteria:
 - Rejected candidates do not reappear unless provider data changes or the user refreshes manually.
 - Candidate reasons are visible through API responses.
 
-### ✅ P3.6 — Harden TVDB and IMDb Provider Behavior — DONE
+### ✅ P3.6 — Harden TVDB Provider Behavior — DONE
 
 Files:
 - `DaCollector.Server/Collections/TvdbCollectionBuilderClient.cs`
 - `DaCollector.Server/Providers/TVDB/TvdbMetadataService.cs`
-- `DaCollector.Server/Collections/ImdbDatasetCollectionBuilderClient.cs`
 - `DaCollector.Tests/CollectionBuilderPreviewServiceTests.cs`
 - New provider-specific test files as needed
 
 Tasks:
 - Add tests for TVDB token caching, unauthorized retry, missing credentials, and empty API responses.
-- Add tests for IMDb dataset missing files, malformed rows, cache expiry, and title type filtering.
 - Make provider warnings user-actionable and avoid leaking API keys or tokens.
 
 Acceptance criteria:
 - TVDB retries once after a 401 with a refreshed token.
 - Missing TVDB credentials produce a clear warning rather than a crash.
-- IMDb dataset errors name the missing file or malformed row.
 - No provider warning contains configured secrets.
 
 ### ✅ P3.7 — Release and Container Polish — DONE
@@ -268,18 +265,18 @@ Tasks:
 - Add a first-run walkthrough for:
   - create first admin user
   - configure Plex
-  - configure TMDB/TVDB/IMDb
+  - configure TMDB/TVDB
   - add managed folders
   - preview a collection
   - review duplicates
 - Add a troubleshooting page for ports, Docker networking, Plex token, provider credentials, and clean SQLite startup.
-- Keep `.env` out of the recommended Docker path unless the user explicitly asks for it.
+- Keep the recommended Docker path to direct values in `docker-compose.yml` unless the user explicitly asks for a separate environment-file workflow.
 
 Acceptance criteria:
 - `mkdocs build --strict` succeeds when MkDocs dependencies are installed.
 - Every install page links to verification.
 - Every feature page links to the related API page or endpoint table.
-- Docker docs keep direct environment values in `docker-compose.yml`, not a recommended `.env` file.
+- Docker docs keep direct environment values in `docker-compose.yml`, not a recommended separate environment-file workflow.
 
 ### ✅ P3.9 — Fix Docker First-Boot Ownership Stall on TrueNAS — DONE
 
@@ -404,12 +401,11 @@ Current status:
 - A local .NET SDK `10.0.203` was bootstrapped to `F:\Collection manager\.dotnet-sdk`.
 - `global.json` requires SDK `10.0.203` with `rollForward: latestFeature`.
 - Docker is not installed in the local Windows shell, so Docker validation must run on a Docker host such as TrueNAS.
-- The React `DaCollector-WebUI` build has been validated with `npm run build`.
-- `compose.yaml` now targets `Dockerfile.combined`, which builds the adjacent `../DaCollector-WebUI` repo and copies its `dist/` output into `DaCollector.Server/webui`.
-- P0.1 local build and tests pass (121/121 as of commit `ecccb2f`).
+- P0.1 local build and tests pass (121/121 as of commit `e8f0a60`).
 - P0.5 startup crash (empty config file) has been identified and fixed in commit `6ef5b0e`.
-- Commit `ecccb2f` trims WebUI-facing public surface to TMDB/TVDB only (removes AniDB actions, IMDb provider status, IMDb builders from catalog, AniDB user community site); tests updated to 121/121.
-- GHCR workflow was re-triggered by `6ef5b0e`; Docker host verification (P0.2–P0.4) still pending.
+- Commit `ecccb2f` trims WebUI-facing public surface to TMDB/TVDB only by removing legacy provider actions, provider status entries, and builder catalog entries; tests updated to 121/121.
+- Commit `e8f0a60` makes the Docker build fully self-contained: `Dockerfile.combined` clones `DaCollector-WebUI` from GitHub (ARG WEBUI_REPO/WEBUI_REF), `compose.yaml` drops `additional_contexts`, and `docker-ghcr.yml` removes the WebUI checkout step. Anyone can now `docker compose up --build` from a single repo clone.
+- GHCR workflow will be re-triggered by `e8f0a60`; Docker host verification (P0.2–P0.4) still pending.
 
 Files in scope:
 - `global.json`
@@ -478,7 +474,7 @@ Notes:
 
 GitHub Actions status:
 - Committed and pushed `904d0fe` to `main` which includes:
-  - `docker-ghcr.yml` updated (path-triggers on `Dockerfile.combined`, WebUI checkout step, `webui_ref` input, `dacollector_webui` build-context)
+  - `docker-ghcr.yml` updated (path-triggers on `Dockerfile.combined`, `webui_ref` input, WebUI repo/ref build args)
   - `Dockerfile.combined` updated (TARGETARCH support → correct runtime ID for amd64/arm64)
 - GHCR workflow triggered on push. Expected output: `ghcr.io/iranman/dacollector:latest` with React WebUI embedded.
 - `scripts/verify-install.sh` added for shell-based endpoint and Docker health checks on the Docker host.
@@ -487,7 +483,7 @@ Remaining tasks (require TrueNAS Docker host):
 
 **Option A — Pull prebuilt GHCR image (recommended for production):**
 ```bash
-# On TrueNAS host, place docker-compose.yml alongside a .env
+# On TrueNAS host, download docker-compose.yml and edit values directly in the file
 curl -O https://raw.githubusercontent.com/Iranman/DaCollector/main/docker-compose.yml
 docker compose -f docker-compose.yml pull
 docker compose -f docker-compose.yml up -d
@@ -497,9 +493,8 @@ bash <(curl -s https://raw.githubusercontent.com/Iranman/DaCollector/main/script
 
 **Option B — Local build from source (for dev/testing):**
 ```bash
-# Repos must be side by side:
-# /mnt/PLEX/Apps/DaCollector/
-# /mnt/PLEX/Apps/DaCollector-WebUI/
+# Dockerfile.combined clones DaCollector-WebUI from GitHub automatically.
+# No sibling DaCollector-WebUI checkout required.
 cd /mnt/PLEX/Apps/DaCollector
 docker compose down
 docker compose build --no-cache dacollector

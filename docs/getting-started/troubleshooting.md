@@ -123,18 +123,6 @@ cat "/var/lib/plexmediaserver/Library/Application Support/Plex Media Server/Pref
 - If you have a subscriber PIN, set `TVDB_PIN` as well.
 - Check the server log for the exact error. A `401` from TVDB means the key or PIN is wrong. A missing-key error means the setting was not picked up at startup.
 
-### IMDb builders fail with "dataset path not found" or "title.basics.tsv not found"
-
-- Confirm `IMDB_DATASET_PATH` points to the folder that contains `title.basics.tsv` or `title.basics.tsv.gz`.
-- The path must be accessible by the server process. In Docker, the folder must be mounted into the container.
-- `title.basics.tsv` is required. `title.ratings.tsv` is optional unless you use `imdb_chart` builders.
-- Test from inside a Docker container:
-  ```bash
-  docker exec dacollector ls /metadata/imdb/
-  ```
-
----
-
 ## SQLite Startup
 
 ### Server log shows migration errors or database blocked state

@@ -45,7 +45,7 @@ Then add `/media/movies` and `/media/tv` as managed folders inside DaCollector.
 
 ## Step 3 — Configure Metadata Providers
 
-DaCollector uses TMDB, TVDB, and IMDb to build collection member lists. Configure each provider you intend to use.
+DaCollector uses TMDB and TVDB to build collection member lists. Configure each provider you intend to use.
 
 ### TMDB
 
@@ -66,28 +66,6 @@ Get a key at [thetvdb.com/dashboard/account/apikeys](https://thetvdb.com/dashboa
 ```yaml
 TVDB_API_KEY: "your-tvdb-key"
 TVDB_PIN: ""
-```
-
-### IMDb
-
-IMDb collection builders read local dataset files — no API key is needed, but you must download the files first. Get them from [datasets.imdbws.com](https://datasets.imdbws.com/):
-
-- `title.basics.tsv.gz` — required for all IMDb builders
-- `title.ratings.tsv.gz` — required only for chart-based builders (`imdb_chart`)
-
-Extract or place them in a folder the server can read, then point `IMDB_DATASET_PATH` at that folder:
-
-```yaml
-IMDB_DATASET_PATH: "/metadata/imdb"
-```
-
-For Docker, mount the folder and configure the path:
-
-```yaml
-volumes:
-  - "/mnt/media/imdb:/metadata/imdb:ro"
-environment:
-  IMDB_DATASET_PATH: "/metadata/imdb"
 ```
 
 ---

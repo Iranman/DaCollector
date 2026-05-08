@@ -21,7 +21,6 @@ Current builder names include:
 | Provider | Builders |
 | --- | --- |
 | TMDB | `tmdb_movie`, `tmdb_show`, `tmdb_collection`, `tmdb_popular`, `tmdb_top_rated`, `tmdb_trending_daily`, `tmdb_trending_weekly`, `tmdb_discover`, `tmdb_now_playing`, `tmdb_upcoming`, `tmdb_airing_today`, `tmdb_on_the_air` |
-| IMDb | `imdb_id`, `imdb_list`, `imdb_chart`, `imdb_search` |
 | TVDB | `tvdb_movie`, `tvdb_show`, `tvdb_list` |
 
 ## Preview a Rule

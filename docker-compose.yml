@@ -37,12 +37,10 @@ services:
       PLEX_TARGET_SECTION_KEY: ""
       PLEX_TARGET_TOKEN: ""
 
-      # Metadata providers. Leave blank to disable a provider for now.
+      # Metadata providers. Leave TVDB blank to disable it for now.
       TMDB_API_KEY: ""
       TVDB_API_KEY: ""
       TVDB_PIN: ""
-      IMDB_DATASET_PATH: ""
-      IMDB_CACHE_EXPIRATION_DAYS: "7"
       TVDB_CACHE_EXPIRATION_DAYS: "7"
 
     volumes:
@@ -57,9 +55,6 @@ services:
       # Keep :ro unless you want DaCollector to delete duplicate files from that path.
       # - "/mnt/media/movies:/media/movies:ro"
       # - "/mnt/media/tv:/media/tv:ro"
-
-      # Needed only for IMDb builders. Set IMDB_DATASET_PATH above to /metadata/imdb, then uncomment.
-      # - "/mnt/media/imdb:/metadata/imdb:ro"
 
     extra_hosts:
       - "host.docker.internal:host-gateway"

@@ -37,7 +37,7 @@ Example body for the `POST` test endpoints:
 | `GET` | `/api/v3/PlexTarget/Library/{sectionKey}/Item` | List items from the configured Plex target. |
 | `POST` | `/api/v3/PlexTarget/Library/{sectionKey}/Item` | List items from a supplied URL and token. |
 
-DaCollector reads Plex GUIDs and maps `imdb`, `tmdb`, and `tvdb` identifiers to local collection preview output.
+DaCollector reads Plex GUIDs and maps `tmdb` and `tvdb` identifiers to local collection preview output.
 
 ## Match and Apply Collections
 
@@ -53,6 +53,6 @@ Apply calls require an admin user. Use collection preview and match calls first 
 | Symptom | Check |
 | --- | --- |
 | Plex identity works but libraries fail | The token is missing or cannot read libraries. |
-| Libraries list but no items match | Confirm Plex items have TMDB, IMDb, or TVDB GUIDs. |
+| Libraries list but no items match | Confirm Plex items have TMDB or TVDB GUIDs. |
 | Collection sync previews only | Confirm sync was called with `apply=true`. |
 | LAN clients cannot open DaCollector | Open Windows firewall for TCP `38111`. |

@@ -9,7 +9,7 @@ DaCollector is a self-hosted movie and TV collection manager. It combines a serv
 The project direction is:
 
 - Local movie and TV library scanning across managed folders.
-- Metadata identity from TMDB, IMDb, and TVDB.
+- Metadata identity from TMDB and TVDB.
 - Rule-driven collection management inspired by provider builders.
 - Duplicate detection for exact file duplicates, duplicate media releases, and likely fuzzy matches.
 - Plex adapter support based on a server-as-source-of-truth model.

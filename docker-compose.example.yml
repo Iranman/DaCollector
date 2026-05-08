@@ -8,9 +8,9 @@
 #   nano docker-compose.yml   # fill in your values
 #   docker compose up -d
 #
-# For a source build that bundles the React Web UI, clone DaCollector and
-# DaCollector-WebUI next to each other and run `docker compose up -d --build`
-# from the DaCollector repo so compose.yaml is used.
+# For a source build that bundles the React Web UI, clone DaCollector and run
+# `docker compose up -d --build` from the DaCollector repo. compose.yaml fetches
+# the DaCollector-WebUI repo during the Docker build.
 
 services:
   dacollector:
@@ -61,12 +61,6 @@ services:
       TVDB_PIN: ""
       TVDB_CACHE_EXPIRATION_DAYS: "7"
 
-      # IMDb - no API key; set to the container path of the dataset folder.
-      # Download title.basics.tsv.gz from https://datasets.imdbws.com/ and unpack it,
-      # then mount the folder below and set this to the container path (/metadata/imdb).
-      IMDB_DATASET_PATH: ""
-      IMDB_CACHE_EXPIRATION_DAYS: "7"
-
     volumes:
       # Application data: settings, SQLite databases, provider cache, Web UI files.
       - dacollector-data:/home/dacollector/.dacollector
@@ -79,11 +73,6 @@ services:
       # Keep :ro unless you want DaCollector to delete duplicate files in that folder.
       # - "/mnt/media/movies:/media/movies:ro"
       # - "/mnt/media/tv:/media/tv:ro"
-
-      # IMDb dataset.
-      # Needed only for IMDb builders. Set IMDB_DATASET_PATH above to the
-      # container path (/metadata/imdb), then uncomment this line.
-      # - "/mnt/media/imdb:/metadata/imdb:ro"
 
     # Required for host.docker.internal to resolve on Linux Docker hosts.
     extra_hosts:
