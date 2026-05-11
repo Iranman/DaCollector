@@ -673,7 +673,7 @@ Acceptance criteria:
 
 ---
 
-## P1 — DaCollector Relay and Movie/TV Source-of-Truth Track — PLANNED
+## P1 — DaCollector Relay and Movie/TV Source-of-Truth Track — DONE (scaffold)
 
 Goal: make the product direction concrete after first-run Docker is stable. DaCollector should manage local movie/TV files through Server, expose that management through WebUI, and project the managed library into Plex through DaCollector Relay.
 
@@ -704,6 +704,29 @@ Acceptance criteria:
 - Relay can map Plex library items back to DaCollector-managed media using file path or provider IDs.
 - Relay can expose DaCollector metadata and managed collections in Plex without downloading media or streaming from third-party sites.
 - Any future metadata provider expansion is documented as provider work and does not reintroduce legacy anime-only public surfaces.
+
+### Scaffold delivered 2026-05-11 — `F:\Collection manager\DaCollector-Relay\`
+
+Structure:
+- `Contents/Code/__init__.py` — Plex legacy agent: `DaCollectorRelayMovies` and `DaCollectorRelayShows`
+  classes. `search()` calls `GET /api/v3/Media/Movies|Shows`. `update()` applies title, year, summary,
+  genres. Both have TODO stubs for per-item lookup and image endpoints.
+- `Contents/Scanners/Movies/DaCollector Relay Scanner.py` — movie scanner; calls `Parser/Filename`,
+  creates `Media.Movie` objects.
+- `Contents/Scanners/Series/DaCollector Relay Scanner.py` — series scanner; creates `Media.Episode`
+  objects for TV and `Media.Movie` for mixed-library movie files.
+- Both scanners share a `.cfg` config file with Hostname, Port, ApiKey, PathRewrite.
+- `Scripts/config.py` — user configuration (DaCollector + Plex credentials, path rewrite rules).
+- `Scripts/common.py` — `DaCollectorClient` and `PlexClient` wrappers (uses `requests`).
+- `Scripts/watched_sync.py` — Plex ↔ DaCollector watched state sync skeleton.
+- `Scripts/collection_sync.py` — DaCollector managed collections → Plex collections skeleton.
+
+Pending Server endpoints needed before Relay is fully functional:
+- `GET /api/v3/Media/Movies/{providerID}?provider=tmdb` — direct single-movie lookup (removes O(n) list scan in agent `update()`)
+- `GET /api/v3/Media/Shows/{providerID}?provider=tvdb` — direct single-show lookup
+- `GET /api/v3/Media/Files/PathEndsWith/{tail}` — let scanner verify a file is matched in DaCollector before presenting to Plex
+- `GET /api/v3/ManagedCollection/{id}/Members` with file paths — needed for collection_sync.py
+- `GET/POST /api/v3/MediaFileReview/Files/{fileID}/WatchedState` — needed for watched_sync.py
 
 ---
 
