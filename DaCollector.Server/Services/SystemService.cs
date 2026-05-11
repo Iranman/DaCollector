@@ -302,6 +302,7 @@ public class SystemService : ISystemService
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "EarlyStart threw an unexpected exception — full stack trace below.");
             StartupMessage = "Failed to start. Check your logs for more information.";
             StartupFailedException = new(innerException: ex);
             return null;
@@ -634,6 +635,7 @@ public class SystemService : ISystemService
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "LateStart threw an unexpected exception — full stack trace below.");
             StartupMessage = "Failed to start. Check your logs for more information.";
             StartupFailedException = new(innerException: ex);
         }

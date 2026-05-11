@@ -157,7 +157,12 @@ public partial class DaCollectorJsonSchemaValidator<TConfig>(ILogger logger, Con
 
     private JToken? GetPropertyPath(string propertyPath)
     {
-        _existingData ??= JToken.Parse(_configurationService.Serialize(_config ?? _configurationService.Load<TConfig>(false)));
-        return _existingData.SelectToken(propertyPath);
+        if (_existingData is null)
+        {
+            var serialized = _configurationService.Serialize(_config ?? _configurationService.Load<TConfig>(false));
+            if (!string.IsNullOrWhiteSpace(serialized))
+                _existingData = JToken.Parse(serialized);
+        }
+        return _existingData?.SelectToken(propertyPath);
     }
 }
