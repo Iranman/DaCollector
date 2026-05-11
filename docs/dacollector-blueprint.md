@@ -30,12 +30,76 @@ Product boundaries:
 - DaCollector manages local files the user already has and has mounted/provided to the server.
 - DaCollector does not download media, stream from websites, bypass filesystem permissions, or access files outside configured folders.
 - Destructive file operations must be opt-in, reviewed, and admin-confirmed.
+- DaCollector is not Radarr, Sonarr, qBittorrent, Plex, or Jellyfin. It is the local metadata brain between user-owned files and media applications.
 
 Project split:
 
 - **DaCollector Server** is the backend source of truth for scanning, fingerprinting, matching, metadata, watch state, duplicate/missing/corrupt review, rename/move operations, collections, and APIs.
 - **DaCollector WebUI** is the browser interface over server workflows. It must not own filesystem scanning, provider matching, or Plex scanner/agent logic.
 - **DaCollector Relay** is the planned Plex scanner/agent/adapter that projects DaCollector-managed movies and TV shows into Plex while keeping Server as the source of truth.
+
+## Detailed MVP Direction
+
+The first usable DaCollector version should stay smaller than the full integration vision. Build the base before plugins:
+
+1. Docker container and first-run WebUI.
+2. SQLite-backed server settings and health/status endpoints.
+3. Movie and TV library folder setup.
+4. Folder scanning and media-file records.
+5. Filename parsing for movie, TV episode, date-based episode, multi-episode, quality, source, codec, HDR, and explicit provider IDs.
+6. TMDB movie matching and metadata cache.
+7. TVDB show/season/episode matching and metadata cache.
+8. Unmatched files and suggested-match review.
+9. Manual match, ignore, lock, and undo workflows.
+10. Basic poster/backdrop download and local artwork cache.
+11. Basic logs and backups.
+
+Explicitly defer these until the base is reliable:
+
+- Plex plugin, scanner, or metadata agent.
+- Jellyfin plugin.
+- Kodi addon.
+- Watched-sync integrations.
+- Trakt sync.
+- Advanced duplicate cleanup.
+- Complex collection automation beyond the existing managed-collection foundation.
+
+The current server API is v3. Roadmap examples that use `/api/v1/...` should be translated into the existing `/api/v3/...` controller style unless the project deliberately introduces a new API version.
+
+## Target User Workflows
+
+Libraries and scanning:
+
+- Add a movie library such as `/Media/Movies`.
+- Add a TV library such as `/Media/TV Shows`.
+- Scan folders for supported video extensions: `.mkv`, `.mp4`, `.avi`, `.mov`, `.m4v`, `.ts`, `.m2ts`, and `.wmv`.
+- Ignore junk and partial files such as `.tmp`, `.partial`, `.!qB`, images, text files, and subtitles as primary media while still discovering subtitle sidecars.
+- Detect missing files and renamed files without deleting anything automatically.
+
+Parsing and matching:
+
+- Prefer explicit provider IDs in folders or filenames, for example `{tmdb-603}`, `{tvdb-81189}`, or IMDb IDs.
+- Parse movie title/year from folder and filename.
+- Parse TV `SxxExx`, multi-episode ranges, and date-based episodes.
+- Persist first-pass parser guesses for scanned files in unmatched-review state so UI decisions can survive future scans.
+- Generate file-level TMDB/TVDB match candidates from explicit IDs and cached provider metadata before user review.
+- Allow opt-in online TMDB lookup for file candidates and explicit-ID refresh for TMDB/TVDB when cached metadata is missing.
+- Score matches with explainable reasons: external ID, title, year, runtime, folder structure, episode number, and air date.
+- Auto-match only high-confidence results. Send uncertain files to review and keep manual decisions stable across future scans.
+
+Metadata and artwork:
+
+- Movies default to TMDB for metadata, artwork, cast, crew, collections, and IMDb external IDs.
+- TV defaults to TVDB for show structure, seasons, episodes, episode order, specials, and missing-episode calculations.
+- TMDB remains the fallback for TV artwork and richer people/artwork data where useful.
+- Cache provider responses so UI reads do not require live API calls and the app remains usable during network outages.
+- Respect metadata and artwork locks.
+
+Library health:
+
+- Duplicate detection must report review data first and never auto-delete by default.
+- Missing episode detection should compare local files to TVDB/TMDB episode data and classify missing, unaired, ignored, special, downloaded, duplicate, and unmatched states.
+- Export NFO, local artwork, JSON, and CSV later so other apps can use DaCollector data even before plugins are complete.
 
 ## Current Conversion State
 
@@ -45,6 +109,10 @@ DaCollector is no longer just a rename of the inherited server. The repository n
 - Default Web UI/API port `38111`.
 - Hosted Web UI pages for managed collections and exact duplicate review.
 - Managed collection APIs, collection-builder preview support, and Plex target APIs.
+- Filename parser and unmatched-file review APIs for parsed guesses, ignore/unignore, and manual provider matches.
+- File-level TMDB/TVDB match candidate APIs for scanning, reviewing, approving, and rejecting unmatched file suggestions.
+- Opt-in online TMDB lookup and explicit TMDB/TVDB ID refresh for unmatched file candidate scans.
+- Generic media read APIs under `/api/v3/Media` for movies, shows, seasons, episodes, and local files.
 - TMDB and TVDB settings surfaces.
 - Cached TVDB show/movie/season/episode models, repositories, jobs, and metadata service work in progress.
 - Internal domain rename work from `AnimeSeries`/`AnimeGroup`/`AnimeEpisode` toward `MediaSeries`/`MediaGroup`/`MediaEpisode`.

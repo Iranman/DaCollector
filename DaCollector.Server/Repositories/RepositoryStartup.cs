@@ -27,6 +27,8 @@ public static class RepositoryStartup
         services.AddDirectRepository<AniDB_MessageRepository>();
         services.AddDirectRepository<AniDB_NotifyQueueRepository>();
         services.AddDirectRepository<FileNameHashRepository>();
+        services.AddDirectRepository<MediaFileMatchCandidateRepository>();
+        services.AddDirectRepository<MediaFileReviewStateRepository>();
         services.AddDirectRepository<PlaylistRepository>();
         services.AddDirectRepository<ProviderMatchCandidateRepository>();
         services.AddDirectRepository<ScanFileRepository>();

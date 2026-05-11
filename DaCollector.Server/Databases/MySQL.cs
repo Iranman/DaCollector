@@ -1072,6 +1072,13 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(164,  2, "CREATE INDEX IX_ProviderMatchCandidate_MediaSeriesID ON ProviderMatchCandidate(MediaSeriesID);"),
         new(164,  3, "CREATE INDEX IX_ProviderMatchCandidate_Status ON ProviderMatchCandidate(Status);"),
         new(165,  1, "CREATE UNIQUE INDEX UIX_ProviderMatchCandidate ON ProviderMatchCandidate(MediaSeriesID, Provider, ProviderItemID, ProviderType);"),
+        new(166,  1, "CREATE TABLE `MediaFileReviewState` ( `MediaFileReviewStateID` INT NOT NULL AUTO_INCREMENT, `VideoLocalID` INT NOT NULL, `Status` VARCHAR(16) NOT NULL, `ParsedKind` VARCHAR(16) NOT NULL, `ParsedTitle` TEXT NULL, `ParsedYear` INT NULL, `ParsedShowTitle` TEXT NULL, `ParsedSeasonNumber` INT NULL, `ParsedEpisodeNumbersJson` TEXT NOT NULL, `ParsedAirDate` VARCHAR(16) NULL, `ParsedExternalIdsJson` TEXT NOT NULL, `ParsedQuality` VARCHAR(64) NULL, `ParsedSource` VARCHAR(64) NULL, `ParsedEdition` VARCHAR(128) NULL, `ParsedVideoCodec` VARCHAR(64) NULL, `ParsedAudioCodec` VARCHAR(64) NULL, `ParsedAudioChannels` VARCHAR(64) NULL, `ParsedHdrFormatsJson` TEXT NOT NULL, `ParsedWarningsJson` TEXT NOT NULL, `ManualEntityType` VARCHAR(32) NULL, `ManualEntityID` INT NULL, `ManualProvider` VARCHAR(32) NULL, `ManualProviderID` VARCHAR(128) NULL, `ManualTitle` TEXT NULL, `Locked` TINYINT(1) NOT NULL, `IgnoredReason` TEXT NULL, `CreatedAt` DATETIME NOT NULL, `UpdatedAt` DATETIME NOT NULL, `LastParsedAt` DATETIME NOT NULL, PRIMARY KEY (`MediaFileReviewStateID`) );"),
+        new(166,  2, "CREATE UNIQUE INDEX UIX_MediaFileReviewState_VideoLocalID ON MediaFileReviewState(VideoLocalID);"),
+        new(166,  3, "CREATE INDEX IX_MediaFileReviewState_Status ON MediaFileReviewState(Status);"),
+        new(167,  1, "CREATE TABLE `MediaFileMatchCandidate` ( `MediaFileMatchCandidateID` INT NOT NULL AUTO_INCREMENT, `VideoLocalID` INT NOT NULL, `Provider` VARCHAR(32) NOT NULL, `ProviderItemID` INT NOT NULL, `ProviderType` VARCHAR(16) NOT NULL, `Title` TEXT NOT NULL, `Year` INT NULL, `ConfidenceScore` DOUBLE NOT NULL, `ReasonsJson` TEXT NOT NULL, `Status` VARCHAR(16) NOT NULL, `ReviewedAt` DATETIME NULL, `CreatedAt` DATETIME NOT NULL, `UpdatedAt` DATETIME NOT NULL, PRIMARY KEY (`MediaFileMatchCandidateID`) );"),
+        new(167,  2, "CREATE INDEX IX_MediaFileMatchCandidate_VideoLocalID ON MediaFileMatchCandidate(VideoLocalID);"),
+        new(167,  3, "CREATE INDEX IX_MediaFileMatchCandidate_Status ON MediaFileMatchCandidate(Status);"),
+        new(167,  4, "CREATE UNIQUE INDEX UIX_MediaFileMatchCandidate ON MediaFileMatchCandidate(VideoLocalID, Provider, ProviderItemID, ProviderType);"),
     ];
 
     #endregion

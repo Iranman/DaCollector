@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using DaCollector.Server.Models.DaCollector;
 using DaCollector.Server.Models.Internal;
 using DaCollector.Server.Repositories;
 
@@ -21,18 +22,53 @@ public class ProviderMatchQueueService(ILogger<ProviderMatchQueueService> logger
 
     // ─────────────────────────── Scanning ────────────────────────────
 
-    public Task ScanSeriesAsync(int mediaSeriesID)
+    public Task<ProviderMatchScanResult> ScanSeriesAsync(int mediaSeriesID)
         => Task.Run(() => ScanSeriesCore(mediaSeriesID));
 
-    private void ScanSeriesCore(int mediaSeriesID)
+    public Task<ProviderMatchBatchScanResult> ScanAllSeriesAsync(bool onlyUnmatched = true)
+        => Task.Run(() =>
+        {
+            var series = RepoFactory.MediaSeries.GetAll()
+                .Where(item => !onlyUnmatched || !HasAnyProviderLink(item))
+                .OrderBy(item => item.Title, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(item => item.MediaSeriesID)
+                .ToList();
+            var results = series
+                .Select(item => ScanSeriesCore(item.MediaSeriesID))
+                .ToList();
+
+            return new ProviderMatchBatchScanResult
+            {
+                OnlyUnmatched = onlyUnmatched,
+                ScannedSeriesCount = results.Count,
+                CandidateCount = results.Sum(result => result.CandidateCount),
+                Results = results,
+            };
+        });
+
+    private ProviderMatchScanResult ScanSeriesCore(int mediaSeriesID)
     {
         var series = RepoFactory.MediaSeries.GetByID(mediaSeriesID);
         if (series is null)
-            return;
+            return new()
+            {
+                MediaSeriesID = mediaSeriesID,
+                Title = null,
+                CandidateCount = 0,
+                Scanned = false,
+                Message = "MediaSeries was not found.",
+            };
 
         var queryTitle = series.Title;
         if (string.IsNullOrWhiteSpace(queryTitle))
-            return;
+            return new()
+            {
+                MediaSeriesID = mediaSeriesID,
+                Title = queryTitle,
+                CandidateCount = 0,
+                Scanned = false,
+                Message = "MediaSeries does not have a searchable title.",
+            };
 
         var queryYear = series.AniDB_Anime?.AirDate?.Year
             ?? series.EpisodeAddedDate?.Year;
@@ -145,6 +181,17 @@ public class ProviderMatchQueueService(ILogger<ProviderMatchQueueService> logger
 
         logger.LogInformation("Scanned series {MediaSeriesID} ({Title}): {Count} candidate(s) added or refreshed.",
             mediaSeriesID, queryTitle, candidates.Count);
+
+        return new()
+        {
+            MediaSeriesID = mediaSeriesID,
+            Title = queryTitle,
+            CandidateCount = candidates.Count,
+            Scanned = true,
+            Message = candidates.Count == 0
+                ? "No provider match candidates found."
+                : "Provider match candidates added or refreshed.",
+        };
     }
 
     // ─────────────────────────── Review ──────────────────────────────
@@ -270,6 +317,12 @@ public class ProviderMatchQueueService(ILogger<ProviderMatchQueueService> logger
         };
     }
 
+    private static bool HasAnyProviderLink(MediaSeries series)
+        => series.TMDB_ShowID.HasValue
+           || series.TMDB_MovieID.HasValue
+           || series.TvdbShowExternalID.HasValue
+           || series.TvdbMovieExternalID.HasValue;
+
     /// <summary>
     /// Quick word-overlap check to skip candidates with no title similarity before running full scoring.
     /// </summary>
@@ -347,4 +400,28 @@ public class ProviderMatchQueueService(ILogger<ProviderMatchQueueService> logger
     private static string NormalizeTitle(string title)
         => string.Join(' ', Regex.Replace(title.ToLowerInvariant().Trim(), @"[^a-z0-9 ]", " ")
             .Split(' ', StringSplitOptions.RemoveEmptyEntries));
+}
+
+public sealed record ProviderMatchScanResult
+{
+    public required int MediaSeriesID { get; init; }
+
+    public required string? Title { get; init; }
+
+    public required int CandidateCount { get; init; }
+
+    public required bool Scanned { get; init; }
+
+    public required string Message { get; init; }
+}
+
+public sealed record ProviderMatchBatchScanResult
+{
+    public required bool OnlyUnmatched { get; init; }
+
+    public required int ScannedSeriesCount { get; init; }
+
+    public required int CandidateCount { get; init; }
+
+    public IReadOnlyList<ProviderMatchScanResult> Results { get; init; } = [];
 }

@@ -41,6 +41,33 @@ public class DaCollectorStatusServiceTests
     }
 
     [Fact]
+    public void GetServerCapabilities_ReturnsCompletedOperationalChecklist()
+    {
+        var service = CreateService(new ServerSettings(), _ => new(HttpStatusCode.NotFound));
+
+        var capabilities = service.GetServerCapabilities();
+        var keys = capabilities.Select(capability => capability.Key).ToArray();
+
+        Assert.Equal<string>(
+        [
+            "scan-folders",
+            "hash-files",
+            "parse-filenames",
+            "match-files",
+            "fetch-metadata",
+            "store-database-records",
+            "track-watched-status",
+            "expose-api-endpoints",
+            "serve-web-ui",
+            "talk-to-plugins",
+            "run-background-jobs",
+        ], keys);
+        Assert.All(capabilities, capability => Assert.True(capability.Completed));
+        Assert.All(capabilities, capability => Assert.NotEmpty(capability.Components));
+        Assert.Contains(capabilities, capability => capability.ApiRoutes.Contains("POST /api/v3/ProviderMatch/Scan"));
+    }
+
+    [Fact]
     public async Task GetPlexTargetStatus_ReadsIdentityAndLibrariesWithoutReturningToken()
     {
         var settings = new ServerSettings();

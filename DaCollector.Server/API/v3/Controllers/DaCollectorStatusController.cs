@@ -34,6 +34,13 @@ public class DaCollectorStatusController(
         new(statusService.GetProviderStatuses());
 
     /// <summary>
+    /// Return the server capability checklist used by the Web UI and operators.
+    /// </summary>
+    [HttpGet("Capabilities")]
+    public ActionResult<IReadOnlyList<ServerCapabilityStatus>> GetCapabilities() =>
+        new(statusService.GetServerCapabilities());
+
+    /// <summary>
     /// Return Plex target readiness without exposing the configured Plex token.
     /// </summary>
     [HttpGet("Plex")]

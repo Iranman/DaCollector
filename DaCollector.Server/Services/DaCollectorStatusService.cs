@@ -34,11 +34,295 @@ public class DaCollectorStatusService(
             Providers = GetProviderStatuses(settings),
             CollectionManager = GetCollectionManagerStatus(settings),
             PlexTarget = await GetPlexTargetStatus(settings, cancellationToken).ConfigureAwait(false),
+            ServerCapabilities = GetServerCapabilities(),
         };
     }
 
     public IReadOnlyList<ProviderConnectionStatus> GetProviderStatuses() =>
         GetProviderStatuses(settingsProvider.GetSettings());
+
+    public IReadOnlyList<ServerCapabilityStatus> GetServerCapabilities() =>
+    [
+        new()
+        {
+            Key = "scan-folders",
+            Name = "Scan folders",
+            Completed = true,
+            Status = "Complete",
+            Summary = "Managed folders can be added, watched, notified, and scanned through the server.",
+            Components =
+            [
+                "ManagedFolderController",
+                "VideoService",
+                "Scanner",
+                "FileWatcherService",
+                "ScanFolderJob",
+                "ScanDropFoldersJob",
+            ],
+            ApiRoutes =
+            [
+                "GET /api/v3/ManagedFolder",
+                "POST /api/v3/ManagedFolder",
+                "GET /api/v3/ManagedFolder/{folderID}/Scan",
+                "POST /api/v3/ManagedFolder/{folderID}/NotifyChangeDetected",
+            ],
+        },
+        new()
+        {
+            Key = "hash-files",
+            Name = "Hash files",
+            Completed = true,
+            Status = "Complete",
+            Summary = "Files are fingerprinted by the hashing service and persisted as local video/hash records.",
+            Components =
+            [
+                "VideoHashingService",
+                "HashFileJob",
+                "VideoLocal",
+                "VideoLocal_HashDigest",
+            ],
+            ApiRoutes =
+            [
+                "GET /api/v3/File/Hash/ED2K",
+                "GET /api/v3/File/Hash/CRC32",
+                "GET /api/v3/File/Hash/MD5",
+                "GET /api/v3/File/Hash/SHA1",
+            ],
+        },
+        new()
+        {
+            Key = "parse-filenames",
+            Name = "Parse filenames",
+            Completed = true,
+            Status = "Complete",
+            Summary = "Movie and TV filenames can be parsed into first-pass media guesses before provider matching.",
+            Components =
+            [
+                "FilenameParserService",
+                "ParserController",
+                "MediaFileReviewService",
+            ],
+            ApiRoutes =
+            [
+                "GET /api/v3/Parser/Filename",
+                "POST /api/v3/Parser/Filename",
+                "POST /api/v3/MediaFileReview/Files/{fileID}/RefreshParse",
+            ],
+            Notes =
+            [
+                "Scanned-file parser guesses are persisted in MediaFileReviewState for unmatched-review workflows.",
+            ],
+        },
+        new()
+        {
+            Key = "match-files",
+            Name = "Match files",
+            Completed = true,
+            Status = "Complete",
+            Summary = "Provider match candidates and unmatched local files can be generated, reviewed, approved, ignored, or manually matched.",
+            Components =
+            [
+                "ProviderMatchQueueService",
+                "ProviderMatchController",
+                "ProviderMatchCandidate",
+                "MediaFileReviewService",
+                "MediaFileMatchCandidateService",
+                "MediaFileReviewController",
+                "MediaFileReviewState",
+                "MediaFileMatchCandidate",
+                "TmdbSearchService",
+                "TmdbMetadataService",
+                "TvdbMetadataService",
+                "TMDB provider cache",
+                "TVDB provider cache",
+            ],
+            ApiRoutes =
+            [
+                "GET /api/v3/MediaFileReview/Files/Unmatched",
+                "GET /api/v3/MediaFileReview/Files/{fileID}",
+                "POST /api/v3/MediaFileReview/Files/{fileID}/ScanMatches",
+                "POST /api/v3/MediaFileReview/Files/ScanMatches",
+                "GET /api/v3/MediaFileReview/Files/{fileID}/Candidates",
+                "GET /api/v3/MediaFileReview/Candidates",
+                "POST /api/v3/MediaFileReview/Candidates/{candidateID}/Approve",
+                "DELETE /api/v3/MediaFileReview/Candidates/{candidateID}",
+                "POST /api/v3/MediaFileReview/Files/{fileID}/Ignore",
+                "POST /api/v3/MediaFileReview/Files/{fileID}/Unignore",
+                "POST /api/v3/MediaFileReview/Files/{fileID}/ManualMatch",
+                "DELETE /api/v3/MediaFileReview/Files/{fileID}/ManualMatch",
+                "POST /api/v3/ProviderMatch/Scan",
+                "POST /api/v3/ProviderMatch/Series/{mediaSeriesID}/Scan",
+                "GET /api/v3/ProviderMatch/Candidates",
+                "POST /api/v3/ProviderMatch/Candidates/{candidateID}/Approve",
+                "DELETE /api/v3/ProviderMatch/Candidates/{candidateID}",
+            ],
+            Notes =
+            [
+                "Cached TMDB/TVDB matching is the default. File candidate scans can optionally perform online TMDB search and refresh explicit TMDB/TVDB IDs.",
+                "TVDB title search is not yet exposed; TVDB online refresh currently works for explicit TVDB IDs.",
+            ],
+        },
+        new()
+        {
+            Key = "fetch-metadata",
+            Name = "Fetch metadata",
+            Completed = true,
+            Status = "Complete",
+            Summary = "TMDB and TVDB metadata refresh paths populate provider caches used by media and collection workflows.",
+            Components =
+            [
+                "TmdbMetadataService",
+                "TmdbController",
+                "TvdbController",
+                "TvdbCollectionBuilderClient",
+            ],
+            ApiRoutes =
+            [
+                "POST /api/v3/Tmdb/Movie/{movieID}/Action/Refresh",
+                "POST /api/v3/Tmdb/Show/{showID}/Action/Refresh",
+                "POST /api/v3/Tvdb/Movie/{tvdbMovieID}/Refresh",
+                "POST /api/v3/Tvdb/Show/{tvdbShowID}/Refresh",
+            ],
+        },
+        new()
+        {
+            Key = "store-database-records",
+            Name = "Store database records",
+            Completed = true,
+            Status = "Complete",
+            Summary = "NHibernate repositories, mappings, and SQLite migrations store local file, folder, metadata, match, user, and job state.",
+            Components =
+            [
+                "SQLite migrations",
+                "NHibernate mappings",
+                "RepoFactory",
+                "VideoLocal",
+                "VideoLocal_Place",
+                "ProviderMatchCandidate",
+                "MediaSeries_User",
+                "VideoLocal_User",
+            ],
+        },
+        new()
+        {
+            Key = "track-watched-status",
+            Name = "Track watched status",
+            Completed = true,
+            Status = "Complete",
+            Summary = "Watched state can be read and changed for files, episodes, and series-level episode sets.",
+            Components =
+            [
+                "UserDataService",
+                "FileController",
+                "EpisodeController",
+                "SeriesController",
+                "VideoLocal_User",
+                "MediaEpisode_User",
+                "MediaSeries_User",
+            ],
+            ApiRoutes =
+            [
+                "POST /api/v3/File/{fileID}/Watched/{watched?}",
+                "POST /api/v3/Episode/{episodeID}/Watched/{watched}",
+                "POST /api/v3/Series/{seriesID}/Episode/Watched",
+            ],
+            Notes =
+            [
+                "Plex watched sync remains an adapter/relay integration concern, with DaCollector Server retaining the authoritative local watch state.",
+            ],
+        },
+        new()
+        {
+            Key = "expose-api-endpoints",
+            Name = "Expose API endpoints",
+            Completed = true,
+            Status = "Complete",
+            Summary = "ASP.NET Core controllers expose authenticated v3 APIs plus inherited compatibility endpoints.",
+            Components =
+            [
+                "API/v3 controllers",
+                "MediaController",
+                "MediaReadService",
+                "Swagger",
+                "API versioning",
+                "Authentication",
+            ],
+            ApiRoutes =
+            [
+                "GET /api/v3/DaCollectorStatus",
+                "GET /api/v3/Dashboard",
+                "GET /api/v3/Media/Movies",
+                "GET /api/v3/Media/Shows",
+                "GET /api/v3/Media/Shows/{provider}/{providerID}/Seasons",
+                "GET /api/v3/Media/Shows/{provider}/{providerID}/Episodes",
+                "GET /api/v3/Media/Files",
+                "GET /api/v3/File",
+                "GET /api/v3/ManagedFolder",
+                "GET /api/v3/Plugin",
+            ],
+        },
+        new()
+        {
+            Key = "serve-web-ui",
+            Name = "Serve the Web UI",
+            Completed = true,
+            Status = "Complete",
+            Summary = "The server can serve bundled WebUI assets and the combined Docker image builds the WebUI into the server runtime.",
+            Components =
+            [
+                "WebUIController",
+                "WebUIFileProvider",
+                "Dockerfile.combined",
+            ],
+            ApiRoutes =
+            [
+                "GET /webui",
+                "GET /api/v3/WebUI",
+            ],
+        },
+        new()
+        {
+            Key = "talk-to-plugins",
+            Name = "Talk to plugins",
+            Completed = true,
+            Status = "Complete",
+            Summary = "Plugin discovery, package management, API version discovery, and extension points are wired into the server.",
+            Components =
+            [
+                "PluginManager",
+                "PluginPackageManager",
+                "PluginController",
+                "PluginPackageController",
+                "IManagedFolderIgnoreRule",
+            ],
+            ApiRoutes =
+            [
+                "GET /api/v3/Plugin",
+                "GET /api/v3/Plugin/Package",
+            ],
+        },
+        new()
+        {
+            Key = "run-background-jobs",
+            Name = "Run background jobs",
+            Completed = true,
+            Status = "Complete",
+            Summary = "Quartz schedules recurring and ad-hoc server jobs for scanning, hashing, metadata, collections, and maintenance.",
+            Components =
+            [
+                "QuartzStartup",
+                "ScanFolderJob",
+                "HashFileJob",
+                "SyncManagedCollectionsJob",
+                "QueueController",
+            ],
+            ApiRoutes =
+            [
+                "GET /api/v3/Queue",
+                "POST /api/v3/Action/SyncHashes",
+            ],
+        },
+    ];
 
     public async Task<PlexTargetConnectionStatus> GetPlexTargetStatus(CancellationToken cancellationToken = default) =>
         await GetPlexTargetStatus(settingsProvider.GetSettings(), cancellationToken).ConfigureAwait(false);
@@ -183,6 +467,27 @@ public sealed record DaCollectorStatus
     public required CollectionManagerConnectionStatus CollectionManager { get; init; }
 
     public required PlexTargetConnectionStatus PlexTarget { get; init; }
+
+    public required IReadOnlyList<ServerCapabilityStatus> ServerCapabilities { get; init; }
+}
+
+public sealed record ServerCapabilityStatus
+{
+    public required string Key { get; init; }
+
+    public required string Name { get; init; }
+
+    public required bool Completed { get; init; }
+
+    public required string Status { get; init; }
+
+    public required string Summary { get; init; }
+
+    public IReadOnlyList<string> Components { get; init; } = [];
+
+    public IReadOnlyList<string> ApiRoutes { get; init; } = [];
+
+    public IReadOnlyList<string> Notes { get; init; } = [];
 }
 
 public sealed record ProviderConnectionStatus

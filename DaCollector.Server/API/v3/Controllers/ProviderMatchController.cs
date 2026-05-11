@@ -43,12 +43,21 @@ public class ProviderMatchController(ISettingsProvider settingsProvider, Provide
     /// </summary>
     [HttpPost("Series/{mediaSeriesID}/Scan")]
     [Authorize("admin")]
-    public async Task<ActionResult> ScanSeries([FromRoute] int mediaSeriesID)
+    public async Task<ActionResult<ProviderMatchScanResult>> ScanSeries([FromRoute] int mediaSeriesID)
     {
         if (RepoFactory.MediaSeries.GetByID(mediaSeriesID) is null)
             return NotFound();
-        await matchQueueService.ScanSeriesAsync(mediaSeriesID);
-        return Ok();
+        return Ok(await matchQueueService.ScanSeriesAsync(mediaSeriesID).ConfigureAwait(false));
+    }
+
+    /// <summary>
+    /// Scans locally cached provider data to build match candidates for all series.
+    /// </summary>
+    [HttpPost("Scan")]
+    [Authorize("admin")]
+    public async Task<ActionResult<ProviderMatchBatchScanResult>> ScanAllSeries([FromQuery] bool onlyUnmatched = true)
+    {
+        return Ok(await matchQueueService.ScanAllSeriesAsync(onlyUnmatched).ConfigureAwait(false));
     }
 
     /// <summary>

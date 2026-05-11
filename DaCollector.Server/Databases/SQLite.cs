@@ -890,6 +890,13 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         new(146,  2, "CREATE INDEX IX_ProviderMatchCandidate_MediaSeriesID ON ProviderMatchCandidate(MediaSeriesID);"),
         new(146,  3, "CREATE INDEX IX_ProviderMatchCandidate_Status ON ProviderMatchCandidate(Status);"),
         new(147,  1, "CREATE UNIQUE INDEX UIX_ProviderMatchCandidate ON ProviderMatchCandidate(MediaSeriesID, Provider, ProviderItemID, ProviderType);"),
+        new(148,  1, "CREATE TABLE MediaFileReviewState ( MediaFileReviewStateID INTEGER PRIMARY KEY AUTOINCREMENT, VideoLocalID INTEGER NOT NULL, Status TEXT NOT NULL, ParsedKind TEXT NOT NULL, ParsedTitle TEXT NULL, ParsedYear INTEGER NULL, ParsedShowTitle TEXT NULL, ParsedSeasonNumber INTEGER NULL, ParsedEpisodeNumbersJson TEXT NOT NULL, ParsedAirDate TEXT NULL, ParsedExternalIdsJson TEXT NOT NULL, ParsedQuality TEXT NULL, ParsedSource TEXT NULL, ParsedEdition TEXT NULL, ParsedVideoCodec TEXT NULL, ParsedAudioCodec TEXT NULL, ParsedAudioChannels TEXT NULL, ParsedHdrFormatsJson TEXT NOT NULL, ParsedWarningsJson TEXT NOT NULL, ManualEntityType TEXT NULL, ManualEntityID INTEGER NULL, ManualProvider TEXT NULL, ManualProviderID TEXT NULL, ManualTitle TEXT NULL, Locked INTEGER NOT NULL, IgnoredReason TEXT NULL, CreatedAt DATETIME NOT NULL, UpdatedAt DATETIME NOT NULL, LastParsedAt DATETIME NOT NULL );"),
+        new(148,  2, "CREATE UNIQUE INDEX UIX_MediaFileReviewState_VideoLocalID ON MediaFileReviewState(VideoLocalID);"),
+        new(148,  3, "CREATE INDEX IX_MediaFileReviewState_Status ON MediaFileReviewState(Status);"),
+        new(149,  1, "CREATE TABLE MediaFileMatchCandidate ( MediaFileMatchCandidateID INTEGER PRIMARY KEY AUTOINCREMENT, VideoLocalID INTEGER NOT NULL, Provider TEXT NOT NULL, ProviderItemID INTEGER NOT NULL, ProviderType TEXT NOT NULL, Title TEXT NOT NULL, Year INTEGER NULL, ConfidenceScore REAL NOT NULL, ReasonsJson TEXT NOT NULL, Status TEXT NOT NULL, ReviewedAt DATETIME NULL, CreatedAt DATETIME NOT NULL, UpdatedAt DATETIME NOT NULL );"),
+        new(149,  2, "CREATE INDEX IX_MediaFileMatchCandidate_VideoLocalID ON MediaFileMatchCandidate(VideoLocalID);"),
+        new(149,  3, "CREATE INDEX IX_MediaFileMatchCandidate_Status ON MediaFileMatchCandidate(Status);"),
+        new(149,  4, "CREATE UNIQUE INDEX UIX_MediaFileMatchCandidate ON MediaFileMatchCandidate(VideoLocalID, Provider, ProviderItemID, ProviderType);"),
     ];
 
     #endregion

@@ -883,8 +883,17 @@ Result:
 - Local file endpoints can include persisted review state with `includeReview=true`.
 - Absolute file paths stay opt-in with `includeAbsolutePaths=true`.
 
-Next server slices:
-- Add NFO/runtime-aware matching signals and confidence thresholds for auto-match versus review.
+### ✅ P2 continued — NFO/Runtime-Aware Matching — DONE
+
+Implemented 2026-05-11, 139/139 tests pass.
+
+- **`NfoSidecarParser.cs`** — new static class that reads a Kodi-style `.nfo` sidecar file (same stem as the video, `<uniqueid type="imdb">`, `<runtime>`, `<year>`) and returns a `NfoSidecarData` record. Silently returns `null` on missing file or malformed XML so it never blocks scanning.
+- **`MediaFileMatchCandidateScoring.ComputeScore`** — extended with optional `queryRuntimeMinutes` / `candidateRuntimeMinutes` params. Adds +0.08 bonus when runtime is within 5 min, +0.04 within 10 min. Capped at 1.0 as before.
+- **`MediaFileMatchCandidateService`**:
+  - `BuildCandidatesAsync` now accepts `NfoSidecarData?`; if the NFO carries an IMDb ID, a direct `score = 1.0` candidate is added against any matching cached TMDB movie (same path as the existing `ParsedExternalIds` IMDb lookup).
+  - Cached TMDB movie and TVDB movie scans now forward NFO runtime and candidate runtime into `ComputeScore`.
+  - **Auto-match threshold** (`AutoMatchThreshold = 0.92`): after saving candidates, if the file status is `Pending` and exactly one candidate scores ≥ 0.92, it is auto-approved without requiring user review.
+- **`MediaFileMatchCandidateScoringTests`** — 4 new test cases: within-5-min bonus, within-10-min bonus, no bonus when far off, no bonus when candidate runtime is 0.
 
 ---
 

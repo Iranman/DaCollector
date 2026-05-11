@@ -973,6 +973,13 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(159,  2, "CREATE INDEX IX_ProviderMatchCandidate_MediaSeriesID ON ProviderMatchCandidate(MediaSeriesID);"),
         new(159,  3, "CREATE INDEX IX_ProviderMatchCandidate_Status ON ProviderMatchCandidate(Status);"),
         new(160,  1, "CREATE UNIQUE INDEX UIX_ProviderMatchCandidate ON ProviderMatchCandidate(MediaSeriesID, Provider, ProviderItemID, ProviderType);"),
+        new(161,  1, "CREATE TABLE MediaFileReviewState ( MediaFileReviewStateID INT IDENTITY(1,1) PRIMARY KEY, VideoLocalID INT NOT NULL, Status NVARCHAR(16) NOT NULL, ParsedKind NVARCHAR(16) NOT NULL, ParsedTitle NVARCHAR(MAX) NULL, ParsedYear INT NULL, ParsedShowTitle NVARCHAR(MAX) NULL, ParsedSeasonNumber INT NULL, ParsedEpisodeNumbersJson NVARCHAR(MAX) NOT NULL, ParsedAirDate NVARCHAR(16) NULL, ParsedExternalIdsJson NVARCHAR(MAX) NOT NULL, ParsedQuality NVARCHAR(64) NULL, ParsedSource NVARCHAR(64) NULL, ParsedEdition NVARCHAR(128) NULL, ParsedVideoCodec NVARCHAR(64) NULL, ParsedAudioCodec NVARCHAR(64) NULL, ParsedAudioChannels NVARCHAR(64) NULL, ParsedHdrFormatsJson NVARCHAR(MAX) NOT NULL, ParsedWarningsJson NVARCHAR(MAX) NOT NULL, ManualEntityType NVARCHAR(32) NULL, ManualEntityID INT NULL, ManualProvider NVARCHAR(32) NULL, ManualProviderID NVARCHAR(128) NULL, ManualTitle NVARCHAR(MAX) NULL, Locked BIT NOT NULL, IgnoredReason NVARCHAR(MAX) NULL, CreatedAt DATETIME NOT NULL, UpdatedAt DATETIME NOT NULL, LastParsedAt DATETIME NOT NULL );"),
+        new(161,  2, "CREATE UNIQUE INDEX UIX_MediaFileReviewState_VideoLocalID ON MediaFileReviewState(VideoLocalID);"),
+        new(161,  3, "CREATE INDEX IX_MediaFileReviewState_Status ON MediaFileReviewState(Status);"),
+        new(162,  1, "CREATE TABLE MediaFileMatchCandidate ( MediaFileMatchCandidateID INT IDENTITY(1,1) PRIMARY KEY, VideoLocalID INT NOT NULL, Provider NVARCHAR(32) NOT NULL, ProviderItemID INT NOT NULL, ProviderType NVARCHAR(16) NOT NULL, Title NVARCHAR(MAX) NOT NULL, Year INT NULL, ConfidenceScore FLOAT NOT NULL, ReasonsJson NVARCHAR(MAX) NOT NULL, Status NVARCHAR(16) NOT NULL, ReviewedAt DATETIME NULL, CreatedAt DATETIME NOT NULL, UpdatedAt DATETIME NOT NULL );"),
+        new(162,  2, "CREATE INDEX IX_MediaFileMatchCandidate_VideoLocalID ON MediaFileMatchCandidate(VideoLocalID);"),
+        new(162,  3, "CREATE INDEX IX_MediaFileMatchCandidate_Status ON MediaFileMatchCandidate(Status);"),
+        new(162,  4, "CREATE UNIQUE INDEX UIX_MediaFileMatchCandidate ON MediaFileMatchCandidate(VideoLocalID, Provider, ProviderItemID, ProviderType);"),
     ];
 
     #endregion
