@@ -958,7 +958,9 @@ public partial class ConfigurationService : IConfigurationService
                 }
 
                 _logger.LogTrace("Saving configuration for {Name}.", info.Name);
-                File.WriteAllText(info.Path, storedJson);
+                var tmpPath = info.Path + ".tmp";
+                File.WriteAllText(tmpPath, storedJson);
+                File.Move(tmpPath, info.Path, overwrite: true);
                 _logger.LogTrace("Saved configuration for {Name}.", info.Name);
             }
 
@@ -1021,7 +1023,9 @@ public partial class ConfigurationService : IConfigurationService
         if (!File.Exists(schemaPath))
         {
             _logger.LogTrace("Saving schema for {Name}.", info.Name);
-            File.WriteAllText(schemaPath, schemaJson);
+            var tmpSchemaPath1 = schemaPath + ".tmp";
+            File.WriteAllText(tmpSchemaPath1, schemaJson);
+            File.Move(tmpSchemaPath1, schemaPath, overwrite: true);
             _logger.LogTrace("Saved schema for {Name}.", info.Name);
             return;
         }
@@ -1030,7 +1034,9 @@ public partial class ConfigurationService : IConfigurationService
         if (!oldSchemaJson.Equals(schemaJson, StringComparison.Ordinal))
         {
             _logger.LogTrace("Schema for {Name} changed. Saving new schema.", info.Name);
-            File.WriteAllText(schemaPath, schemaJson);
+            var tmpSchemaPath2 = schemaPath + ".tmp";
+            File.WriteAllText(tmpSchemaPath2, schemaJson);
+            File.Move(tmpSchemaPath2, schemaPath, overwrite: true);
             _logger.LogTrace("Saved schema for {Name}.", info.Name);
         }
     }

@@ -657,6 +657,20 @@ docker inspect dacollector --format '{{.Image}}'
 ```
 Compare to the digest from `docker images dacollector:local`. If they differ the container is still on the old image.
 
+### ✅ P0.7 — Atomic Config File Writes — DONE
+
+Files:
+- `DaCollector.Server/Services/Configuration/ConfigurationService.cs`
+
+Fix:
+- `SaveInternal` now writes config to `{path}.tmp` then renames over the target, preventing a server crash mid-write from leaving a zero-byte config file.
+- Same pattern applied to schema file writes in `EnsureSchemaExists`.
+- Combined with the `6ef5b0e` empty-file recovery fix, the empty-config crash should not be reproducible from a clean volume.
+
+Acceptance criteria:
+- Build succeeds and all 135 unit tests pass.
+- A crash during `SaveInternal` cannot leave `settings-server.json` at 0 bytes on the next clean boot.
+
 ---
 
 ## P1 — DaCollector Relay and Movie/TV Source-of-Truth Track — PLANNED
@@ -690,6 +704,187 @@ Acceptance criteria:
 - Relay can map Plex library items back to DaCollector-managed media using file path or provider IDs.
 - Relay can expose DaCollector metadata and managed collections in Plex without downloading media or streaming from third-party sites.
 - Any future metadata provider expansion is documented as provider work and does not reintroduce legacy anime-only public surfaces.
+
+---
+
+## P2 — Detailed MVP Build Plan — ACTIVE
+
+Guiding principle:
+- Build DaCollector Server first. WebUI, CLI, Jellyfin, Kodi, and Plex integrations all depend on Server APIs and Server-owned data.
+- Do not start with Plex/Jellyfin/Kodi plugins. Build the local database, scanner, parser, matcher, provider cache, and manual review workflows first.
+- Translate any `/api/v1/...` examples from planning notes into the current `/api/v3/...` controller style unless deliberately versioning a new public API.
+
+MVP scope:
+- Docker container and WebUI login.
+- SQLite database and settings.
+- Add movie and TV libraries.
+- Scan folders and persist media-file records.
+- Parse movie, TV episode, date-based episode, multi-episode, quality, source, codec, HDR, and explicit provider IDs.
+- Match movies to TMDB.
+- Match TV shows/seasons/episodes to TVDB, with TMDB as fallback where appropriate.
+- Show unmatched files with suggested matches and confidence reasons.
+- Manual match, ignore, lock, and undo.
+- Basic poster/backdrop cache.
+- Basic logs and backups.
+
+Do not include in MVP:
+- Plex plugin/scanner/agent.
+- Jellyfin plugin.
+- Kodi addon.
+- Watched sync integrations.
+- Trakt sync.
+- Advanced duplicate cleanup.
+- Complex automation beyond the existing managed-collection baseline.
+
+### ✅ P2.1 — Server Capability Checklist — DONE
+
+Files:
+- `DaCollector.Server/Services/DaCollectorStatusService.cs`
+- `DaCollector.Server/API/v3/Controllers/DaCollectorStatusController.cs`
+- `DaCollector.Tests/DaCollectorStatusServiceTests.cs`
+
+Result:
+- `GET /api/v3/DaCollectorStatus/Capabilities` returns the operational checklist:
+  - scan folders
+  - hash files
+  - parse filenames
+  - match files
+  - fetch metadata
+  - store database records
+  - track watched status
+  - expose API endpoints
+  - serve the WebUI
+  - talk to plugins
+  - run background jobs
+- `GET /api/v3/DaCollectorStatus` includes the same checklist.
+
+### ✅ P2.2 — Filename Parser Foundation — DONE
+
+Files:
+- `DaCollector.Server/Parsing/FilenameParserService.cs`
+- `DaCollector.Server/API/v3/Controllers/ParserController.cs`
+- `DaCollector.Server/Services/SystemService.cs`
+- `DaCollector.Tests/FilenameParserServiceTests.cs`
+
+Result:
+- Added authenticated parser endpoints:
+  - `GET /api/v3/Parser/Filename?path=...`
+  - `POST /api/v3/Parser/Filename`
+- Parser currently detects:
+  - movie title/year
+  - explicit `{tmdb-id}` / `{tvdb-id}` / `{imdb-id}` markers
+  - TV `SxxExx`
+  - multi-episode `SxxEyy-Ezz`
+  - date-based episodes
+  - quality
+  - source
+  - edition
+  - video codec
+  - audio codec/channels
+  - HDR/Dolby Vision markers
+
+### ✅ P2.3 — Unmatched File Review State — DONE
+
+Files:
+- `DaCollector.Server/Models/Internal/MediaFileReviewState.cs`
+- `DaCollector.Server/Mappings/MediaFileReviewStateMap.cs`
+- `DaCollector.Server/Repositories/Direct/MediaFileReviewStateRepository.cs`
+- `DaCollector.Server/Media/MediaFileReviewService.cs`
+- `DaCollector.Server/API/v3/Controllers/MediaFileReviewController.cs`
+- `DaCollector.Tests/MediaFileReviewStateTests.cs`
+
+Result:
+- Added `MediaFileReviewState` database persistence for scanned files keyed by `VideoLocalID`.
+- Parser results are stored with unmatched file review state:
+  - parsed kind/title/year
+  - parsed show/season/episode numbers
+  - explicit provider IDs
+  - quality/source/edition/codecs/HDR warnings
+- Added authenticated review endpoints:
+  - `GET /api/v3/MediaFileReview/Files/Unmatched`
+  - `GET /api/v3/MediaFileReview/Files/{fileID}`
+  - `POST /api/v3/MediaFileReview/Files/{fileID}/RefreshParse`
+  - `POST /api/v3/MediaFileReview/Files/{fileID}/Ignore`
+  - `POST /api/v3/MediaFileReview/Files/{fileID}/Unignore`
+  - `POST /api/v3/MediaFileReview/Files/{fileID}/ManualMatch`
+  - `DELETE /api/v3/MediaFileReview/Files/{fileID}/ManualMatch`
+- Manual match and ignored-file choices are persisted separately from the scanner inventory, while still using existing `VideoLocal` records as the file source of truth.
+
+### ✅ P2.4 — File Match Candidate Generation — DONE
+
+Files:
+- `DaCollector.Server/Models/Internal/MediaFileMatchCandidate.cs`
+- `DaCollector.Server/Mappings/MediaFileMatchCandidateMap.cs`
+- `DaCollector.Server/Repositories/Direct/MediaFileMatchCandidateRepository.cs`
+- `DaCollector.Server/Media/MediaFileMatchCandidateService.cs`
+- `DaCollector.Server/Media/MediaFileMatchCandidateScoring.cs`
+- `DaCollector.Server/API/v3/Controllers/MediaFileReviewController.cs`
+- `DaCollector.Tests/MediaFileMatchCandidateScoringTests.cs`
+
+Result:
+- Added `MediaFileMatchCandidate` database persistence for provider suggestions keyed by `VideoLocalID`.
+- Candidate generation uses persisted parser guesses from `MediaFileReviewState`.
+- Current candidate sources:
+  - explicit `{tmdb-id}` and `{tvdb-id}` path/filename hints
+  - explicit IMDb IDs matched to cached TMDB movies
+  - cached TMDB movies/shows
+  - cached TVDB movies/shows
+- Added authenticated candidate endpoints:
+  - `POST /api/v3/MediaFileReview/Files/{fileID}/ScanMatches`
+  - `POST /api/v3/MediaFileReview/Files/ScanMatches`
+  - `GET /api/v3/MediaFileReview/Files/{fileID}/Candidates`
+  - `GET /api/v3/MediaFileReview/Candidates`
+  - `POST /api/v3/MediaFileReview/Candidates/{candidateID}/Approve`
+  - `DELETE /api/v3/MediaFileReview/Candidates/{candidateID}`
+- Approving a file candidate stores a locked manual match in the file review state and rejects sibling pending candidates for that file.
+
+### ✅ P2.5 — Online File Candidate Lookup — DONE
+
+Files:
+- `DaCollector.Server/Media/MediaFileMatchCandidateService.cs`
+- `DaCollector.Server/API/v3/Controllers/MediaFileReviewController.cs`
+- `DaCollector.Server/Services/DaCollectorStatusService.cs`
+
+Result:
+- Cached provider matching remains the default for file candidate scans.
+- Added opt-in online lookup flags:
+  - `includeOnlineSearch=true`
+  - `refreshExplicitIds=true`
+- `includeOnlineSearch=true` adds online TMDB movie/show search results to file candidates when local cache has weak or missing coverage.
+- `refreshExplicitIds=true` refreshes explicit TMDB/TVDB IDs into the provider cache before creating direct candidates.
+- TVDB title search is still not implemented because the current server provider only exposes TVDB refresh by known ID; TVDB online refresh works for explicit `{tvdb-id}` hints.
+- Candidate scan responses now echo whether online search and explicit-ID refresh were enabled.
+
+### ✅ P2.6 — Generic Media Read API — DONE
+
+Files:
+- `DaCollector.Server/API/v3/Controllers/MediaController.cs`
+- `DaCollector.Server/API/v3/Models/Media/*`
+- `DaCollector.Server/Media/MediaReadService.cs`
+- `DaCollector.Tests/MediaDtoTests.cs`
+
+Result:
+- Added provider-neutral read models for:
+  - movies
+  - shows
+  - seasons
+  - episodes
+  - local media files
+- Added authenticated generic media endpoints:
+  - `GET /api/v3/Media/Movies`
+  - `GET /api/v3/Media/Movies/{provider}/{providerID}`
+  - `GET /api/v3/Media/Shows`
+  - `GET /api/v3/Media/Shows/{provider}/{providerID}`
+  - `GET /api/v3/Media/Shows/{provider}/{providerID}/Seasons`
+  - `GET /api/v3/Media/Shows/{provider}/{providerID}/Episodes`
+  - `GET /api/v3/Media/Files`
+  - `GET /api/v3/Media/Files/{fileID}`
+- Provider selection supports `tmdb`, `tvdb`, and `all` on list endpoints.
+- Local file endpoints can include persisted review state with `includeReview=true`.
+- Absolute file paths stay opt-in with `includeAbsolutePaths=true`.
+
+Next server slices:
+- Add NFO/runtime-aware matching signals and confidence thresholds for auto-match versus review.
 
 ---
 
