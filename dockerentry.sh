@@ -131,7 +131,7 @@ ARGS=""
 trap 'kill -TERM $DOTNET_PID 2>/dev/null; exit 143' TERM INT
 
 while true; do
-  gosu $USER:$GROUP /usr/src/app/build/DaCollector.CLI $ARGS &
+  gosu $USER:$GROUP /app/DaCollector.CLI $ARGS &
   DOTNET_PID=$!
   wait $DOTNET_PID
   EXIT_CODE=$?
