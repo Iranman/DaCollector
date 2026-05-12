@@ -142,6 +142,6 @@ public class MediaDuplicateReviewServiceTests
         Assert.Equal(MediaDuplicateMatchType.PathHash, set.PrimaryMatchType);
         Assert.Equal(95, set.Score);
         Assert.Contains(set.ScoringReasons, reason => reason.Contains("Path hash match", StringComparison.OrdinalIgnoreCase));
-        Assert.Equal(1, set.Items.SelectMany(item => item.PathHashes).Distinct(StringComparer.OrdinalIgnoreCase).Count());
+        Assert.Single(set.Items.SelectMany(item => item.PathHashes).Distinct(StringComparer.OrdinalIgnoreCase));
     }
 }

@@ -897,20 +897,27 @@ public class SystemService : ISystemService
 
     #region Auto Update Timer
 
-    private void AutoUpdateTimer_Elapsed(object? sender, ElapsedEventArgs e)
+    private async void AutoUpdateTimer_Elapsed(object? sender, ElapsedEventArgs e)
     {
         if (RestartPending || ShutdownPending)
             return;
 
-        var actionService = _webHost!.Services.GetRequiredService<ActionService>();
+        try
+        {
+            var actionService = _webHost!.Services.GetRequiredService<ActionService>();
 
-        // TODO: Move all of these to Quartz
-        actionService.CheckForUnreadNotifications(false).GetAwaiter().GetResult();
-        actionService.CheckForCalendarUpdate(false).GetAwaiter().GetResult();
-        actionService.CheckForAnimeUpdate().GetAwaiter().GetResult();
-        actionService.CheckForMyListSyncUpdate(false).GetAwaiter().GetResult();
-        actionService.CheckForAniDBFileUpdate(false).GetAwaiter().GetResult();
-        actionService.CheckForPluginUpdates(false).GetAwaiter().GetResult();
+            // TODO: Move all of these to Quartz
+            await actionService.CheckForUnreadNotifications(false);
+            await actionService.CheckForCalendarUpdate(false);
+            await actionService.CheckForAnimeUpdate();
+            await actionService.CheckForMyListSyncUpdate(false);
+            await actionService.CheckForAniDBFileUpdate(false);
+            await actionService.CheckForPluginUpdates(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "AutoUpdateTimer encountered an error.");
+        }
     }
 
     #endregion
