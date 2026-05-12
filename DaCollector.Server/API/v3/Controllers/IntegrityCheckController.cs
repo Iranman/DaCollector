@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using DaCollector.Abstractions.Extensions;
 using DaCollector.Server.API.Annotations;
@@ -60,7 +61,7 @@ public class IntegrityCheckController : BaseController
     [HttpPost("{scanID}/Start")]
     public ActionResult StartScan(int scanID)
     {
-        return Ok();
+        return StatusCode(StatusCodes.Status501NotImplemented, "Integrity check scanning is not yet implemented.");
     }
 
     public IntegrityCheckController(ISettingsProvider settingsProvider) : base(settingsProvider)

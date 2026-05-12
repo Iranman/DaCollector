@@ -37,7 +37,17 @@ public static class APIv3_Extensions
     private static CreatorRoleType ToCreatorRole(string department, string job)
         => department switch
         {
-            // TODO: Implement this.
+            "Directing" => job == "Director" ? CreatorRoleType.Director : CreatorRoleType.Staff,
+            "Writing" => CreatorRoleType.Staff,
+            "Production" => job is "Producer" or "Executive Producer" or "Co-Producer" or "Associate Producer"
+                ? CreatorRoleType.Producer
+                : CreatorRoleType.Staff,
+            "Sound" => job is "Original Music Composer" or "Music" or "Composer" or "Music Producer"
+                ? CreatorRoleType.Music
+                : CreatorRoleType.Staff,
+            "Art" => job is "Character Designer" or "Character Design" or "Character Concept Artist"
+                ? CreatorRoleType.CharacterDesign
+                : CreatorRoleType.Staff,
             _ => CreatorRoleType.Staff,
         };
 
