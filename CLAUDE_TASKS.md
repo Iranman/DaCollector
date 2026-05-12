@@ -718,15 +718,18 @@ Structure:
 - Both scanners share a `.cfg` config file with Hostname, Port, ApiKey, PathRewrite.
 - `Scripts/config.py` — user configuration (DaCollector + Plex credentials, path rewrite rules).
 - `Scripts/common.py` — `DaCollectorClient` and `PlexClient` wrappers (uses `requests`).
-- `Scripts/watched_sync.py` — Plex ↔ DaCollector watched state sync skeleton.
-- `Scripts/collection_sync.py` — DaCollector managed collections → Plex collections skeleton.
+- `Scripts/watched_sync.py` — Plex ↔ DaCollector watched state sync (both directions implemented).
+- `Scripts/collection_sync.py` — DaCollector managed collections → Plex collections (member iteration implemented).
 
-Pending Server endpoints needed before Relay is fully functional:
-- `GET /api/v3/Media/Movies/{providerID}?provider=tmdb` — direct single-movie lookup (removes O(n) list scan in agent `update()`)
-- `GET /api/v3/Media/Shows/{providerID}?provider=tvdb` — direct single-show lookup
-- `GET /api/v3/Media/Files/PathEndsWith/{tail}` — let scanner verify a file is matched in DaCollector before presenting to Plex
-- `GET /api/v3/ManagedCollection/{id}/Members` with file paths — needed for collection_sync.py
-- `GET/POST /api/v3/MediaFileReview/Files/{fileID}/WatchedState` — needed for watched_sync.py
+Server endpoint blockers — all resolved as of 2026-05-11:
+- `GET /api/v3/Media/Movies/{provider}/{providerID}` — exists in `MediaController.cs` (route uses path params, not query param)
+- `GET /api/v3/Media/Shows/{provider}/{providerID}` — exists in `MediaController.cs`
+- `GET /api/v3/File/PathEndsWith/{*path}` — exists in `FileController.cs`
+- `GET /api/v3/ManagedCollection/{id}/Members` — **added**: returns `CollectionMemberDto[]` with matched local file locations; backed by `MediaFileReviewStateRepository.GetByManualMatch`
+- `GET /api/v3/MediaFileReview/Files/{fileID}/WatchedState` — **added**: returns `WatchedStateDto` (defaults to unwatched if file never played)
+- `POST /api/v3/MediaFileReview/Files/{fileID}/WatchedState` — **added**: accepts `{isWatched, watchedDate?}`; calls `IUserDataService.SetVideoWatchedStatus`
+
+Tests added: `DaCollector.Tests/RelayEndpointTests.cs` (6 tests — 139/139 total passing)
 
 ---
 
@@ -917,6 +920,25 @@ Implemented 2026-05-11, 139/139 tests pass.
   - Cached TMDB movie and TVDB movie scans now forward NFO runtime and candidate runtime into `ComputeScore`.
   - **Auto-match threshold** (`AutoMatchThreshold = 0.92`): after saving candidates, if the file status is `Pending` and exactly one candidate scores ≥ 0.92, it is auto-approved without requiring user review.
 - **`MediaFileMatchCandidateScoringTests`** — 4 new test cases: within-5-min bonus, within-10-min bonus, no bonus when far off, no bonus when candidate runtime is 0.
+
+### ✅ P2.7 — Auto-parse and Auto-match Unmatched Files During Import — DONE
+
+Implemented 2026-05-11, 147/147 tests pass.
+
+File:
+- `DaCollector.Server/Scheduling/Jobs/DaCollector/ProcessFileJob.cs`
+
+Change:
+- `ProcessFileJob` now injects `MediaFileMatchCandidateService` as a constructor dependency.
+- After the legacy release-provider lookup (AniDB, etc.), if no release was found for the file,
+  `ProcessFileJob` calls `_candidateService.ScanFileAsync(VideoLocalID, refreshExplicitIds: true)`.
+- This creates a `MediaFileReviewState` (filename parsed on first access), builds provider candidates
+  from the local TMDB/TVDB cache, and auto-approves any candidate scoring ≥ 0.92 (one match only).
+- Files that ARE matched by the legacy provider path are unaffected; candidate scan is skipped for them.
+
+Result:
+- Newly imported movie/TV files that aren't in the AniDB release database automatically appear in the
+  unmatched review queue with parsed metadata and provider candidates — no manual API call required.
 
 ---
 
