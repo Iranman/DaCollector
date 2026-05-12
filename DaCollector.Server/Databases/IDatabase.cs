@@ -12,6 +12,8 @@ public interface IDatabase
     string Name { get; }
     int RequiredVersion { get; }
     string GetDatabaseBackupName(int version);
+    string GetScheduledBackupName();
+    string GetBackupDirectory();
     void ExecuteDatabaseFixes();
     void PopulateInitialData();
     int GetDatabaseVersion();

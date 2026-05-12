@@ -197,7 +197,7 @@ public class DatabaseSettings
     }
 
     /// <summary>
-    /// Directory for where to store the backups during database migrations.
+    /// Directory for where to store the backups during database migrations and scheduled backups.
     /// </summary>
     [Display(Name = "Backup Directory")]
     [Visibility(
@@ -206,6 +206,30 @@ public class DatabaseSettings
     [RequiresRestart]
     [EnvironmentVariable("DB_BACKUP_DIRECTORY")]
     public string DatabaseBackupDirectory { get; set; } = Path.Combine(Utils.ApplicationPath, "DatabaseBackup");
+
+    /// <summary>
+    /// Enable automatic scheduled database backups.
+    /// </summary>
+    [Display(Name = "Enable Scheduled Backups")]
+    [EnvironmentVariable("DB_BACKUP_ENABLED")]
+    public bool ScheduledBackupEnabled { get; set; } = true;
+
+    /// <summary>
+    /// How often (in hours) to run a scheduled backup.
+    /// </summary>
+    [Display(Name = "Backup Interval (hours)")]
+    [Range(1, 8760)]
+    [EnvironmentVariable("DB_BACKUP_INTERVAL_HOURS")]
+    public int ScheduledBackupIntervalHours { get; set; } = 24;
+
+    /// <summary>
+    /// Maximum number of scheduled backup files to keep. Oldest files beyond this count are deleted.
+    /// Set to 0 to keep all backups.
+    /// </summary>
+    [Display(Name = "Backup Retention Count")]
+    [Range(0, 365)]
+    [EnvironmentVariable("DB_BACKUP_RETENTION")]
+    public int BackupRetentionCount { get; set; } = 7;
 
     /// <summary>
     /// Use database locking in the application. This should be left on if

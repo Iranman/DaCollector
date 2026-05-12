@@ -47,6 +47,15 @@ public static class QuartzStartup
             );
         }
 
+        var dbSettings = Utils.SettingsProvider.GetSettings().Database;
+        if (dbSettings.ScheduledBackupEnabled)
+        {
+            await ScheduleRecurringJob<BackupDatabaseJob>(
+                triggerConfig: t => t.WithSimpleSchedule(tr => tr.WithIntervalInHours(dbSettings.ScheduledBackupIntervalHours).RepeatForever()),
+                replace: true
+            );
+        }
+
         // TODO the other schedule-based jobs that are on timers
     }
 

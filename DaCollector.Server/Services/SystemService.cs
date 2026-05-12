@@ -396,6 +396,7 @@ public class SystemService : ISystemService
             services.AddSingleton<CollectionBuilderPreviewService>();
             services.AddSingleton<ManagedCollectionService>();
             services.AddSingleton<ManagedCollectionSyncService>();
+        services.AddSingleton<DatabaseBackupService>();
         services.AddSingleton<ExactDuplicateService>();
         services.AddSingleton<MediaDuplicateReviewService>();
         services.AddSingleton<MediaFileMatchCandidateService>();

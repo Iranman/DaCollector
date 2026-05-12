@@ -45,6 +45,8 @@ public abstract class BaseDatabase<T>(SystemService systemService) : IDatabase
         }
     }
 
+    public string GetBackupDirectory() => DatabaseBackupDirectoryPath;
+
     public abstract int RequiredVersion { get; }
 
     public string GetDatabaseBackupName(int version)
@@ -64,6 +66,23 @@ public abstract class BaseDatabase<T>(SystemService systemService) : IDatabase
                     dateNow.Year.ToString("D4") + dateNow.Month.ToString("D2") +
                     dateNow.Day.ToString("D2") + dateNow.Hour.ToString("D2") +
                     dateNow.Minute.ToString("D2");
+        return Path.Combine(DatabaseBackupDirectoryPath, fname);
+    }
+
+    public string GetScheduledBackupName()
+    {
+        var schema = Utils.SettingsProvider.GetSettings().Database.Schema;
+        try
+        {
+            Directory.CreateDirectory(DatabaseBackupDirectoryPath);
+        }
+        catch
+        {
+            //ignored
+        }
+
+        var now = DateTime.Now;
+        var fname = $"{schema}_scheduled_{now:yyyyMMdd_HHmmss}";
         return Path.Combine(DatabaseBackupDirectoryPath, fname);
     }
 
