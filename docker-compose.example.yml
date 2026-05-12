@@ -36,10 +36,9 @@ services:
       # Internal data directory. Do not change unless you understand the implications.
       DACOLLECTOR_HOME: /home/dacollector/.dacollector/DaCollector
 
-      # Set to "true" on TrueNAS/ZFS or ACL-managed datasets to skip recursive chown on startup.
-      # Without this a first-boot ownership repair can stall on large ZFS pools for several minutes.
-      # Only enable this if the mounted data directory is already writable by PUID/PGID.
-      SKIP_CHOWN: "false"
+      # Leave unset for auto-detection (ZFS/NFS skipped automatically).
+      # SKIP_CHOWN: "true"   # force-skip chown (set this if startup still hangs on ZFS/NFS)
+      # SKIP_CHOWN: "false"  # force-run chown even on ZFS/NFS
 
       # URL of your Plex Media Server.
       # Same machine as Docker:   http://host.docker.internal:32400
