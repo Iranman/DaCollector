@@ -22,8 +22,11 @@ elif [ "$PGID" -eq 100 ]; then
 fi
 
 # Create or update group.
-if [ $(getent group $GROUP) ]; then
-    if [ $(getent group $GROUP | cut -d: -f3) -ne $PGID ]; then
+# timeout 5 guards against getent hanging on LDAP/NIS-backed NSS (common on TrueNAS).
+GROUP_ENTRY=$(timeout 5 getent group $GROUP 2>/dev/null)
+if [ -n "$GROUP_ENTRY" ]; then
+    EXISTING_GID=$(echo "$GROUP_ENTRY" | cut -d: -f3)
+    if [ -n "$EXISTING_GID" ] && [ "$EXISTING_GID" -ne "$PGID" ]; then
         groupmod -g "$PGID" $GROUP
     fi
 else
@@ -31,8 +34,10 @@ else
 fi
 
 # Create or update user.
-if [ $(getent passwd $USER) ]; then
-    if [ $(getent passwd $USER | cut -d: -f3) -ne $PUID ]; then
+PASSWD_ENTRY=$(timeout 5 getent passwd $USER 2>/dev/null)
+if [ -n "$PASSWD_ENTRY" ]; then
+    EXISTING_UID=$(echo "$PASSWD_ENTRY" | cut -d: -f3)
+    if [ -n "$EXISTING_UID" ] && [ "$EXISTING_UID" -ne "$PUID" ]; then
         usermod -u "$PUID" $USER
     fi
     [ $(id -g $USER) -ne $PGID ] && usermod -g "$PGID" $USER
@@ -58,9 +63,22 @@ if [ ! -d "$DACOLLECTOR_HOME" ]; then
     mkdir -p "$DACOLLECTOR_HOME"
 fi
 
-# Set ownership of application data to dacollector user.
-# Set SKIP_CHOWN=true to bypass ownership repair (useful on TrueNAS/ZFS with ACL-managed datasets).
-SKIP_CHOWN=${SKIP_CHOWN:-false}
+# Auto-detect ZFS/NFS filesystems and skip recursive chown automatically.
+# These filesystems can hang indefinitely on chown -R (especially on TrueNAS/ZFS).
+# Override by setting SKIP_CHOWN=true (force skip) or SKIP_CHOWN=false (force chown).
+if [ -z "$SKIP_CHOWN" ]; then
+    FS_TYPE=$(df -T "$DACOLLECTOR_HOME" 2>/dev/null | awk 'NR==2 {print $2}')
+    case "$FS_TYPE" in
+        zfs|nfs|nfs4|cifs|smb*)
+            echo "Filesystem '$FS_TYPE' detected on $DACOLLECTOR_HOME — skipping recursive chown automatically."
+            SKIP_CHOWN=true
+            ;;
+        *)
+            SKIP_CHOWN=false
+            ;;
+    esac
+fi
+
 OWNER=$(stat -c '%u:%g' "$DACOLLECTOR_HOME" 2>/dev/null)
 if [ "$SKIP_CHOWN" = "true" ]; then
     echo "Ownership repair skipped (SKIP_CHOWN=true). Owner of $DACOLLECTOR_HOME: ${OWNER:-unknown}"
@@ -68,7 +86,7 @@ elif [ "$OWNER" != "$PUID:$PGID" ]; then
     echo "Ownership mismatch on $DACOLLECTOR_HOME"
     echo "  Current owner : ${OWNER:-unknown}"
     echo "  Expected owner: $PUID:$PGID"
-    echo "Starting ownership repair. This may be slow on large datasets or ZFS/TrueNAS volumes."
+    echo "Starting ownership repair. This may be slow on large datasets."
     echo "Set SKIP_CHOWN=true to skip this step if you manage permissions externally."
 
     # Fix parent directories without recursion (fast)

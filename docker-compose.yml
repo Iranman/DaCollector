@@ -29,8 +29,9 @@ services:
       TZ: "Etc/UTC"
       DACOLLECTOR_HOME: /home/dacollector/.dacollector/DaCollector
 
-      # Set to "true" on TrueNAS/ZFS or ACL-managed datasets only if permissions are already correct.
-      SKIP_CHOWN: "false"
+      # Override ownership repair behaviour. Leave unset for auto-detection (recommended).
+      # SKIP_CHOWN: "true"   # force-skip chown (ZFS/NFS auto-detected; set this if still hanging)
+      # SKIP_CHOWN: "false"  # force-run chown even on ZFS/NFS
 
       # Plex. Use a LAN IP if Plex is not on the Docker host.
       PLEX_TARGET_BASE_URL: "http://host.docker.internal:32400"
