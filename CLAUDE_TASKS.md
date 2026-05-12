@@ -940,6 +940,59 @@ Result:
 - Newly imported movie/TV files that aren't in the AniDB release database automatically appear in the
   unmatched review queue with parsed metadata and provider candidates — no manual API call required.
 
+### ✅ P2.8 — Basic Database Backups — DONE
+
+Implemented 2026-05-11, 152/152 tests pass.
+
+Files:
+- `DaCollector.Server/Databases/IDatabase.cs` — added `GetBackupDirectory()`, `GetScheduledBackupName()`
+- `DaCollector.Server/Databases/BaseDatabase.cs` — implemented both; `GetScheduledBackupName()` uses `Schema_scheduled_yyyyMMdd_HHmmss` (no version number)
+- `DaCollector.Server/Settings/DatabaseSettings.cs` — new fields: `ScheduledBackupEnabled` (default: true), `ScheduledBackupIntervalHours` (default: 24), `BackupRetentionCount` (default: 7); all overridable via env vars `DB_BACKUP_ENABLED` / `DB_BACKUP_INTERVAL_HOURS` / `DB_BACKUP_RETENTION`
+- `DaCollector.Server/Services/DatabaseBackupService.cs` — new service: `RunBackup()` (backup + retention), `GetBackupFiles()`, `DeleteBackup(fileName)` (path-traversal guard; only deletes scheduled backups' names, not migration backups)
+- `DaCollector.Server/Scheduling/Jobs/DaCollector/BackupDatabaseJob.cs` — `[LimitConcurrency(1,1)]` Quartz job calling `RunBackup()`
+- `DaCollector.Server/Scheduling/QuartzStartup.cs` — schedules `BackupDatabaseJob` at configured interval when `ScheduledBackupEnabled`
+- `DaCollector.Server/API/v3/Controllers/DatabaseController.cs` — new admin-only controller:
+  - `GET  /api/v3/Database/Backups` — list all backup files with name/size/createdAt
+  - `POST /api/v3/Database/Backups` — immediate synchronous backup
+  - `POST /api/v3/Database/Backups/Queue` — enqueue background backup job
+  - `DELETE /api/v3/Database/Backups/{fileName}` — delete one file
+- `DaCollector.Server/Services/SystemService.cs` — registered `DatabaseBackupService` as singleton
+- `DaCollector.Tests/DatabaseBackupServiceTests.cs` — 5 tests: retention keeps newest N, keeps all when below limit, keeps all when retention is 0, never deletes migration backups, rejects path traversal
+
+### ✅ P2.9 — Relay Server Endpoints — DONE
+
+Implemented 2026-05-11, 147/147 tests at time of commit.
+
+Files:
+- `DaCollector.Server/API/v3/Controllers/ManagedCollectionController.cs` — added `GET /api/v3/ManagedCollection/{id}/Members` returning `CollectionMemberDto[]` (matched local file locations via `MediaFileReviewState` manual match)
+- `DaCollector.Server/API/v3/Controllers/MediaFileReviewController.cs` — added `GET /api/v3/MediaFileReview/Files/{fileID}/WatchedState` and `POST /api/v3/MediaFileReview/Files/{fileID}/WatchedState`
+- `DaCollector.Server/API/v3/Models/Collections/CollectionMemberDto.cs` — new DTO
+- `DaCollector.Server/Repositories/Direct/MediaFileReviewStateRepository.cs` — added `GetByManualMatch` query
+- `DaCollector.Tests/RelayEndpointTests.cs` — 8 unit tests
+
+### ✅ P2.10 — Docker BuildKit Cache Mounts — DONE
+
+Implemented 2026-05-11.
+
+- `Dockerfile`, `Dockerfile.aarch64`, `Dockerfile.combined` — two-stage builds with `--mount=type=cache,target=/root/.nuget/packages`; project files copied before source so NuGet restore cache survives pure source edits.
+
+---
+
+## P2 MVP Completion Summary
+
+All MVP scope items are now delivered:
+- ✅ Docker container and WebUI login (P0 series)
+- ✅ SQLite database and settings
+- ✅ Add movie and TV libraries (ManagedFolderController)
+- ✅ Scan folders and persist media-file records (ScanFolderJob pipeline)
+- ✅ Parse movie, TV episode, multi-episode, quality, codec, HDR, explicit provider IDs (P2.2)
+- ✅ Match movies to TMDB (P2.4/P2.5)
+- ✅ Match TV shows/seasons/episodes to TVDB, TMDB fallback (TVDB provider)
+- ✅ Show unmatched files with suggested matches and confidence reasons (P2.3)
+- ✅ Manual match, ignore, lock, and undo (P2.3)
+- ✅ Basic poster/backdrop cache (TmdbImageService + ImageController — legacy infrastructure)
+- ✅ Basic logs and backups (LoggingController + P2.8 DatabaseBackupService)
+
 ---
 
 ## Verification Commands
