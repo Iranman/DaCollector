@@ -1,13 +1,16 @@
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using DaCollector.Abstractions.User.Services;
 using DaCollector.Server.API.Annotations;
 using DaCollector.Server.API.v3.Models.Common;
 using DaCollector.Server.Media;
 using DaCollector.Server.Models.Internal;
+using DaCollector.Server.Repositories;
 using DaCollector.Server.Settings;
 
 #nullable enable
@@ -23,7 +26,8 @@ namespace DaCollector.Server.API.v3.Controllers;
 public class MediaFileReviewController(
     ISettingsProvider settingsProvider,
     MediaFileReviewService reviewService,
-    MediaFileMatchCandidateService candidateService
+    MediaFileMatchCandidateService candidateService,
+    IUserDataService userDataService
 ) : BaseController(settingsProvider)
 {
     /// <summary>
@@ -167,10 +171,74 @@ public class MediaFileReviewController(
     [Authorize("admin")]
     public ActionResult<MediaFileReviewItem> ClearManualMatch([FromRoute] int fileID)
         => reviewService.ClearManualMatch(fileID) is { } item ? Ok(item) : NotFound();
+
+    /// <summary>
+    /// Returns the watched state for one local media file for the current user.
+    /// Returns a default (unwatched) state if the file exists but has never been played.
+    /// </summary>
+    [HttpGet("Files/{fileID}/WatchedState")]
+    public ActionResult<WatchedStateDto> GetWatchedState([FromRoute] int fileID)
+    {
+        var file = RepoFactory.VideoLocal.GetByID(fileID);
+        if (file is null) return NotFound();
+        var user = HttpContext.GetUser();
+        var data = userDataService.GetVideoUserData(file, user);
+        return Ok(data is null
+            ? new WatchedStateDto()
+            : new WatchedStateDto
+            {
+                IsWatched        = data.LastPlayedAt.HasValue,
+                WatchedDate      = data.LastPlayedAt,
+                WatchedCount     = data.PlaybackCount,
+                ResumePositionMs = (long)data.ProgressPosition.TotalMilliseconds,
+                LastUpdated      = data.LastUpdatedAt,
+            });
+    }
+
+    /// <summary>
+    /// Sets the watched state for one local media file for the current user.
+    /// </summary>
+    [HttpPost("Files/{fileID}/WatchedState")]
+    [Authorize("admin")]
+    public async Task<ActionResult<WatchedStateDto>> SetWatchedState(
+        [FromRoute] int fileID,
+        [FromBody] SetWatchedRequest request
+    )
+    {
+        var file = RepoFactory.VideoLocal.GetByID(fileID);
+        if (file is null) return NotFound();
+        var user = HttpContext.GetUser();
+        var isWatched = request.IsWatched ?? false;
+        var lastPlayedAt = isWatched ? (request.WatchedDate ?? DateTime.UtcNow) : (DateTime?)null;
+        var data = await userDataService.SetVideoWatchedStatus(file, user, isWatched, lastPlayedAt).ConfigureAwait(false);
+        return Ok(new WatchedStateDto
+        {
+            IsWatched        = data.LastPlayedAt.HasValue,
+            WatchedDate      = data.LastPlayedAt,
+            WatchedCount     = data.PlaybackCount,
+            ResumePositionMs = (long)data.ProgressPosition.TotalMilliseconds,
+            LastUpdated      = data.LastUpdatedAt,
+        });
+    }
 }
 
 public sealed record IgnoreFileRequest
 {
     [MaxLength(1000)]
     public string? Reason { get; init; }
+}
+
+public sealed record WatchedStateDto
+{
+    public bool IsWatched { get; init; }
+    public DateTime? WatchedDate { get; init; }
+    public int WatchedCount { get; init; }
+    public long ResumePositionMs { get; init; }
+    public DateTime? LastUpdated { get; init; }
+}
+
+public sealed record SetWatchedRequest
+{
+    public bool? IsWatched { get; init; }
+    public DateTime? WatchedDate { get; init; }
 }

@@ -46,4 +46,17 @@ public class MediaFileReviewStateRepository : BaseDirectRepository<MediaFileRevi
                 .ToList();
         });
     }
+
+    public IReadOnlyList<MediaFileReviewState> GetByManualMatch(string provider, string providerID)
+    {
+        return Lock(() =>
+        {
+            using var session = _databaseFactory.SessionFactory.OpenSession();
+            return session.Query<MediaFileReviewState>()
+                .Where(a => a.Status == MediaFileReviewStatus.ManualMatch
+                         && a.ManualProvider == provider
+                         && a.ManualProviderID == providerID)
+                .ToList();
+        });
+    }
 }
