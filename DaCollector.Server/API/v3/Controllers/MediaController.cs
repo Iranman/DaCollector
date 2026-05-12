@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
@@ -152,6 +153,39 @@ public class MediaController(
         [FromQuery] bool includeAbsolutePaths = false
     )
         => mediaReadService.GetFile(fileID, includeReview, includeAbsolutePaths) is { } file ? Ok(file) : NotFound();
+
+    /// <summary>
+    /// Find local media files whose path ends with the given suffix.
+    /// </summary>
+    [HttpGet("Files/PathEndsWith")]
+    public ActionResult<IReadOnlyList<MediaFileDto>> GetFilesByPathEndsWithQuery(
+        [FromQuery] string tail,
+        [FromQuery] bool includeReview = true,
+        [FromQuery] bool includeAbsolutePaths = false
+    )
+    {
+        if (string.IsNullOrWhiteSpace(tail))
+            return Ok(Array.Empty<MediaFileDto>());
+
+        return Ok(mediaReadService.GetFilesByPathEndsWith(tail, includeReview, includeAbsolutePaths));
+    }
+
+    /// <summary>
+    /// Find local media files whose path ends with the given suffix (path-segment form).
+    /// </summary>
+    [HttpGet("Files/PathEndsWith/{*tail}")]
+    public ActionResult<IReadOnlyList<MediaFileDto>> GetFilesByPathEndsWith(
+        [FromRoute] string tail,
+        [FromQuery] bool includeReview = true,
+        [FromQuery] bool includeAbsolutePaths = false
+    )
+    {
+        if (string.IsNullOrWhiteSpace(tail))
+            return Ok(Array.Empty<MediaFileDto>());
+
+        return Ok(mediaReadService.GetFilesByPathEndsWith(
+            Uri.UnescapeDataString(tail), includeReview, includeAbsolutePaths));
+    }
 
     private bool ValidateProvider(string provider, bool allowAll)
     {

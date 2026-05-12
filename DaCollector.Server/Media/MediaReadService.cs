@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using DaCollector.Server.API.v3.Models.Media;
 using DaCollector.Server.Models.Internal;
@@ -129,6 +130,23 @@ public class MediaReadService(MediaFileReviewStateRepository reviewStateReposito
         => RepoFactory.VideoLocal.GetByID(fileID) is { } file
             ? MediaFileDto.FromVideoLocal(file, includeReview ? GetReview(file.VideoLocalID) : null, includeAbsolutePaths)
             : null;
+
+    public IReadOnlyList<MediaFileDto> GetFilesByPathEndsWith(string tail, bool includeReview, bool includeAbsolutePaths)
+    {
+        var normalized = tail
+            .Replace('/', Path.DirectorySeparatorChar)
+            .Replace('\\', Path.DirectorySeparatorChar);
+
+        return RepoFactory.VideoLocalPlace.GetAll()
+            .Where(place => place.Path?.EndsWith(normalized, StringComparison.OrdinalIgnoreCase) == true
+                         || place.RelativePath.EndsWith(normalized, StringComparison.OrdinalIgnoreCase))
+            .Select(place => place.VideoLocal)
+            .Where(file => file is not null)
+            .DistinctBy(file => file!.VideoLocalID)
+            .Select(file => MediaFileDto.FromVideoLocal(
+                file!, includeReview ? GetReview(file!.VideoLocalID) : null, includeAbsolutePaths))
+            .ToList();
+    }
 
     public static bool IsValidProvider(string provider, bool allowAll)
     {
