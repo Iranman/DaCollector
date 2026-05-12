@@ -1052,12 +1052,12 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         using var session = Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().SessionFactory.OpenStatelessSession();
         using var trans = session.BeginTransaction();
 
-        // OBJECT_ID returns NULL for non-existent tables, so this also covers the renamed-table case
+        // OBJECT_ID returns NULL for non-existent tables, covering both missing and renamed-table cases
         // (e.g. AnimeEpisode renamed to MediaEpisode by a later patch before PostDatabaseFix runs).
-        var columnExists = session.CreateSQLQuery(
-            $"SELECT COUNT(*) FROM sys.columns WHERE NAME = N'{column}' AND object_id = OBJECT_ID(N'{table}')")
-            .UniqueResult<int>() > 0;
-        if (!columnExists)
+        var columnId = session.CreateSQLQuery(
+            $"SELECT column_id FROM sys.columns WHERE NAME = N'{column}' AND object_id = OBJECT_ID(N'{table}')")
+            .UniqueResult<int?>();
+        if (!columnId.HasValue)
         {
             trans.Commit();
             return;
@@ -1065,10 +1065,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
 
         var query = $@"SELECT Name FROM sys.default_constraints
                         WHERE PARENT_OBJECT_ID = OBJECT_ID('{table}')
-                          AND PARENT_COLUMN_ID = (
-                            SELECT column_id FROM sys.columns
-                            WHERE NAME = N'{column}' AND object_id = OBJECT_ID(N'{table}')
-                            )";
+                          AND PARENT_COLUMN_ID = {columnId.Value}";
         var name = session.CreateSQLQuery(query).UniqueResult<string>();
         if (name != null)
         {

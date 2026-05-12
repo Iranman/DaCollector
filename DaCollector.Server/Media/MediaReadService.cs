@@ -137,14 +137,23 @@ public class MediaReadService(MediaFileReviewStateRepository reviewStateReposito
             .Replace('/', Path.DirectorySeparatorChar)
             .Replace('\\', Path.DirectorySeparatorChar);
 
-        return RepoFactory.VideoLocalPlace.GetAll()
+        var files = RepoFactory.VideoLocalPlace.GetAll()
             .Where(place => place.Path?.EndsWith(normalized, StringComparison.OrdinalIgnoreCase) == true
                          || place.RelativePath.EndsWith(normalized, StringComparison.OrdinalIgnoreCase))
             .Select(place => place.VideoLocal)
             .Where(file => file is not null)
-            .DistinctBy(file => file!.VideoLocalID)
+            .Select(file => file!)
+            .DistinctBy(file => file.VideoLocalID)
+            .ToList();
+
+        var reviews = includeReview
+            ? reviewStateRepository.GetByVideoLocalIDs(files.Select(f => f.VideoLocalID))
+                .ToDictionary(r => r.VideoLocalID, MediaFileReviewStateDto.FromState)
+            : null;
+
+        return files
             .Select(file => MediaFileDto.FromVideoLocal(
-                file!, includeReview ? GetReview(file!.VideoLocalID) : null, includeAbsolutePaths))
+                file, reviews?.GetValueOrDefault(file.VideoLocalID), includeAbsolutePaths))
             .ToList();
     }
 
