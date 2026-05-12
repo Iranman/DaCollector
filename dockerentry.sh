@@ -90,8 +90,6 @@ LOG_DIR="$DACOLLECTOR_HOME/logs"
 mkdir -p "$LOG_DIR"
 chown $PUID:$PGID "$LOG_DIR"
 
-# Set ownership of DaCollector files to dacollector user
-chown -R $USER:$GROUP /usr/src/app/build/
 if [ -d /root/.dacollector ]; then
     echo "
 -------------------------------------
