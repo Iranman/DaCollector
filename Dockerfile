@@ -1,3 +1,13 @@
+# syntax=docker/dockerfile:1.7
+#
+# Two-stage build for x86-64 Linux.
+# Stage 1 (build):   compiles the .NET server.
+# Stage 2 (runtime): minimal ASP.NET image with the compiled binaries.
+#
+# NuGet packages are cached across rebuilds via BuildKit cache mounts so only
+# new/changed packages are downloaded. The project-files-only COPY before the
+# restore step means a pure source edit does not invalidate the package cache.
+
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 
 ARG version=0.0.1-local
@@ -6,37 +16,68 @@ ARG commit=local
 ARG tag=local
 ARG date=local
 
-#MAINTAINER Cayde Dixon <me@cazzar.net>
+WORKDIR /src
 
-RUN mkdir -p /usr/src/app/source /usr/src/app/build
-COPY . /usr/src/app/source
-WORKDIR /usr/src/app/source
+# Copy only project files first so NuGet restore is cached independently of
+# source changes. .dockerignore excludes **/obj/**/* so restore artifacts
+# survive the subsequent full COPY.
+COPY DaCollector.sln .
+COPY DaCollector.Abstractions/DaCollector.Abstractions.csproj         DaCollector.Abstractions/
+COPY DaCollector.CLI/DaCollector.CLI.csproj                           DaCollector.CLI/
+COPY DaCollector.Server/DaCollector.Server.csproj                     DaCollector.Server/
+COPY DaCollector.TrayService/DaCollector.TrayService.csproj           DaCollector.TrayService/
+COPY DaCollector.Tests/DaCollector.Tests.csproj                       DaCollector.Tests/
+COPY DaCollector.IntegrationTests/DaCollector.IntegrationTests.csproj DaCollector.IntegrationTests/
+COPY DaCollector.Benchmarks/DaCollector.Benchmarks.csproj             DaCollector.Benchmarks/
+COPY DaCollector.TestData/DaCollector.TestData.csproj                 DaCollector.TestData/
 
-RUN dotnet build -c=Release -r linux-x64 -f net10.0 -o=/usr/src/app/build/ DaCollector.CLI/DaCollector.CLI.csproj /p:Version="${version}" /p:InformationalVersion="\"channel=${channel},commit=${commit},tag=${tag},date=${date},\""
+RUN --mount=type=cache,target=/root/.nuget/packages \
+    dotnet restore DaCollector.CLI/DaCollector.CLI.csproj -r linux-x64
+
+COPY . .
+
+RUN --mount=type=cache,target=/root/.nuget/packages \
+    dotnet build -c Release -r linux-x64 -f net10.0 --no-restore \
+        -o /app/build DaCollector.CLI/DaCollector.CLI.csproj \
+        /p:Version="${version}" \
+        /p:InformationalVersion="\"channel=${channel},commit=${commit},tag=${tag},date=${date},\""
+
+# ---------------------------------------------------------------------------
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0
+
 ENV PUID=1000 \
     PGID=100 \
     LANG=C.UTF-8 \
     LC_CTYPE=C.UTF-8 \
     LC_ALL=C.UTF-8
 
-RUN apt-get update && apt-get install -y gnupg curl
+# Install MediaInfo and runtime dependencies in a single layer.
+# apt cache mounts avoid re-downloading .deb files on every rebuild.
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update \
+    && apt-get install -y --no-install-recommends gnupg curl ca-certificates \
+    && curl --retry 3 -fsSL https://mediaarea.net/repo/deb/debian/pubkey.gpg -o /tmp/mi.gpg \
+    && gpg --no-default-keyring --keyring /tmp/mi-keyring.gpg --import /tmp/mi.gpg \
+    && gpg --no-default-keyring --keyring /tmp/mi-keyring.gpg --export \
+           --output /usr/share/keyrings/mediainfo.gpg \
+    && rm /tmp/mi.gpg /tmp/mi-keyring.gpg \
+    && echo "deb [signed-by=/usr/share/keyrings/mediainfo.gpg] https://mediaarea.net/repo/deb/debian/ bookworm main" \
+       > /etc/apt/sources.list.d/mediainfo.list \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends apt-utils gosu mediainfo librhash-dev
 
-RUN curl --retry 3 -O https://mediaarea.net/repo/deb/debian/pubkey.gpg
-# This converts the old format gpg key to the new format. The old format cannot be used with [signed-by] in the apt sources.list file.
-RUN gpg --no-default-keyring --keyring ./temp-keyring.gpg --import pubkey.gpg && gpg --no-default-keyring --keyring ./temp-keyring.gpg --export --output /usr/share/keyrings/mediainfo.gpg && rm pubkey.gpg
-RUN echo "deb [signed-by=/usr/share/keyrings/mediainfo.gpg] https://mediaarea.net/repo/deb/debian/ bookworm main" | tee -a /etc/apt/sources.list
-
-RUN apt-get update && apt-get install -y apt-utils gosu mediainfo librhash-dev
-
-WORKDIR /usr/src/app/build
-COPY --from=build /usr/src/app/build .
+WORKDIR /app
+COPY --from=build /app/build .
 COPY ./dockerentry.sh /dockerentry.sh
 
 VOLUME /home/dacollector/.dacollector/
 
-HEALTHCHECK --start-period=5m CMD curl -s -H "Content-Type: application/json" -H 'Accept: application/json' 'http://localhost:38111/api/v3/Init/Status' || exit 1
+HEALTHCHECK --start-period=5m CMD curl -s \
+    -H "Content-Type: application/json" \
+    -H "Accept: application/json" \
+    "http://localhost:38111/api/v3/Init/Status" || exit 1
 
 EXPOSE 38111
 

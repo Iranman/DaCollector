@@ -17,7 +17,10 @@ ARG version=0.0.1-local
 ARG commit=local
 ARG date=local
 
-RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates && rm -rf /var/lib/apt/lists/*
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends git ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN git init /usr/src/app/webui \
     && cd /usr/src/app/webui \
     && git remote add origin "${WEBUI_REPO}" \
@@ -25,13 +28,19 @@ RUN git init /usr/src/app/webui \
     && git checkout --detach FETCH_HEAD
 
 WORKDIR /usr/src/app/webui
-RUN npm ci
+
+# npm cache persists across builds; only re-downloads packages when
+# package-lock.json changes.
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci
+
 RUN npm run build
 
-# Generate version.json so the server knows the bundled WebUI version.
 RUN printf '{"package":"%s","minimumServerVersion":"0.0.1","tag":"v%s","git":"%s","date":"%s","channel":"Stable"}' \
       "$version" "$version" "$commit" "$date" \
     > dist/version.json
+
+# ---------------------------------------------------------------------------
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 
@@ -42,45 +51,87 @@ ARG commit=local
 ARG tag=local
 ARG date=local
 
-RUN mkdir -p /usr/src/app/source /usr/src/app/build
-COPY . /usr/src/app/source
+WORKDIR /src
 
-# Replace the bundled static bootstrap pages with the React WebUI build.
-RUN rm -rf /usr/src/app/source/DaCollector.Server/webui/*
-COPY --from=webui-build /usr/src/app/webui/dist/ /usr/src/app/source/DaCollector.Server/webui/
+# Copy only project files first. This layer is invalidated only when a .csproj
+# or .sln changes, not on every source edit. NuGet restore runs here and its
+# output (obj/project.assets.json) is preserved through the next COPY step
+# because .dockerignore excludes **/obj/**/* from host copies.
+COPY DaCollector.sln .
+COPY DaCollector.Abstractions/DaCollector.Abstractions.csproj         DaCollector.Abstractions/
+COPY DaCollector.CLI/DaCollector.CLI.csproj                           DaCollector.CLI/
+COPY DaCollector.Server/DaCollector.Server.csproj                     DaCollector.Server/
+COPY DaCollector.TrayService/DaCollector.TrayService.csproj           DaCollector.TrayService/
+COPY DaCollector.Tests/DaCollector.Tests.csproj                       DaCollector.Tests/
+COPY DaCollector.IntegrationTests/DaCollector.IntegrationTests.csproj DaCollector.IntegrationTests/
+COPY DaCollector.Benchmarks/DaCollector.Benchmarks.csproj             DaCollector.Benchmarks/
+COPY DaCollector.TestData/DaCollector.TestData.csproj                 DaCollector.TestData/
 
-WORKDIR /usr/src/app/source
-
-RUN case "${TARGETARCH}" in \
-      amd64) runtime_id="linux-x64" ;; \
-      arm64) runtime_id="linux-arm64" ;; \
+# Restore with a persistent NuGet package cache. Packages survive image
+# rebuilds so only newly added/updated packages are downloaded.
+RUN --mount=type=cache,target=/root/.nuget/packages \
+    case "${TARGETARCH}" in \
+      amd64) rid="linux-x64" ;; \
+      arm64) rid="linux-arm64" ;; \
       *) echo "Unsupported Docker target architecture: ${TARGETARCH}" >&2; exit 1 ;; \
     esac \
-    && dotnet build -c=Release -r="${runtime_id}" -f net10.0 -o=/usr/src/app/build/ DaCollector.CLI/DaCollector.CLI.csproj /p:Version="${version}" /p:InformationalVersion="\"channel=${channel},commit=${commit},tag=${tag},date=${date},\""
+    && dotnet restore DaCollector.CLI/DaCollector.CLI.csproj -r "${rid}"
+
+# Copy full source. obj/ is excluded by .dockerignore so the restore
+# artifacts from the previous step are preserved.
+COPY . .
+
+# Replace the bundled static bootstrap pages with the React WebUI build.
+RUN rm -rf DaCollector.Server/webui/*
+COPY --from=webui-build /usr/src/app/webui/dist/ DaCollector.Server/webui/
+
+RUN --mount=type=cache,target=/root/.nuget/packages \
+    case "${TARGETARCH}" in \
+      amd64) rid="linux-x64" ;; \
+      arm64) rid="linux-arm64" ;; \
+      *) echo "Unsupported Docker target architecture: ${TARGETARCH}" >&2; exit 1 ;; \
+    esac \
+    && dotnet build -c Release -r "${rid}" -f net10.0 --no-restore \
+         -o /app/build DaCollector.CLI/DaCollector.CLI.csproj \
+         /p:Version="${version}" \
+         /p:InformationalVersion="\"channel=${channel},commit=${commit},tag=${tag},date=${date},\""
+
+# ---------------------------------------------------------------------------
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0
+
 ENV PUID=1000 \
     PGID=100 \
     LANG=C.UTF-8 \
     LC_CTYPE=C.UTF-8 \
     LC_ALL=C.UTF-8
 
-RUN apt-get update && apt-get install -y gnupg curl
+# Install MediaInfo and runtime dependencies in a single layer.
+# apt cache mounts avoid re-downloading .deb files on every rebuild.
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update \
+    && apt-get install -y --no-install-recommends gnupg curl ca-certificates \
+    && curl --retry 3 -fsSL https://mediaarea.net/repo/deb/debian/pubkey.gpg -o /tmp/mi.gpg \
+    && gpg --no-default-keyring --keyring /tmp/mi-keyring.gpg --import /tmp/mi.gpg \
+    && gpg --no-default-keyring --keyring /tmp/mi-keyring.gpg --export \
+           --output /usr/share/keyrings/mediainfo.gpg \
+    && rm /tmp/mi.gpg /tmp/mi-keyring.gpg \
+    && echo "deb [signed-by=/usr/share/keyrings/mediainfo.gpg] https://mediaarea.net/repo/deb/debian/ bookworm main" \
+       > /etc/apt/sources.list.d/mediainfo.list \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends apt-utils gosu mediainfo librhash-dev
 
-RUN curl --retry 3 -O https://mediaarea.net/repo/deb/debian/pubkey.gpg
-RUN gpg --no-default-keyring --keyring ./temp-keyring.gpg --import pubkey.gpg && gpg --no-default-keyring --keyring ./temp-keyring.gpg --export --output /usr/share/keyrings/mediainfo.gpg && rm pubkey.gpg
-RUN echo "deb [signed-by=/usr/share/keyrings/mediainfo.gpg] https://mediaarea.net/repo/deb/debian/ bookworm main" | tee -a /etc/apt/sources.list
-
-RUN apt-get update && apt-get install -y apt-utils gosu mediainfo librhash-dev
-
-WORKDIR /usr/src/app/build
-COPY --from=build /usr/src/app/build .
+WORKDIR /app
+COPY --from=build /app/build .
 COPY ./dockerentry.sh /dockerentry.sh
 
 VOLUME /home/dacollector/.dacollector/
 
-HEALTHCHECK --start-period=5m CMD curl -s -H "Content-Type: application/json" -H 'Accept: application/json' 'http://localhost:38111/api/v3/Init/Status' || exit 1
+HEALTHCHECK --start-period=5m CMD curl -s \
+    -H "Content-Type: application/json" \
+    -H "Accept: application/json" \
+    "http://localhost:38111/api/v3/Init/Status" || exit 1
 
 EXPOSE 38111
-
 ENTRYPOINT ["/bin/bash", "/dockerentry.sh"]
