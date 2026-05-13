@@ -1017,21 +1017,18 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
             var config = new LoggingConfiguration();
 
             var fileTarget = BuildFileTarget(applicationPaths);
+            var debugFileTarget = BuildDebugFileTarget(applicationPaths);
             var consoleTarget = BuildConsoleTarget(LogSerializeFormat.Console);
             var signalrTarget = BuildSignalRTarget();
             var voidTarget = new NullTarget("void");
             config.AddTarget(fileTarget);
+            config.AddTarget(debugFileTarget);
             config.AddTarget(consoleTarget);
             config.AddTarget(signalrTarget);
             config.AddTarget(voidTarget);
 
-            RebuildLoggingRules(config, GetDefaultLogLevelRules(), voidTarget, fileTarget, consoleTarget, signalrTarget);
-            ApplyMessageRedactionFilter(config, fileTarget, consoleTarget, signalrTarget);
-#if DEBUG
-            // Enable debug logging
-            config.LoggingRules.FirstOrDefault(a => a.Targets.Contains(fileTarget))
-                ?.EnableLoggingForLevel(NLogLevel.Debug);
-#endif
+            RebuildLoggingRules(config, GetDefaultLogLevelRules(), voidTarget, fileTarget, debugFileTarget, consoleTarget, signalrTarget);
+            ApplyMessageRedactionFilter(config, fileTarget, debugFileTarget, consoleTarget, signalrTarget);
             LogManager.Configuration = config;
             LogProvider.SetLogProvider(new NLog.Extensions.Logging.NLogLoggerFactory());
             LogManager.ReconfigExistingLoggers();
@@ -1082,8 +1079,9 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
             .Select(a => new LogLevelRuleConfiguration() { LoggerNamePattern = a.LoggerNamePattern, MaxLevel = a.MaxLevel, Final = a.Final })
             .ToList();
         var mergedRules = MergeLogLevelRules(logging.LogLevelRules);
-        RebuildLoggingRules(config, mergedRules, voidTarget, fileTarget, consoleTarget, signalrTarget);
-        ApplyMessageRedactionFilter(config, fileTarget, consoleTarget, signalrTarget);
+        var debugFileTarget = config.FindTargetByName<FileTarget>("file-debug");
+        RebuildLoggingRules(config, mergedRules, voidTarget, fileTarget, debugFileTarget, consoleTarget, signalrTarget);
+        ApplyMessageRedactionFilter(config, fileTarget, debugFileTarget, consoleTarget, signalrTarget);
         return true;
     }
 
@@ -1130,6 +1128,16 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
             Layout = GetJsonLayout(),
         };
 
+    private static FileTarget BuildDebugFileTarget(IApplicationPaths applicationPaths)
+        => new("file-debug")
+        {
+            FileName = Path.Join(applicationPaths.LogsPath, "${shortdate}-debug.log"),
+            ArchiveAboveSize = 52428800,
+            ArchiveFileName = Path.Join(applicationPaths.LogsPath, "${shortdate}-debug.{#####}.log"),
+            KeepFileOpen = false,
+            Layout = "${date:format=yyyy-MM-dd HH\\:mm\\:ss.fff} ${level:uppercase=true:padding=-5} [${logger:shortname=true}] ${message}${onexception:${newline}${exception:format=tostring}}",
+        };
+
     private static ColoredConsoleTarget BuildConsoleTarget(LogSerializeFormat format)
         => new("console")
         {
@@ -1169,6 +1177,7 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
         IReadOnlyList<LogLevelRuleConfiguration> levelRules,
         Target voidTarget,
         FileTarget fileTarget,
+        FileTarget? debugFileTarget,
         ColoredConsoleTarget consoleTarget,
         Target signalrTarget)
     {
@@ -1186,6 +1195,8 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
         }
 
         config.LoggingRules.Add(new LoggingRule("*", NLogLevel.Info, fileTarget));
+        if (debugFileTarget is not null)
+            config.LoggingRules.Add(new LoggingRule("*", NLogLevel.Debug, debugFileTarget));
         config.LoggingRules.Add(new LoggingRule("*", NLogLevel.Trace, consoleTarget));
         config.LoggingRules.Add(new LoggingRule("*", NLogLevel.Trace, signalrTarget));
     }
@@ -1193,15 +1204,17 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
     private static void ApplyMessageRedactionFilter(
         LoggingConfiguration config,
         FileTarget fileTarget,
+        FileTarget? debugFileTarget,
         ColoredConsoleTarget consoleTarget,
         Target signalrTarget)
     {
         foreach (var loggingRule in config.LoggingRules)
         {
             var hasFileTarget = loggingRule.Targets.Contains(fileTarget);
+            var hasDebugFileTarget = debugFileTarget is not null && loggingRule.Targets.Contains(debugFileTarget);
             var hasConsoleTarget = loggingRule.Targets.Contains(consoleTarget);
             var hasSignalRTarget = loggingRule.Targets.Contains(signalrTarget);
-            if (!hasFileTarget && !hasConsoleTarget && !hasSignalRTarget)
+            if (!hasFileTarget && !hasDebugFileTarget && !hasConsoleTarget && !hasSignalRTarget)
                 continue;
 
             loggingRule.FilterDefaultAction = FilterResult.Log;
