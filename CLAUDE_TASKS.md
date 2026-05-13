@@ -976,6 +976,19 @@ Implemented 2026-05-11.
 
 - `Dockerfile`, `Dockerfile.aarch64`, `Dockerfile.combined` — two-stage builds with `--mount=type=cache,target=/root/.nuget/packages`; project files copied before source so NuGet restore cache survives pure source edits.
 
+### ✅ Refactor — Remove Legacy API v1 and v2 — DONE
+
+Implemented 2026-05-13. Commit `e36df03`. 152/152 tests pass.
+
+- Deleted `API/v1/` (81 files: 8 controller implementations, 50+ `CL_*` models, Metro models, 1 service)
+- Deleted `API/v2/` (28 files: 5 modules, 15 models)
+- Deleted `Extensions/ModelClients.cs` (528-line v1-only mapping helper)
+- Moved `CL_GroupFilter` and `CL_GroupFilterCondition` to `Filters/Legacy/` (still needed by `DatabaseFixes.MigrateGroupFilterToFilterPreset`)
+- Removed `EnableAPIv1` and `EnableAPIv2` from `WebSettings`
+- Removed v1/v2 namespace checks from `ApiVersionControllerFeatureProvider`
+- Removed v1/v2 swagger conditionals from `APIExtensions`
+- Updated `DatabaseFixes`, `MediaGroupService`, `LegacyConditionConverter`, `LegacyFilterConverter`, and test imports
+
 ---
 
 ## P2 MVP Completion Summary
