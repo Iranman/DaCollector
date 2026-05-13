@@ -2810,4 +2810,18 @@ public class TmdbMetadataService : ITmdbMetadataService
     }
 
     #endregion
+
+    public async Task<(bool Success, string? Error)> TestApiKey(string apiKey, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using var client = new TMDbClient(apiKey.Trim());
+            await client.GetAPIConfiguration().WaitAsync(cancellationToken).ConfigureAwait(false);
+            return (true, null);
+        }
+        catch (Exception ex)
+        {
+            return (false, ex.Message);
+        }
+    }
 }

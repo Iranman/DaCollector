@@ -212,4 +212,31 @@ public class TvdbMetadataService(
         _cachedToken = null;
         _cachedTokenExpiresAt = DateTimeOffset.MinValue;
     }
+
+    public async Task<(bool Success, string? Error)> TestCredentials(string apiKey, string? pin, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var body = new Dictionary<string, string> { ["apikey"] = apiKey.Trim() };
+            if (!string.IsNullOrWhiteSpace(pin))
+                body["pin"] = pin.Trim();
+
+            var client = httpClientFactory.CreateClient("TVDB");
+            using var content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
+            using var response = await client.PostAsync("login", content, cancellationToken).ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode)
+                return (false, $"TVDB returned {(int)response.StatusCode}: {response.ReasonPhrase}");
+
+            await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+            using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken).ConfigureAwait(false);
+            if (!document.RootElement.TryGetProperty("data", out var data) || !data.TryGetProperty("token", out var tokenEl) || string.IsNullOrWhiteSpace(tokenEl.GetString()))
+                return (false, "TVDB login did not return a bearer token.");
+
+            return (true, null);
+        }
+        catch (Exception ex)
+        {
+            return (false, ex.Message);
+        }
+    }
 }

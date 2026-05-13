@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -7,18 +8,22 @@ using DaCollector.Abstractions.Connectivity.Services;
 using DaCollector.Abstractions.Core;
 using DaCollector.Abstractions.Core.Services;
 using DaCollector.Abstractions.Extensions;
+using DaCollector.Abstractions.User.Services;
 using DaCollector.Abstractions.Web.Attributes;
 using DaCollector.Server.API.Annotations;
 using DaCollector.Server.API.v3.Models.Common;
 using DaCollector.Server.Databases;
 using DaCollector.Server.MediaInfo;
 using DaCollector.Server.Providers.AniDB.Interfaces;
+using DaCollector.Server.Providers.TMDB;
+using DaCollector.Server.Providers.TVDB;
 using DaCollector.Server.Services;
 using DaCollector.Server.Settings;
 
 using Constants = DaCollector.Server.Server.Constants;
 using ServerStatus = DaCollector.Server.API.v3.Models.DaCollector.ServerStatus;
 
+#nullable enable
 namespace DaCollector.Server.API.v3.Controllers;
 
 // ReSharper disable once UnusedMember.Global
@@ -36,6 +41,9 @@ public class InitController : BaseController
     private readonly IUDPConnectionHandler _udpHandler;
     private readonly IHttpConnectionHandler _httpHandler;
     private readonly ISystemUpdateService _webUIUpdateService;
+    private readonly TmdbMetadataService _tmdbService;
+    private readonly TvdbMetadataService _tvdbService;
+    private readonly IUserService _userService;
 
     public InitController(
         ILogger<InitController> logger,
@@ -44,7 +52,10 @@ public class InitController : BaseController
         IConnectivityService connectivityService,
         IUDPConnectionHandler udpHandler,
         IHttpConnectionHandler httpHandler,
-        ISystemUpdateService webUIUpdateService
+        ISystemUpdateService webUIUpdateService,
+        TmdbMetadataService tmdbService,
+        TvdbMetadataService tvdbService,
+        IUserService userService
     ) : base(settingsProvider)
     {
         _logger = logger;
@@ -53,6 +64,9 @@ public class InitController : BaseController
         _udpHandler = udpHandler;
         _httpHandler = httpHandler;
         _webUIUpdateService = webUIUpdateService;
+        _tmdbService = tmdbService;
+        _tvdbService = tvdbService;
+        _userService = userService;
     }
 
     /// <summary>
@@ -316,4 +330,149 @@ public class InitController : BaseController
             _ => BadRequest("Failed to Connect")
         };
     }
+
+    /// <summary>
+    /// Gets the current TMDB provider setup state.
+    /// </summary>
+    [Authorize("init")]
+    [HttpGet("Provider/TMDB")]
+    public ActionResult<ProviderSetupInfo> GetTmdbProvider()
+    {
+        var tmdb = SettingsProvider.GetSettings().TMDB;
+        return new ProviderSetupInfo { Configured = !string.IsNullOrWhiteSpace(tmdb.UserApiKey) };
+    }
+
+    /// <summary>
+    /// Saves the TMDB API key and tests connectivity.
+    /// </summary>
+    [Authorize("init")]
+    [HttpPost("Provider/TMDB")]
+    public async Task<ActionResult<ProviderTestResult>> SetTmdbProvider([FromBody] TmdbProviderInput input, CancellationToken ct)
+    {
+        var settings = SettingsProvider.GetSettings();
+        settings.TMDB.UserApiKey = string.IsNullOrWhiteSpace(input.ApiKey) ? null : input.ApiKey.Trim();
+        SettingsProvider.SaveSettings(settings);
+
+        if (string.IsNullOrWhiteSpace(settings.TMDB.UserApiKey))
+            return Ok(new ProviderTestResult(true, null));
+
+        var (success, error) = await _tmdbService.TestApiKey(settings.TMDB.UserApiKey, ct);
+        return Ok(new ProviderTestResult(success, error));
+    }
+
+    /// <summary>
+    /// Gets the current TVDB provider setup state.
+    /// </summary>
+    [Authorize("init")]
+    [HttpGet("Provider/TVDB")]
+    public ActionResult<TvdbProviderSetupInfo> GetTvdbProvider()
+    {
+        var tvdb = SettingsProvider.GetSettings().TVDB;
+        return new TvdbProviderSetupInfo
+        {
+            Enabled = tvdb.Enabled,
+            Configured = !string.IsNullOrWhiteSpace(tvdb.ApiKey),
+        };
+    }
+
+    /// <summary>
+    /// Saves the TVDB API key and PIN, enables the provider, and tests connectivity.
+    /// </summary>
+    [Authorize("init")]
+    [HttpPost("Provider/TVDB")]
+    public async Task<ActionResult<ProviderTestResult>> SetTvdbProvider([FromBody] TvdbProviderInput input, CancellationToken ct)
+    {
+        var settings = SettingsProvider.GetSettings();
+        settings.TVDB.Enabled = input.Enabled;
+        settings.TVDB.ApiKey = string.IsNullOrWhiteSpace(input.ApiKey) ? null : input.ApiKey.Trim();
+        settings.TVDB.Pin = string.IsNullOrWhiteSpace(input.Pin) ? null : input.Pin.Trim();
+        SettingsProvider.SaveSettings(settings);
+
+        if (!input.Enabled || string.IsNullOrWhiteSpace(settings.TVDB.ApiKey))
+            return Ok(new ProviderTestResult(true, null));
+
+        var (success, error) = await _tvdbService.TestCredentials(settings.TVDB.ApiKey, settings.TVDB.Pin, ct);
+        return Ok(new ProviderTestResult(success, error));
+    }
+
+    /// <summary>
+    /// Gets the current IMDb provider setup state.
+    /// </summary>
+    [Authorize("init")]
+    [HttpGet("Provider/IMDB")]
+    public ActionResult<ImdbProviderSetupInfo> GetImdbProvider()
+    {
+        var imdb = SettingsProvider.GetSettings().IMDb;
+        return new ImdbProviderSetupInfo { Enabled = imdb.Enabled, DatasetPath = imdb.DatasetPath };
+    }
+
+    /// <summary>
+    /// Saves the IMDb provider settings.
+    /// </summary>
+    [Authorize("init")]
+    [HttpPost("Provider/IMDB")]
+    public ActionResult SetImdbProvider([FromBody] ImdbProviderInput input)
+    {
+        var settings = SettingsProvider.GetSettings();
+        settings.IMDb.Enabled = input.Enabled;
+        settings.IMDb.DatasetPath = input.DatasetPath?.Trim() ?? string.Empty;
+        SettingsProvider.SaveSettings(settings);
+        return Ok();
+    }
+
+    /// <summary>
+    /// Verifies that the supplied credentials are valid and, if so, returns an API key.
+    /// Only callable once the server has fully started.
+    /// </summary>
+    [Authorize("init")]
+    [InitFriendly]
+    [HttpPost("VerifyLogin")]
+    public async Task<ActionResult<LoginVerificationResult>> VerifyLogin([FromBody] LoginInput input)
+    {
+        if (!_systemService.IsStarted)
+            return Ok(new LoginVerificationResult(false, null, "Server has not finished starting yet."));
+
+        if (string.IsNullOrWhiteSpace(input.Username) || string.IsNullOrWhiteSpace(input.Device))
+            return BadRequest("Username and Device are required.");
+
+        var user = _userService.AuthenticateUser(input.Username.Trim(), (input.Password ?? string.Empty).Trim());
+        if (user is null)
+            return Ok(new LoginVerificationResult(false, null, "Invalid username or password."));
+
+        var apiKey = await _userService.GenerateRestApiTokenForUser(user, input.Device.Trim());
+        return Ok(new LoginVerificationResult(true, apiKey, null));
+    }
+
+    #region Setup Input/Output Models
+
+    public record TmdbProviderInput(string? ApiKey);
+
+    public record TvdbProviderInput(bool Enabled, string? ApiKey, string? Pin);
+
+    public record ImdbProviderInput(bool Enabled, string? DatasetPath);
+
+    public record LoginInput(string Username, string? Password, string Device);
+
+    public record ProviderTestResult(bool Success, string? Error);
+
+    public record ProviderSetupInfo
+    {
+        public bool Configured { get; init; }
+    }
+
+    public record TvdbProviderSetupInfo
+    {
+        public bool Enabled { get; init; }
+        public bool Configured { get; init; }
+    }
+
+    public record ImdbProviderSetupInfo
+    {
+        public bool Enabled { get; init; }
+        public string DatasetPath { get; init; } = string.Empty;
+    }
+
+    public record LoginVerificationResult(bool Ready, string? ApiKey, string? Error);
+
+    #endregion
 }
