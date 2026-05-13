@@ -49,7 +49,7 @@ public static class FilterExtensions
             GroupIDsDelegate = () =>
                 series.AllGroupsAbove.Select(a => a.MediaGroupID.ToString()).ToHashSet(),
             AnidbAnimeIDsDelegate = () =>
-                new HashSet<string>() { series.AniDB_ID.ToString() },
+                series.AniDB_ID is { } animeId ? new HashSet<string>() { animeId.ToString() } : [],
             SeriesCountDelegate = () => 1,
             GroupCountDelegate = () => 0,
             TotalGroupCountDelegate = () => 0,
@@ -78,20 +78,20 @@ public static class FilterExtensions
             PreferredImageTypesDelegate = () =>
                 series.GetPreferredImageTypes(),
             CharacterAppearancesDelegate = () =>
-                RepoFactory.AniDB_Anime_Character.GetByAnimeID(series.AniDB_ID)
+                RepoFactory.AniDB_Anime_Character.GetByAnimeID(series.AniDB_ID ?? 0)
                     .GroupBy(a => a.CastRoleType)
                     .ToDictionary(a => a.Key, a => (IReadOnlySet<string>)a.Select(b => b.CharacterID.ToString()).ToHashSet()),
             CharacterIDsDelegate = () =>
-                RepoFactory.AniDB_Anime_Character.GetByAnimeID(series.AniDB_ID)
+                RepoFactory.AniDB_Anime_Character.GetByAnimeID(series.AniDB_ID ?? 0)
                     .Select(a => a.CharacterID.ToString())
                     .ToHashSet(),
             CreatorIDsDelegate = () =>
-                RepoFactory.AniDB_Anime_Character_Creator.GetByAnimeID(series.AniDB_ID).Select(a => a.CreatorID.ToString())
-                    .Concat(RepoFactory.AniDB_Anime_Staff.GetByAnimeID(series.AniDB_ID).Select(a => a.CreatorID.ToString()))
+                RepoFactory.AniDB_Anime_Character_Creator.GetByAnimeID(series.AniDB_ID ?? 0).Select(a => a.CreatorID.ToString())
+                    .Concat(RepoFactory.AniDB_Anime_Staff.GetByAnimeID(series.AniDB_ID ?? 0).Select(a => a.CreatorID.ToString()))
                     .ToHashSet(),
             CreatorRolesDelegate = () =>
-                RepoFactory.AniDB_Anime_Staff.GetByAnimeID(series.AniDB_ID).Select(a => (a.CrewRoleType, a.CreatorID))
-                    .Concat(RepoFactory.AniDB_Anime_Character_Creator.GetByAnimeID(series.AniDB_ID).Select(a => (CrewRoleType: CrewRoleType.Actor, a.CreatorID)))
+                RepoFactory.AniDB_Anime_Staff.GetByAnimeID(series.AniDB_ID ?? 0).Select(a => (a.CrewRoleType, a.CreatorID))
+                    .Concat(RepoFactory.AniDB_Anime_Character_Creator.GetByAnimeID(series.AniDB_ID ?? 0).Select(a => (CrewRoleType: CrewRoleType.Actor, a.CreatorID)))
                     .GroupBy(a => a.CrewRoleType)
                     .ToDictionary(a => a.Key, a => (IReadOnlySet<string>)a.Select(b => b.CreatorID.ToString()).ToHashSet()),
             HasTmdbLinkDelegate = () =>
@@ -283,26 +283,26 @@ public static class FilterExtensions
             PreferredImageTypesDelegate = () =>
                 group.PreferredImageTypes,
             CharacterIDsDelegate = () =>
-                series.SelectMany(ser => RepoFactory.AniDB_Anime_Character.GetByAnimeID(ser.AniDB_ID))
+                series.SelectMany(ser => RepoFactory.AniDB_Anime_Character.GetByAnimeID(ser.AniDB_ID ?? 0))
                     .Select(a => a.CharacterID.ToString())
                     .ToHashSet(),
             CharacterAppearancesDelegate = () =>
-                series.SelectMany(ser => RepoFactory.AniDB_Anime_Character.GetByAnimeID(ser.AniDB_ID))
+                series.SelectMany(ser => RepoFactory.AniDB_Anime_Character.GetByAnimeID(ser.AniDB_ID ?? 0))
                     .DistinctBy(a => (a.CastRoleType, a.CharacterID))
                     .Select(a => (a.CastRoleType, a.CharacterID))
                     .GroupBy(a => a.CastRoleType)
                     .ToDictionary(a => a.Key, a => (IReadOnlySet<string>)a.Select(b => b.CharacterID.ToString()).ToHashSet()),
             CreatorIDsDelegate = () =>
-                series.SelectMany(ser => RepoFactory.AniDB_Anime_Character_Creator.GetByAnimeID(ser.AniDB_ID))
+                series.SelectMany(ser => RepoFactory.AniDB_Anime_Character_Creator.GetByAnimeID(ser.AniDB_ID ?? 0))
                     .Select(a => a.CreatorID.ToString())
-                    .Concat(series.SelectMany(ser => RepoFactory.AniDB_Anime_Staff.GetByAnimeID(ser.AniDB_ID).Select(a => a.CreatorID.ToString())))
+                    .Concat(series.SelectMany(ser => RepoFactory.AniDB_Anime_Staff.GetByAnimeID(ser.AniDB_ID ?? 0).Select(a => a.CreatorID.ToString())))
                     .ToHashSet(),
             CreatorRolesDelegate = () =>
-                series.SelectMany(ser => RepoFactory.AniDB_Anime_Staff.GetByAnimeID(ser.AniDB_ID))
+                series.SelectMany(ser => RepoFactory.AniDB_Anime_Staff.GetByAnimeID(ser.AniDB_ID ?? 0))
                     .Select(a => (a.CrewRoleType, a.CreatorID))
                     .DistinctBy(a => (a.CrewRoleType, a.CreatorID))
                     .Concat(
-                        series.SelectMany(ser => RepoFactory.AniDB_Anime_Character_Creator.GetByAnimeID(ser.AniDB_ID)
+                        series.SelectMany(ser => RepoFactory.AniDB_Anime_Character_Creator.GetByAnimeID(ser.AniDB_ID ?? 0)
                             .DistinctBy(a => a.CreatorID)
                             .Select(a => (CrewRoleType: CrewRoleType.Actor, a.CreatorID)))
                     )

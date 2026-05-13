@@ -271,7 +271,7 @@ public class DaCollectorServiceImplementationMetro : IHttpContextAccessor
 
 
                     var vids =
-                        RepoFactory.VideoLocal.GetMostRecentlyAddedForAnime(1, ser.AniDB_ID);
+                        RepoFactory.VideoLocal.GetMostRecentlyAddedForAnime(1, ser.AniDB_ID ?? 0);
                     if (vids.Count == 0)
                     {
                         continue;
@@ -340,7 +340,7 @@ public class DaCollectorServiceImplementationMetro : IHttpContextAccessor
                     var serUser = RepoFactory.MediaSeries_User.GetByUserAndSeriesID(userID, ser.MediaSeriesID);
 
                     var vids =
-                        RepoFactory.VideoLocal.GetMostRecentlyAddedForAnime(1, ser.AniDB_ID);
+                        RepoFactory.VideoLocal.GetMostRecentlyAddedForAnime(1, ser.AniDB_ID ?? 0);
                     if (vids.Count == 0)
                     {
                         continue;
@@ -359,7 +359,7 @@ public class DaCollectorServiceImplementationMetro : IHttpContextAccessor
 
                         var summary = new Metro_Anime_Summary
                         {
-                            AnimeID = ser.AniDB_ID,
+                            AnimeID = ser.AniDB_ID ?? 0,
                             AnimeName = ser.Title,
                             MediaSeriesID = ser.MediaSeriesID,
                             BeginYear = anidb_anime.BeginYear,
@@ -434,7 +434,7 @@ public class DaCollectorServiceImplementationMetro : IHttpContextAccessor
                     if (!user.AllowedSeries(series))
                     {
                         _logger.Info(string.Format("GetAnimeContinueWatching:Skipping Anime - not allowed: {0}",
-                            series.AniDB_ID));
+                            series.AniDB_ID ?? 0));
                         continue;
                     }
 
@@ -448,7 +448,7 @@ public class DaCollectorServiceImplementationMetro : IHttpContextAccessor
 
                         var summary = new Metro_Anime_Summary
                         {
-                            AnimeID = series.AniDB_ID,
+                            AnimeID = series.AniDB_ID ?? 0,
                             AnimeName = series.Title,
                             MediaSeriesID = series.MediaSeriesID,
                             BeginYear = anidb_anime.BeginYear,
@@ -483,7 +483,7 @@ public class DaCollectorServiceImplementationMetro : IHttpContextAccessor
                     else
                     {
                         _logger.Info(string.Format("GetAnimeContinueWatching:Skipping Anime - no episodes: {0}",
-                            series.AniDB_ID));
+                            series.AniDB_ID ?? 0));
                     }
                 }
             }
@@ -544,7 +544,7 @@ public class DaCollectorServiceImplementationMetro : IHttpContextAccessor
 
                         var summary = new Metro_Anime_Summary
                         {
-                            AnimeID = ser.AniDB_ID,
+                            AnimeID = ser.AniDB_ID ?? 0,
                             AnimeName = ser.Title,
                             MediaSeriesID = ser.MediaSeriesID,
                             BeginYear = anidb_anime.BeginYear,
@@ -576,7 +576,7 @@ public class DaCollectorServiceImplementationMetro : IHttpContextAccessor
                     else
                     {
                         _logger.Info(string.Format("GetAnimeContinueWatching:Skipping Anime - no episodes: {0}",
-                            ser.AniDB_ID));
+                            ser.AniDB_ID ?? 0));
                     }
                 }
             }
@@ -791,7 +791,7 @@ public class DaCollectorServiceImplementationMetro : IHttpContextAccessor
                     }
                 }
 
-                var anidbEpisodeList = RepoFactory.AniDB_Episode.GetByAnimeID(ser.AniDB_ID);
+                var anidbEpisodeList = RepoFactory.AniDB_Episode.GetByAnimeID(ser.AniDB_ID ?? 0);
                 var animeEpisodeDict = new Dictionary<int, AniDB_Episode>();
                 foreach (var MetadataEpisode in anidbEpisodeList)
                 {

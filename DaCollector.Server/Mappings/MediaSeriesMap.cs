@@ -12,7 +12,7 @@ public class MediaSeriesMap : ClassMap<MediaSeries>
         Not.LazyLoad();
         Id(x => x.MediaSeriesID);
 
-        Map(x => x.AniDB_ID).Not.Nullable();
+        Map(x => x.AniDB_ID).Nullable();
         Map(x => x.TvdbShowExternalID).Column("TVDB_ShowID").Nullable();
         Map(x => x.TvdbMovieExternalID).Column("TVDB_MovieID").Nullable();
         Map(x => x.TMDB_ShowID).Nullable();

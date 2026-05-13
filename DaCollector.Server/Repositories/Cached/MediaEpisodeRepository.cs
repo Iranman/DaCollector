@@ -228,7 +228,7 @@ GROUP BY
             var MediaType = series.AniDB_Anime!.MediaType;
             var episodeReleasedList = new MediaSeriesService.EpisodeList(MediaType);
             var episodeReleasedGroupList = new MediaSeriesService.EpisodeList(MediaType);
-            var animeGroupStatuses = RepoFactory.AniDB_GroupStatus.GetByAnimeID(series.AniDB_ID);
+            var animeGroupStatuses = RepoFactory.AniDB_GroupStatus.GetByAnimeID(series.AniDB_ID ?? 0);
             var allEpisodes = series.AllAnimeEpisodes
                 .Select(episode => (episode, MetadataEpisode: episode.AniDB_Episode!, videos: episode.VideoLocals))
                 .Where(tuple => tuple.MetadataEpisode is not null)

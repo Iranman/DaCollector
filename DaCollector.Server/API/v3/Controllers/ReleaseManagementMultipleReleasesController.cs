@@ -101,8 +101,8 @@ public class ReleaseManagementMultipleReleasesController(ISettingsProvider setti
 
         return enumerable
             .OrderBy(series => series.Title)
-            .ThenBy(series => series.AniDB_ID)
-            .ToListResult(series => new Series.WithEpisodeCount(RepoFactory.MediaEpisode.GetWithMultipleReleases(ignoreVariations, series.AniDB_ID).Count(), series, User.JMMUserID, includeDataFrom), page, pageSize);
+            .ThenBy(series => series.AniDB_ID ?? 0)
+            .ToListResult(series => new Series.WithEpisodeCount(RepoFactory.MediaEpisode.GetWithMultipleReleases(ignoreVariations, series.AniDB_ID ?? 0).Count(), series, User.JMMUserID, includeDataFrom), page, pageSize);
     }
 
     /// <summary>
@@ -137,7 +137,7 @@ public class ReleaseManagementMultipleReleasesController(ISettingsProvider setti
         if (!User.AllowedSeries(series))
             return new ListResult<Episode>();
 
-        var enumerable = RepoFactory.MediaEpisode.GetWithMultipleReleases(ignoreVariations, series.AniDB_ID);
+        var enumerable = RepoFactory.MediaEpisode.GetWithMultipleReleases(ignoreVariations, series.AniDB_ID ?? 0);
 
         return enumerable
             .ToListResult(episode => new Episode(HttpContext, episode, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths, includeXRefs, includeReleaseInfo: true), page, pageSize);
@@ -163,7 +163,7 @@ public class ReleaseManagementMultipleReleasesController(ISettingsProvider setti
         if (!User.AllowedSeries(series))
             return new List<int>();
 
-        var enumerable = RepoFactory.MediaEpisode.GetWithMultipleReleases(ignoreVariations, series.AniDB_ID);
+        var enumerable = RepoFactory.MediaEpisode.GetWithMultipleReleases(ignoreVariations, series.AniDB_ID ?? 0);
 
         return enumerable
             .SelectMany(episode =>

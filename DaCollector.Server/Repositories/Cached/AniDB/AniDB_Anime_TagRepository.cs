@@ -38,7 +38,7 @@ public class AniDB_Anime_TagRepository(DatabaseFactory databaseFactory) : BaseCa
     /// <returns></returns>
     public List<AniDB_Anime_Tag> GetAllForLocalSeries()
         => RepoFactory.MediaSeries.GetAll()
-            .SelectMany(a => GetByAnimeID(a.AniDB_ID))
+            .SelectMany(a => GetByAnimeID(a.AniDB_ID ?? 0))
             .WhereNotNull()
             .Distinct()
             .ToList();

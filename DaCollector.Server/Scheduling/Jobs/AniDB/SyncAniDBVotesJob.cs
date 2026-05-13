@@ -95,7 +95,7 @@ public class SyncAniDBVotesJob : BaseJob
             {
                 await scheduler.StartJob<VoteAniDBAnimeJob>(c =>
                 {
-                    c.AnimeID = series.AniDB_ID;
+                    c.AnimeID = series.AniDB_ID ?? 0;
                     c.VoteValue = userData.UserRating.Value;
                     c.VoteType = userData.UserRatingVoteType.Value is SeriesVoteType.Permanent
                         ? Providers.AniDB.VoteType.AnimePermanent
@@ -106,7 +106,7 @@ public class SyncAniDBVotesJob : BaseJob
             {
                 await scheduler.StartJob<VoteAniDBAnimeJob>(c =>
                 {
-                    c.AnimeID = series.AniDB_ID;
+                    c.AnimeID = series.AniDB_ID ?? 0;
                     c.VoteValue = -1;
                     c.VoteType = Providers.AniDB.VoteType.AnimePermanent;
                 });
@@ -116,7 +116,7 @@ public class SyncAniDBVotesJob : BaseJob
             {
                 await scheduler.StartJob<VoteAniDBAnimeJob>(c =>
                 {
-                    c.AnimeID = series.AniDB_ID;
+                    c.AnimeID = series.AniDB_ID ?? 0;
                     c.VoteValue = userData.UserRating.Value;
                     c.VoteType = userData.UserRatingVoteType.Value is SeriesVoteType.Permanent
                         ? Providers.AniDB.VoteType.AnimePermanent

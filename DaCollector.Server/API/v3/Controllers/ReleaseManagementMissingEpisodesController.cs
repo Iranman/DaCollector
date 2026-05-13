@@ -73,7 +73,7 @@ public class ReleaseManagementMissingEpisodesController(ISettingsProvider settin
 
         return enumerable
             .OrderBy(series => series.Title)
-            .ThenBy(series => series.AniDB_ID)
+            .ThenBy(series => series.AniDB_ID ?? 0)
             .ToListResult(series => new Series.WithEpisodeCount(collecting ? series.MissingEpisodeCountGroups : series.MissingEpisodeCount, series, User.JMMUserID, includeDataFrom), page, pageSize);
     }
 
@@ -109,7 +109,7 @@ public class ReleaseManagementMissingEpisodesController(ISettingsProvider settin
         if (!User.AllowedSeries(series))
             return new ListResult<Episode>();
 
-        var enumerable = RepoFactory.MediaEpisode.GetMissing(collecting, series.AniDB_ID);
+        var enumerable = RepoFactory.MediaEpisode.GetMissing(collecting, series.AniDB_ID ?? 0);
 
         return enumerable
             .ToListResult(episode => new Episode(HttpContext, episode, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths, includeXRefs), page, pageSize);

@@ -705,7 +705,7 @@ public class VideoService : IVideoService
             }
         }
 
-        await Task.WhenAll(seriesToUpdate.Select(a => scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID)));
+        await Task.WhenAll(seriesToUpdate.Select(a => scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID ?? 0)));
     }
 
     public async Task RemoveRecordWithOpenTransaction(ISession session, VideoLocal_Place place, ICollection<MediaSeries> seriesToUpdate,
@@ -906,7 +906,9 @@ public class VideoService : IVideoService
         _managedFolderRepository.Delete(folder.ID);
 
         var scheduler = await _schedulerFactory.GetScheduler();
-        await Task.WhenAll(affectedSeries.Select(a => scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID)));
+        await Task.WhenAll(affectedSeries
+            .Where(a => a.AniDB_ID.HasValue)
+            .Select(a => scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID!.Value)));
     }
 
     public async Task ScanManagedFolder(IManagedFolder folder, string? relativePath = null, bool onlyNewFiles = false, bool skipMylist = false, bool? cleanUpStructure = null, bool? checkFileSize = null)

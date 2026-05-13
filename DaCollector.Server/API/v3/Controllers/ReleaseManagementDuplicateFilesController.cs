@@ -99,8 +99,8 @@ public class ReleaseManagementDuplicateFilesController(ISettingsProvider setting
 
         return enumerable
             .OrderBy(series => series.Title)
-            .ThenBy(series => series.AniDB_ID)
-            .ToListResult(series => new Series.WithEpisodeCount(RepoFactory.MediaEpisode.GetWithDuplicateFiles(series.AniDB_ID).Count(), series, User.JMMUserID, includeDataFrom), page, pageSize);
+            .ThenBy(series => series.AniDB_ID ?? 0)
+            .ToListResult(series => new Series.WithEpisodeCount(RepoFactory.MediaEpisode.GetWithDuplicateFiles(series.AniDB_ID ?? 0).Count(), series, User.JMMUserID, includeDataFrom), page, pageSize);
     }
 
     /// <summary>
@@ -131,7 +131,7 @@ public class ReleaseManagementDuplicateFilesController(ISettingsProvider setting
         if (!User.AllowedSeries(series))
             return new ListResult<Episode>();
 
-        var enumerable = RepoFactory.MediaEpisode.GetWithDuplicateFiles(series.AniDB_ID);
+        var enumerable = RepoFactory.MediaEpisode.GetWithDuplicateFiles(series.AniDB_ID ?? 0);
 
         return enumerable
             .ToListResult(episode =>
@@ -166,7 +166,7 @@ public class ReleaseManagementDuplicateFilesController(ISettingsProvider setting
         if (!User.AllowedSeries(series))
             return new List<FileIdSet>();
 
-        var enumerable = RepoFactory.MediaEpisode.GetWithDuplicateFiles(series.AniDB_ID);
+        var enumerable = RepoFactory.MediaEpisode.GetWithDuplicateFiles(series.AniDB_ID ?? 0);
 
         return enumerable
             .SelectMany(episode =>

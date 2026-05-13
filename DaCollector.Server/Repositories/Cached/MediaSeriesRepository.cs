@@ -24,7 +24,7 @@ public class MediaSeriesRepository : BaseCachedRepository<MediaSeries, int>
 {
     private static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
-    private PocoIndex<int, MediaSeries, int>? AniDBIds;
+    private PocoIndex<int, MediaSeries, int?>? AniDBIds;
     private PocoIndex<int, MediaSeries, int>? Groups;
 
     private readonly ChangeTracker<int> Changes = new();
@@ -129,7 +129,7 @@ public class MediaSeriesRepository : BaseCachedRepository<MediaSeries, int>
 
     public void Save(MediaSeries obj, bool updateGroups, bool onlyupdatestats, bool alsoupdateepisodes = false)
     {
-        var animeID = obj.AniDB_Anime?.MainTitle ?? obj.AniDB_ID.ToString();
+        var animeID = obj.AniDB_Anime?.MainTitle ?? obj.AniDB_ID?.ToString() ?? obj.MediaSeriesID.ToString();
         logger.Trace($"Saving Series {animeID}");
         var totalSw = Stopwatch.StartNew();
         var sw = Stopwatch.StartNew();
@@ -416,7 +416,7 @@ GROUP BY
 
     public IEnumerable<int> GetAllYears()
     {
-        var anime = RepoFactory.MediaSeries.GetAll().Select(a => RepoFactory.AniDB_Anime.GetByAnimeID(a.AniDB_ID)).Where(a => a?.AirDate != null).ToList();
+        var anime = RepoFactory.MediaSeries.GetAll().Select(a => RepoFactory.AniDB_Anime.GetByAnimeID(a.AniDB_ID ?? 0)).Where(a => a?.AirDate != null).ToList();
         if (anime.Count == 0) yield break;
         var minDate = anime.Min(a => a!.AirDate!.Value);
         var maxDate = anime.Max(o => o!.EndDate ?? DateTime.Today);
@@ -435,7 +435,7 @@ GROUP BY
 
     public SortedSet<(int Year, YearlySeason Season)> GetAllSeasons()
     {
-        var anime = GetAll().Select(a => RepoFactory.AniDB_Anime.GetByAnimeID(a.AniDB_ID)).Where(a => a?.AirDate != null).ToList();
+        var anime = GetAll().Select(a => RepoFactory.AniDB_Anime.GetByAnimeID(a.AniDB_ID ?? 0)).Where(a => a?.AirDate != null).ToList();
         return GetAllSeasons(anime!);
     }
 

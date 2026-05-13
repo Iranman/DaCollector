@@ -212,7 +212,7 @@ public class TreeController(ISettingsProvider settingsProvider, FilterFactory _f
             return RepoFactory.MediaSeries.GetAll()
                 .Where(series => user.AllowedSeries(series) && (includeMissing || series.VideoLocals.Count > 0))
                 .OrderBy(series => series.Title.ToLowerInvariant().ToSortName())
-                .ThenBy(series => series.AniDB_ID)
+                .ThenBy(series => series.AniDB_ID ?? 0)
                 .ToListResult(series => new Series(series, User.JMMUserID, randomImages), page, pageSize);
 
         // Check if the group filter exists.
@@ -232,7 +232,7 @@ public class TreeController(ISettingsProvider settingsProvider, FilterFactory _f
         return results.SelectMany(a => a.Select(id => RepoFactory.MediaSeries.GetByID(id)))
             .Where(series => series != null && (includeMissing || series.VideoLocals.Count > 0))
             .OrderBy(series => series.Title.ToLowerInvariant().ToSortName())
-            .ThenBy(series => series.AniDB_ID)
+            .ThenBy(series => series.AniDB_ID ?? 0)
             .ToListResult(series => new Series(series, User.JMMUserID, randomImages), page, pageSize);
     }
 

@@ -897,6 +897,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         new(149,  2, "CREATE INDEX IX_MediaFileMatchCandidate_VideoLocalID ON MediaFileMatchCandidate(VideoLocalID);"),
         new(149,  3, "CREATE INDEX IX_MediaFileMatchCandidate_Status ON MediaFileMatchCandidate(Status);"),
         new(149,  4, "CREATE UNIQUE INDEX UIX_MediaFileMatchCandidate ON MediaFileMatchCandidate(VideoLocalID, Provider, ProviderItemID, ProviderType);"),
+        new(150,  1, MakeMediaSeriesAniDB_IDNullable),
     ];
 
     #endregion
@@ -1464,6 +1465,53 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
                 """,
                 [
                     "CREATE UNIQUE INDEX UIX2_VideoLocal_User_User_VideoLocalID ON VideoLocal_User(JMMUserID, VideoLocalID);",
+                ]
+            );
+            return new Tuple<bool, string>(true, null);
+        }
+        catch (Exception e)
+        {
+            return new Tuple<bool, string>(false, e.ToString());
+        }
+    }
+
+    private static Tuple<bool, string> MakeMediaSeriesAniDB_IDNullable(object connection)
+    {
+        try
+        {
+            var factory = (SQLite)Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
+            factory.Alter(
+                (SqliteConnection)connection,
+                "MediaSeries",
+                """
+                    CREATE TABLE MediaSeries (
+                        MediaSeriesID INTEGER PRIMARY KEY AUTOINCREMENT,
+                        MediaGroupID INTEGER NOT NULL,
+                        AniDB_ID INTEGER NULL,
+                        DateTimeUpdated DATETIME NOT NULL,
+                        DateTimeCreated DATETIME NOT NULL,
+                        DefaultAudioLanguage TEXT NULL,
+                        DefaultSubtitleLanguage TEXT NULL,
+                        MissingEpisodeCount INTEGER NOT NULL,
+                        MissingEpisodeCountGroups INTEGER NOT NULL,
+                        LatestLocalEpisodeNumber INTEGER NOT NULL,
+                        EpisodeAddedDate DATETIME NULL,
+                        SeriesNameOverride TEXT NULL,
+                        DefaultFolder TEXT NULL,
+                        LatestEpisodeAirDate DATETIME NULL,
+                        AirsOn TEXT NULL,
+                        UpdatedAt DATETIME NOT NULL DEFAULT '2000-01-01 00:00:00',
+                        DisableAutoMatchFlags INTEGER NOT NULL DEFAULT 0,
+                        HiddenMissingEpisodeCount INTEGER NOT NULL DEFAULT 0,
+                        HiddenMissingEpisodeCountGroups INTEGER NOT NULL DEFAULT 0,
+                        TVDB_ShowID INTEGER NULL,
+                        TVDB_MovieID INTEGER NULL,
+                        TMDB_ShowID INTEGER NULL,
+                        TMDB_MovieID INTEGER NULL
+                    );
+                """,
+                [
+                    "CREATE UNIQUE INDEX UIX_MediaSeries_AniDB_ID ON MediaSeries(AniDB_ID) WHERE AniDB_ID IS NOT NULL;",
                 ]
             );
             return new Tuple<bool, string>(true, null);

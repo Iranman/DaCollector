@@ -61,7 +61,7 @@ public class AniDB_TagRepository(DatabaseFactory databaseFactory) : BaseCachedRe
     /// <returns></returns>
     public IReadOnlyList<AniDB_Tag> GetAllForLocalSeries()
         => RepoFactory.MediaSeries.GetAll()
-            .SelectMany(a => RepoFactory.AniDB_Anime_Tag.GetByAnimeID(a.AniDB_ID))
+            .SelectMany(a => RepoFactory.AniDB_Anime_Tag.GetByAnimeID(a.AniDB_ID ?? 0))
             .WhereNotNull()
             .Select(a => GetByTagID(a.TagID))
             .WhereNotNull()

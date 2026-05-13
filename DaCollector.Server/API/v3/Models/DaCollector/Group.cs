@@ -101,7 +101,7 @@ public class Group : BaseModel
         if (mainSeries != null)
         {
             IDs.MainSeries = mainSeries.MediaSeriesID;
-            IDs.MainAnime = mainSeries.AniDB_ID;
+            IDs.MainAnime = mainSeries.AniDB_ID ?? 0;
         }
         if (group.MediaGroupParentID.HasValue)
             IDs.ParentGroup = group.MediaGroupParentID.Value;

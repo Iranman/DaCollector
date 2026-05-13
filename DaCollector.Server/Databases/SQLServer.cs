@@ -980,6 +980,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(162,  2, "CREATE INDEX IX_MediaFileMatchCandidate_VideoLocalID ON MediaFileMatchCandidate(VideoLocalID);"),
         new(162,  3, "CREATE INDEX IX_MediaFileMatchCandidate_Status ON MediaFileMatchCandidate(Status);"),
         new(162,  4, "CREATE UNIQUE INDEX UIX_MediaFileMatchCandidate ON MediaFileMatchCandidate(VideoLocalID, Provider, ProviderItemID, ProviderType);"),
+        new(163,  1, "ALTER TABLE MediaSeries ALTER COLUMN AniDB_ID INT NULL;"),
     ];
 
     #endregion

@@ -417,7 +417,7 @@ public static class SeriesSearch
         var settings = Utils.SettingsProvider.GetSettings();
         var languages = new HashSet<string> { "en", "x-jat" };
         languages.UnionWith(settings.Language.SeriesTitleLanguageOrder);
-        return series => RepoFactory.AniDB_Anime_Title.GetByAnimeID(series.AniDB_ID)
+        return series => RepoFactory.AniDB_Anime_Title.GetByAnimeID(series.AniDB_ID ?? 0)
             .Where(title => title.TitleType is TitleType.Main || languages.Contains(title.LanguageCode))
             .Select(title => title.Title)
             .Append(series.Title)

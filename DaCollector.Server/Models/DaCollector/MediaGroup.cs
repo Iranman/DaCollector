@@ -242,7 +242,7 @@ public class MediaGroup : IDaCollectorGroup
         .ToList();
 
     public List<CustomTag> CustomTags => AllSeries
-        .SelectMany(ser => RepoFactory.CustomTag.GetByAnimeID(ser.AniDB_ID))
+        .SelectMany(ser => RepoFactory.CustomTag.GetByAnimeID(ser.AniDB_ID ?? 0))
         .DistinctBy(a => a.CustomTagID)
         .OrderBy(a => a.TagName)
         .ToList();

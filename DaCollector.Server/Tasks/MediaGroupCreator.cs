@@ -203,7 +203,7 @@ public class MediaGroupCreator
         _logger.LogInformation("The following exclusions will be applied when generating the groups: {Exclusions}", grpCalculator.Exclusions);
 
         // Group all of the specified series into their respective groups (keyed by the groups main anime ID)
-        var seriesByGroup = seriesList.ToLookup(s => grpCalculator.GetGroupAnimeId(s.AniDB_ID));
+        var seriesByGroup = seriesList.ToLookup(s => grpCalculator.GetGroupAnimeId(s.AniDB_ID ?? 0));
         var newGroupsToSeries =
             new List<Tuple<MediaGroup, IReadOnlyCollection<MediaSeries>>>(seriesList.Count);
 
@@ -289,16 +289,16 @@ public class MediaGroupCreator
         if (_autoGroupSeries)
         {
             var grpCalculator = AutoAnimeGroupCalculator.CreateFromServerSettings();
-            var grpAnimeIds = grpCalculator.GetIdsOfAnimeInSameGroup(series.AniDB_ID);
+            var grpAnimeIds = grpCalculator.GetIdsOfAnimeInSameGroup(series.AniDB_ID ?? 0);
             // Try to find an existing MediaGroup to add the series to
             // We basically pick the first group that any of the related series belongs to already
-            MediaGroup = grpAnimeIds.Where(id => id != series.AniDB_ID)
+            MediaGroup = grpAnimeIds.Where(id => id != (series.AniDB_ID ?? 0))
                 .Select(id => _animeSeriesRepo.GetByAnimeID(id))
                 .WhereNotNull()
                 .Select(s => _animeGroupRepo.GetByID(s.MediaGroupID))
                 .FirstOrDefault(s => s != null);
 
-            var mainAnimeId = grpCalculator.GetGroupAnimeId(series.AniDB_ID);
+            var mainAnimeId = grpCalculator.GetGroupAnimeId(series.AniDB_ID ?? 0);
             // No existing group was found, so create a new one.
             if (MediaGroup == null)
             {

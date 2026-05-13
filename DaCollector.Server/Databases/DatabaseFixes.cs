@@ -58,7 +58,7 @@ public class DatabaseFixes
     public static void UpdateAllStats()
     {
         var scheduler = Utils.ServiceContainer.GetRequiredService<ISchedulerFactory>().GetScheduler().ConfigureAwait(false).GetAwaiter().GetResult();
-        Task.WhenAll(RepoFactory.MediaSeries.GetAll().Select(a => scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID))).GetAwaiter()
+        Task.WhenAll(RepoFactory.MediaSeries.GetAll().Where(a => a.AniDB_ID is not null and not 0).Select(a => scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID!.Value))).GetAwaiter()
             .GetResult();
     }
 
@@ -242,7 +242,7 @@ public class DatabaseFixes
                 }
 
                 _logger.Error(e,
-                    $"Unable to update group for orphaned series: AniDB ID: {series.AniDB_ID} SeriesID: {series.MediaSeriesID} Series Name: {name}");
+                    $"Unable to update group for orphaned series: AniDB ID: {series.AniDB_ID?.ToString() ?? "unknown"} SeriesID: {series.MediaSeriesID} Series Name: {name}");
             }
         }
     }
@@ -534,7 +534,8 @@ public class DatabaseFixes
         var allSeries = RepoFactory.MediaSeries.GetAll()
             .ToDictionary(series => series.MediaSeriesID);
         var allSeriesAnidbId = allSeries.Values
-            .ToDictionary(series => series.AniDB_ID);
+            .Where(series => series.AniDB_ID.HasValue)
+            .ToDictionary(series => series.AniDB_ID!.Value);
         var allAniDBEpisodes = RepoFactory.AniDB_Episode.GetAll()
             .ToDictionary(ep => ep.EpisodeID);
         var dacollectorEpisodesToRemove = RepoFactory.MediaEpisode.GetAll()

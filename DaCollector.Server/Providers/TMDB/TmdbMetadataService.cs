@@ -384,7 +384,7 @@ public class TmdbMetadataService : ITmdbMetadataService
 
             _logger.LogTrace("Found anime without TMDB association: {MainTitle}", anime.MainTitle);
 
-            await scheduler.StartJob<SearchTmdbJob>(c => c.AnimeID = ser.AniDB_ID);
+            await scheduler.StartJob<SearchTmdbJob>(c => c.AnimeID = ser.AniDB_ID ?? 0);
         }
     }
 

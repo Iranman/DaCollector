@@ -198,7 +198,7 @@ public class MediaSeriesService
     {
         if (series == null) return;
         var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob<RefreshAnimeStatsJob>(c => c.AnimeID = series.AniDB_ID);
+        await scheduler.StartJob<RefreshAnimeStatsJob>(c => c.AnimeID = series.AniDB_ID ?? 0);
     }
 
     public void UpdateStats(MediaSeries? series, bool watchedStats, bool missingEpsStats)
@@ -208,7 +208,7 @@ public class MediaSeriesService
         {
             var start = DateTime.Now;
             var initialStart = DateTime.Now;
-            var name = series.AniDB_Anime?.MainTitle ?? series.AniDB_ID.ToString();
+            var name = series.AniDB_Anime?.MainTitle ?? series.AniDB_ID?.ToString() ?? series.MediaSeriesID.ToString();
             _logger.LogInformation("Starting Updating STATS for SERIES {Name} - Watched Stats: {WatchedStats}, Missing Episodes: {MissingEpsStats}", name,
                 watchedStats, missingEpsStats);
 
@@ -218,7 +218,7 @@ public class MediaSeriesService
             _logger.LogTrace("Got episodes for SERIES {Name} in {Elapsed}ms", name, tsEps.TotalMilliseconds);
 
             // Ensure the episode added date is accurate.
-            series.EpisodeAddedDate = RepoFactory.StoredReleaseInfo.GetByAnidbAnimeID(series.AniDB_ID)
+            series.EpisodeAddedDate = RepoFactory.StoredReleaseInfo.GetByAnidbAnimeID(series.AniDB_ID ?? 0)
                 .Select(a => a.LastUpdatedAt)
                 .DefaultIfEmpty()
                 .Max();
@@ -254,7 +254,7 @@ public class MediaSeriesService
         series.HiddenMissingEpisodeCountGroups = 0;
 
         // get all the group status records
-        var grpStatuses = RepoFactory.AniDB_GroupStatus.GetByAnimeID(series.AniDB_ID);
+        var grpStatuses = RepoFactory.AniDB_GroupStatus.GetByAnimeID(series.AniDB_ID ?? 0);
 
         // find all the episodes for which the user has a file
         // from this we can determine what their latest episode number is
@@ -438,7 +438,7 @@ public class MediaSeriesService
 
         foreach (var series in allSeries)
         {
-            foreach (var (xref, staff) in RepoFactory.AniDB_Anime_Staff.GetByAnimeID(series.AniDB_ID).Select(a => (a, a.Creator)))
+            foreach (var (xref, staff) in RepoFactory.AniDB_Anime_Staff.GetByAnimeID(series.AniDB_ID ?? 0).Select(a => (a, a.Creator)))
             {
                 if (staff is null)
                     continue;
@@ -527,10 +527,10 @@ public class MediaSeriesService
         if (completelyRemove)
         {
             // episodes, anime, characters, images, staff relations, tag relations, titles
-            var images = RepoFactory.AniDB_Anime_PreferredImage.GetByAnimeID(series.AniDB_ID);
+            var images = RepoFactory.AniDB_Anime_PreferredImage.GetByAnimeID(series.AniDB_ID ?? 0);
             RepoFactory.AniDB_Anime_PreferredImage.Delete(images);
 
-            var characterXrefs = RepoFactory.AniDB_Anime_Character.GetByAnimeID(series.AniDB_ID);
+            var characterXrefs = RepoFactory.AniDB_Anime_Character.GetByAnimeID(series.AniDB_ID ?? 0);
             var characters = characterXrefs
                 .Select(x => x.Character)
                 .WhereNotNull()
@@ -539,8 +539,8 @@ public class MediaSeriesService
             RepoFactory.AniDB_Anime_Character.Delete(characterXrefs);
             RepoFactory.AniDB_Character.Delete(characters);
 
-            var actorXrefs = RepoFactory.AniDB_Anime_Character_Creator.GetByAnimeID(series.AniDB_ID);
-            var staffXrefs = RepoFactory.AniDB_Anime_Staff.GetByAnimeID(series.AniDB_ID);
+            var actorXrefs = RepoFactory.AniDB_Anime_Character_Creator.GetByAnimeID(series.AniDB_ID ?? 0);
+            var staffXrefs = RepoFactory.AniDB_Anime_Staff.GetByAnimeID(series.AniDB_ID ?? 0);
             var creators = actorXrefs.Select(x => x.Creator)
                 .Concat(staffXrefs.Select(x => x.Creator))
                 .WhereNotNull()
@@ -553,22 +553,22 @@ public class MediaSeriesService
             RepoFactory.AniDB_Anime_Staff.Delete(staffXrefs);
             RepoFactory.AniDB_Creator.Delete(creators);
 
-            var tagXrefs = RepoFactory.AniDB_Anime_Tag.GetByAnimeID(series.AniDB_ID);
+            var tagXrefs = RepoFactory.AniDB_Anime_Tag.GetByAnimeID(series.AniDB_ID ?? 0);
             RepoFactory.AniDB_Anime_Tag.Delete(tagXrefs);
 
-            var titles = RepoFactory.AniDB_Anime_Title.GetByAnimeID(series.AniDB_ID);
+            var titles = RepoFactory.AniDB_Anime_Title.GetByAnimeID(series.AniDB_ID ?? 0);
             RepoFactory.AniDB_Anime_Title.Delete(titles);
 
-            var aniDBEpisodes = RepoFactory.AniDB_Episode.GetByAnimeID(series.AniDB_ID);
+            var aniDBEpisodes = RepoFactory.AniDB_Episode.GetByAnimeID(series.AniDB_ID ?? 0);
             var episodeTitles = aniDBEpisodes.SelectMany(a => RepoFactory.AniDB_Episode_Title.GetByEpisodeID(a.EpisodeID)).ToList();
             RepoFactory.AniDB_Episode_Title.Delete(episodeTitles);
             RepoFactory.AniDB_Episode.Delete(aniDBEpisodes);
 
-            var update = RepoFactory.AniDB_AnimeUpdate.GetByAnimeID(series.AniDB_ID);
+            var update = RepoFactory.AniDB_AnimeUpdate.GetByAnimeID(series.AniDB_ID ?? 0);
             RepoFactory.AniDB_AnimeUpdate.Delete(update);
 
             // remove all releases linked to this series
-            var releases = RepoFactory.StoredReleaseInfo.GetByAnidbAnimeID(series.AniDB_ID);
+            var releases = RepoFactory.StoredReleaseInfo.GetByAnidbAnimeID(series.AniDB_ID ?? 0);
             foreach (var release in releases)
                 await _videoReleaseService.RemoveRelease(release, removeFromMylist);
         }

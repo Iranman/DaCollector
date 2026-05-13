@@ -164,7 +164,7 @@ public class DaCollectorServiceImplementationService(
         if (series == null) return null;
         var contract = new CL_AnimeSeries_User
         {
-            AniDB_ID = series.AniDB_ID,
+            AniDB_ID = series.AniDB_ID ?? 0,
             MediaGroupID = series.MediaGroupID,
             MediaSeriesID = series.MediaSeriesID,
             DateTimeUpdated = series.DateTimeUpdated,
@@ -477,7 +477,7 @@ public class DaCollectorServiceImplementationService(
         };
 
         var allSeriesForGroup = MediaGroup.AllSeries;
-        var allIDs = allSeriesForGroup.Select(a => a.AniDB_ID).ToArray();
+        var allIDs = allSeriesForGroup.Select(a => a.AniDB_ID ?? 0).ToArray();
 
         DateTime? airDateMin = null;
         DateTime? airDateMax = null;
@@ -488,7 +488,7 @@ public class DaCollectorServiceImplementationService(
         var isCurrentlyAiring = false;
         var videoQualityEpisodes = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
         var allVidQualByGroup = allSeriesForGroup
-            .SelectMany(a => _storedReleaseInfo.GetByAnidbAnimeID(a.AniDB_ID))
+            .SelectMany(a => _storedReleaseInfo.GetByAnidbAnimeID(a.AniDB_ID ?? 0))
             .Select(a => a.LegacySource)
             .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
         var tmdbShowXrefByAnime = allIDs
@@ -513,8 +513,8 @@ public class DaCollectorServiceImplementationService(
         {
             seriesCount++;
 
-            var vidsTemp = RepoFactory.VideoLocal.GetByAniDBAnimeID(series.AniDB_ID);
-            var crossRefs = RepoFactory.CrossRef_File_Episode.GetByAnimeID(series.AniDB_ID);
+            var vidsTemp = RepoFactory.VideoLocal.GetByAniDBAnimeID(series.AniDB_ID ?? 0);
+            var crossRefs = RepoFactory.CrossRef_File_Episode.GetByAnimeID(series.AniDB_ID ?? 0);
             var crossRefsLookup = crossRefs.ToLookup(cr => cr.EpisodeID);
             var dictVids = new Dictionary<string, VideoLocal>();
 

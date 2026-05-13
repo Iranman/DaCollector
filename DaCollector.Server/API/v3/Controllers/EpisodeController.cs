@@ -817,9 +817,12 @@ public class EpisodeController : BaseController
         if (!image.IsEnabled)
             return ValidationProblem(InvalidImageIsDisabled);
 
+        if (series.AniDB_ID is null or 0)
+            return NotFound("Series does not have an AniDB link.");
+
         // Create or update the entry if something changed.
         var defaultImage = RepoFactory.AniDB_Episode_PreferredImage.GetByAnidbEpisodeIDAndType(episode.AniDB_EpisodeID, imageEntityType) ??
-            new(series.AniDB_ID, episode.AniDB_EpisodeID, imageEntityType);
+            new(series.AniDB_ID.Value, episode.AniDB_EpisodeID, imageEntityType);
         if (defaultImage.ImageID == body.ID && defaultImage.ImageSource == dataSource)
             return new Image(body.ID, imageEntityType, dataSource, true);
 

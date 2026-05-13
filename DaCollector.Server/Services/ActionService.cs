@@ -604,7 +604,7 @@ public class ActionService
         // NOTE: use 'purge unused releases' if you want to remove the cross-references too.
 
         // update everything we modified
-        await Task.WhenAll(seriesToUpdate.Select(a => scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID)));
+        await Task.WhenAll(seriesToUpdate.Select(a => scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID ?? 0)));
 
         _logger.LogInformation("Remove Missing Files: Finished");
     }
@@ -612,7 +612,7 @@ public class ActionService
     public async Task UpdateAllStats()
     {
         var scheduler = await _schedulerFactory.GetScheduler().ConfigureAwait(false);
-        await Task.WhenAll(RepoFactory.MediaSeries.GetAll().Select(a => scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID)));
+        await Task.WhenAll(RepoFactory.MediaSeries.GetAll().Select(a => scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID ?? 0)));
     }
 
     public async Task<int> UpdateAnidbReleaseInfo(bool countOnly = false)
@@ -951,7 +951,8 @@ public class ActionService
         // Queue missing anime needed by existing files.
         index = 0;
         var localAnimeSet = RepoFactory.MediaSeries.GetAll()
-            .Select(a => a.AniDB_ID)
+            .Where(a => a.AniDB_ID.HasValue)
+            .Select(a => a.AniDB_ID!.Value)
             .ToHashSet();
         var localEpisodeSet = RepoFactory.MediaEpisode.GetAll()
             .Select(episode => episode.AniDB_EpisodeID)

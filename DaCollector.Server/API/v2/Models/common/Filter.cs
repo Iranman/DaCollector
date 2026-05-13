@@ -93,7 +93,7 @@ public class Filter : Filters
             filter.art.thumb.Add(new Art
             {
                 index = 0,
-                url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Poster, DataSource.AniDB, anime.AniDB_ID),
+                url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Poster, DataSource.AniDB, anime.AniDB_ID ?? 0),
             });
         }
 

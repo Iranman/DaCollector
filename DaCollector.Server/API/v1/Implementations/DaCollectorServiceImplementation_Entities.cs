@@ -57,7 +57,7 @@ public partial class DaCollectorServiceImplementation
             if (series is null)
                 return null;
 
-            var anidbEpisodes = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeTypeNumber(series.AniDB_ID, (EpisodeType)epType, epNum);
+            var anidbEpisodes = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeTypeNumber(series.AniDB_ID ?? 0, (EpisodeType)epType, epNum);
             if (anidbEpisodes.Count == 0)
                 return null;
 
@@ -188,7 +188,7 @@ public partial class DaCollectorServiceImplementation
                     // Lets only return the specified amount
                     if (retEps.Count == maxRecords) return retEps;
 
-                    if (anime.MediaType is MediaType.TVSeries) seriesWatching.Add(ser.AniDB_ID);
+                    if (anime.MediaType is MediaType.TVSeries) seriesWatching.Add(ser.AniDB_ID ?? 0);
                 }
             }
         }
@@ -357,7 +357,7 @@ public partial class DaCollectorServiceImplementation
                     continue;
                 }
 
-                var vids = RepoFactory.VideoLocal.GetMostRecentlyAddedForAnime(1, ser.AniDB_ID);
+                var vids = RepoFactory.VideoLocal.GetMostRecentlyAddedForAnime(1, ser.AniDB_ID ?? 0);
                 if (vids.Count == 0)
                 {
                     continue;
@@ -2219,7 +2219,8 @@ public partial class DaCollectorServiceImplementation
             var dictSeries = new Dictionary<int, MediaSeries>();
             foreach (var ser in allSeries)
             {
-                dictSeries[ser.AniDB_ID] = ser;
+                if (ser.AniDB_ID is not null and not 0)
+                    dictSeries[ser.AniDB_ID.Value] = ser;
             }
             var animes = RepoFactory.AniDB_Anime.GetAll();
 

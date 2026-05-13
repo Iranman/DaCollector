@@ -126,9 +126,8 @@ public class Series : BaseModel
 
     public Series(MediaSeries ser, int userId = 0, bool randomizeImages = false, HashSet<DataSourceType>? includeDataFrom = null)
     {
-        var anime = ser.AniDB_Anime ??
-            throw new NullReferenceException($"Unable to get AniDB Anime {ser.AniDB_ID} for MediaSeries {ser.MediaSeriesID}");
-        var MediaType = anime.MediaType.ToV3Dto();
+        var anime = ser.AniDB_Anime;
+        var seriesMediaType = anime?.MediaType.ToV3Dto() ?? MediaType.Unknown;
         var allEpisodes = ser.AllAnimeEpisodes;
         var userData = RepoFactory.MediaSeries_User.GetByUserAndSeriesID(userId, ser.MediaSeriesID);
         var tmdbMovieXRefs = ser.TmdbMovieCrossReferences;
@@ -139,7 +138,7 @@ public class Series : BaseModel
             ID = ser.MediaSeriesID,
             ParentGroup = ser.MediaGroupID,
             TopLevelGroup = ser.TopLevelMediaGroup?.MediaGroupID ?? 0,
-            SourceID = ser.AniDB_ID,
+            SourceID = ser.AniDB_ID ?? 0,
             TvDB = tmdbShowXRefs.Select(xref => xref.TmdbShow?.TvdbShowID).WhereNotNull().Distinct().ToList(),
             IMDB = tmdbMovieXRefs
                 .Select(xref => xref.TmdbMovie?.ImdbMovieID)
@@ -153,18 +152,18 @@ public class Series : BaseModel
             },
             MAL = ser.MalCrossReferences.Select(a => a.MALID).Distinct().ToList()
         };
-        Links = anime.Resources
+        Links = anime?.Resources
             .Select(tuple => new Resource(tuple))
-            .ToList();
+            .ToList() ?? [];
         Name = ser.Title;
         HasCustomName = !string.IsNullOrEmpty(ser.SeriesNameOverride);
         Description = ser.PreferredOverview?.Value ?? string.Empty;
         IsFavorite = userData?.IsFavorite ?? false;
         Images = ser.GetImages().ToDto(preferredImages: true, randomizeImages: randomizeImages);
-        AirsOn = MediaType == MediaType.TV || MediaType == MediaType.Web ? GetAirsOnDaysOfWeek(allEpisodes) : [];
-        YearlySeasons = anime.YearlySeasons
+        AirsOn = seriesMediaType == MediaType.TV || seriesMediaType == MediaType.Web ? GetAirsOnDaysOfWeek(allEpisodes) : [];
+        YearlySeasons = anime?.YearlySeasons
             .Select(x => new SeasonWithYear(x.Year, x.Season))
-            .ToList();
+            .ToList() ?? [];
         Sizes = sizes;
         Created = ser.DateTimeCreated.ToUniversalTime();
         Updated = ser.DateTimeUpdated.ToUniversalTime();
@@ -177,7 +176,7 @@ public class Series : BaseModel
                 Type = userData.UserRatingVoteType.Value.ToString(),
                 Source = "User",
             };
-        if (includeDataFrom?.Contains(DataSourceType.AniDB) ?? false)
+        if (anime is not null && (includeDataFrom?.Contains(DataSourceType.AniDB) ?? false))
             Source = new(anime, ser);
         if (includeDataFrom?.Contains(DataSourceType.TMDB) ?? false)
             TMDB = new()

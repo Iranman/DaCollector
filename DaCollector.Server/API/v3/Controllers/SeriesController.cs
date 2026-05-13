@@ -161,7 +161,7 @@ public class SeriesController : BaseController
                 return user.AllowedSeries(series);
             })
             .OrderBy(a => a.seriesName.ToSortName())
-            .ThenBy(a => a.series.AniDB_ID)
+            .ThenBy(a => a.series.AniDB_ID ?? 0)
             .ToListResult(tuple => new Series(tuple.series, user.JMMUserID), page, pageSize);
     }
 
@@ -397,8 +397,11 @@ public class SeriesController : BaseController
         }
 
         // TODO: Replace with a more generic implementation capable of supplying relations from more than just AniDB.
-        return RepoFactory.AniDB_Anime_Relation.GetByAnimeID(series.AniDB_ID).OfType<IRelatedMetadata>()
-            .Concat(RepoFactory.AniDB_Anime_Relation.GetByRelatedAnimeID(series.AniDB_ID).OfType<IRelatedMetadata>().Select(a => a.Reversed))
+        if (series.AniDB_ID is null or 0)
+            return NotFound("Series does not have an AniDB link.");
+
+        return RepoFactory.AniDB_Anime_Relation.GetByAnimeID(series.AniDB_ID.Value).OfType<IRelatedMetadata>()
+            .Concat(RepoFactory.AniDB_Anime_Relation.GetByRelatedAnimeID(series.AniDB_ID.Value).OfType<IRelatedMetadata>().Select(a => a.Reversed))
             .Distinct()
             .Select(relation => (relation, relatedSeries: RepoFactory.MediaSeries.GetByAnimeID(relation.RelatedID)))
             .Where(tuple => tuple.relatedSeries != null)
@@ -448,7 +451,7 @@ public class SeriesController : BaseController
         }
         return query
             .OrderBy(series => series.Title.ToLowerInvariant().ToSortName())
-            .ThenBy(series => series.AniDB_ID)
+            .ThenBy(series => series.AniDB_ID ?? 0)
             .ToListResult(series => new Series(series, User.JMMUserID), page, pageSize);
     }
 
@@ -491,7 +494,7 @@ public class SeriesController : BaseController
         }
         return query
             .OrderBy(series => series.Title.ToLowerInvariant().ToSortName())
-            .ThenBy(series => series.AniDB_ID)
+            .ThenBy(series => series.AniDB_ID ?? 0)
             .ToListResult(series => new Series(series, User.JMMUserID), page, pageSize);
     }
 
@@ -825,7 +828,7 @@ public class SeriesController : BaseController
         }
 
         return RepoFactory.MediaSeries.GetAll()
-            .Where(series => user.AllowedSeries(series) && !watchedSeriesSet.Contains(series.AniDB_ID))
+            .Where(series => user.AllowedSeries(series) && !watchedSeriesSet.Contains(series.AniDB_ID ?? 0))
             .Select(series => (anime: series.AniDB_Anime, series))
             .Where(tuple => tuple.anime is not null && (includeRestricted || !tuple.anime.IsRestricted))
             .ToDictionary<(AniDB_Anime? anime, MediaSeries series), int, (AniDB_Anime, MediaSeries?)>(tuple => tuple.anime!.AnimeID, tuple => (tuple.anime!, tuple.series));
@@ -1056,7 +1059,7 @@ public class SeriesController : BaseController
 
         var anime = series.AniDB_Anime;
         if (anime is null)
-            return InternalError($"Unable to get MetadataAnime with ID {series.AniDB_ID} for Series with ID {series.MediaSeriesID}!");
+            return InternalError($"Unable to get MetadataAnime with ID {series.AniDB_ID?.ToString() ?? "unknown"} for Series with ID {series.MediaSeriesID}!");
 
         var results = await _tmdbSearchService.SearchForAutoMatch(anime);
 
@@ -1083,7 +1086,10 @@ public class SeriesController : BaseController
         if (!User.AllowedSeries(series))
             return Forbid(SeriesForbiddenForUser);
 
-        await _tmdbMetadataService.ScheduleSearchForMatch(series.AniDB_ID, force);
+        if (series.AniDB_ID is null or 0)
+            return NotFound("Series does not have an AniDB link.");
+
+        await _tmdbMetadataService.ScheduleSearchForMatch(series.AniDB_ID.Value, force);
 
         return NoContent();
     }
@@ -1225,7 +1231,7 @@ public class SeriesController : BaseController
         {
             var settings = SettingsProvider.GetSettings();
             await Task.WhenAll(
-                RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbAnimeID(series.AniDB_ID)
+                RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbAnimeID(series.AniDB_ID ?? 0)
                     .Select(xref => body.SkipIfExists && RepoFactory.TMDB_Movie.GetByTmdbMovieID(xref.TmdbMovieID) is not null
                         ? Task.CompletedTask
                         : _tmdbMetadataService.UpdateMovie(xref.TmdbMovieID, body.Force, body.DownloadImages, body.DownloadCrewAndCast ?? settings.TMDB.AutoDownloadCrewAndCast, body.DownloadCollections ?? settings.TMDB.AutoDownloadCollections)
@@ -1234,7 +1240,7 @@ public class SeriesController : BaseController
             return Ok();
         }
 
-        foreach (var xref in RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbAnimeID(series.AniDB_ID))
+        foreach (var xref in RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbAnimeID(series.AniDB_ID ?? 0))
             await _tmdbMetadataService.ScheduleUpdateOfMovie(xref.TmdbMovieID, body.Force, body.DownloadImages, body.DownloadCrewAndCast, body.DownloadCollections);
 
         return NoContent();
@@ -1266,13 +1272,13 @@ public class SeriesController : BaseController
         if (body.Immediate)
         {
             await Task.WhenAll(
-                RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbAnimeID(series.AniDB_ID)
+                RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbAnimeID(series.AniDB_ID ?? 0)
                     .Select(xref => _tmdbMetadataService.DownloadAllMovieImages(xref.TmdbMovieID, body.Force))
             );
             return Ok();
         }
 
-        foreach (var xref in RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbAnimeID(series.AniDB_ID))
+        foreach (var xref in RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbAnimeID(series.AniDB_ID ?? 0))
             await _tmdbMetadataService.ScheduleDownloadAllMovieImages(xref.TmdbMovieID, body.Force);
         return NoContent();
     }
@@ -1357,7 +1363,10 @@ public class SeriesController : BaseController
         if (!User.AllowedSeries(series))
             return Forbid(SeriesForbiddenForUser);
 
-        await _tmdbLinkingService.AddShowLink(series.AniDB_ID, body.ID, additiveLink: !body.Replace);
+        if (series.AniDB_ID is null or 0)
+            return NotFound("Series does not have an AniDB link.");
+
+        await _tmdbLinkingService.AddShowLink(series.AniDB_ID.Value, body.ID, additiveLink: !body.Replace);
 
         var needRefresh = body.Refresh || RepoFactory.TMDB_Show.GetByTmdbShowID(body.ID) is not { } tmdbShow || tmdbShow.CreatedAt == tmdbShow.LastUpdatedAt;
         if (needRefresh)
@@ -1392,10 +1401,13 @@ public class SeriesController : BaseController
         if (!User.AllowedSeries(series))
             return Forbid(SeriesForbiddenForUser);
 
+        if (series.AniDB_ID is null or 0)
+            return NotFound("Series does not have an AniDB link.");
+
         if (body != null && body.ID > 0)
-            await _tmdbLinkingService.RemoveShowLink(series.AniDB_ID, body.ID, body.Purge);
+            await _tmdbLinkingService.RemoveShowLink(series.AniDB_ID.Value, body.ID, body.Purge);
         else
-            await _tmdbLinkingService.RemoveAllShowLinksForAnime(series.AniDB_ID, body?.Purge ?? false);
+            await _tmdbLinkingService.RemoveAllShowLinksForAnime(series.AniDB_ID.Value, body?.Purge ?? false);
 
         // Reset series/group titles/descriptions when a link is removed.
         series.ResetAnimeTitles();
@@ -1434,7 +1446,7 @@ public class SeriesController : BaseController
         {
             var settings = SettingsProvider.GetSettings();
             await Task.WhenAll(
-                RepoFactory.CrossRef_AniDB_TMDB_Show.GetByAnidbAnimeID(series.AniDB_ID)
+                RepoFactory.CrossRef_AniDB_TMDB_Show.GetByAnidbAnimeID(series.AniDB_ID ?? 0)
                     .Select(xref => _tmdbMetadataService.UpdateShow(
                         showId: xref.TmdbShowID,
                         forceRefresh: body.Force,
@@ -1448,7 +1460,7 @@ public class SeriesController : BaseController
             return Ok();
         }
 
-        foreach (var xref in RepoFactory.CrossRef_AniDB_TMDB_Show.GetByAnidbAnimeID(series.AniDB_ID))
+        foreach (var xref in RepoFactory.CrossRef_AniDB_TMDB_Show.GetByAnidbAnimeID(series.AniDB_ID ?? 0))
             await _tmdbMetadataService.ScheduleUpdateOfShow(xref.TmdbShowID, body.Force, body.DownloadImages, body.DownloadCrewAndCast, body.DownloadAlternateOrdering, body.DownloadNetworks);
 
         return NoContent();
@@ -1480,13 +1492,13 @@ public class SeriesController : BaseController
         if (body.Immediate)
         {
             await Task.WhenAll(
-                RepoFactory.CrossRef_AniDB_TMDB_Show.GetByAnidbAnimeID(series.AniDB_ID)
+                RepoFactory.CrossRef_AniDB_TMDB_Show.GetByAnidbAnimeID(series.AniDB_ID ?? 0)
                     .Select(xref => _tmdbMetadataService.DownloadAllShowImages(xref.TmdbShowID, body.Force))
             );
             return Ok();
         }
 
-        foreach (var xref in RepoFactory.CrossRef_AniDB_TMDB_Show.GetByAnidbAnimeID(series.AniDB_ID))
+        foreach (var xref in RepoFactory.CrossRef_AniDB_TMDB_Show.GetByAnidbAnimeID(series.AniDB_ID ?? 0))
             await _tmdbMetadataService.ScheduleDownloadAllShowImages(xref.TmdbShowID, body.Force);
         return NoContent();
     }
@@ -1582,6 +1594,9 @@ public class SeriesController : BaseController
         if (!User.AllowedSeries(series))
             return Forbid(TmdbForbiddenForUser);
 
+        if (series.AniDB_ID is null or 0)
+            return NotFound("Series does not have an AniDB link.");
+
         // Validate the mappings.
         var xrefs = series.TmdbShowCrossReferences;
         var showIDs = xrefs
@@ -1622,11 +1637,11 @@ public class SeriesController : BaseController
 
         // Add any missing links if needed.
         foreach (var showId in missingIDs)
-            await _tmdbLinkingService.AddShowLink(series.AniDB_ID, showId, additiveLink: true);
+            await _tmdbLinkingService.AddShowLink(series.AniDB_ID.Value, showId, additiveLink: true);
 
         // Unset all links if we want to manually replace some or all of them.
         if (body.UnsetAll)
-            _tmdbLinkingService.ResetAllEpisodeLinks(series.AniDB_ID, false);
+            _tmdbLinkingService.ResetAllEpisodeLinks(series.AniDB_ID.Value, false);
 
         // Make sure the mappings are in the correct order before linking.
         mapping = mapping
@@ -1707,7 +1722,10 @@ public class SeriesController : BaseController
                 return ValidationProblem("The selected tmdbSeasonID does not belong to the selected tmdbShowID", "tmdbSeasonID");
         }
 
-        return _tmdbLinkingService.MatchAnidbToTmdbEpisodes(series.AniDB_ID, tmdbShowID.Value, tmdbSeasonID, useExisting: keepExisting, useExistingOtherShows: considerExistingOtherLinks, saveToDatabase: false)
+        if (series.AniDB_ID is null or 0)
+            return NotFound("Series does not have an AniDB link.");
+
+        return _tmdbLinkingService.MatchAnidbToTmdbEpisodes(series.AniDB_ID.Value, tmdbShowID.Value, tmdbSeasonID, useExisting: keepExisting, useExistingOtherShows: considerExistingOtherLinks, saveToDatabase: false)
             .ToListResult(x => new TmdbEpisode.CrossReference(x), page, pageSize);
     }
 
@@ -1765,11 +1783,14 @@ public class SeriesController : BaseController
                 return ValidationProblem("The selected tmdbSeasonID does not belong to the selected tmdbShowID", "tmdbSeasonID");
         }
 
+        if (series.AniDB_ID is null or 0)
+            return NotFound("Series does not have an AniDB link.");
+
         // Add the missing link if needed.
         if (isMissing)
-            await _tmdbLinkingService.AddShowLink(series.AniDB_ID, body.TmdbShowID.Value, additiveLink: true);
+            await _tmdbLinkingService.AddShowLink(series.AniDB_ID.Value, body.TmdbShowID.Value, additiveLink: true);
         else
-            _tmdbLinkingService.MatchAnidbToTmdbEpisodes(series.AniDB_ID, body.TmdbShowID.Value, body.TmdbSeasonID, useExisting: body.KeepExisting, useExistingOtherShows: body.ConsiderExistingOtherLinks, saveToDatabase: true);
+            _tmdbLinkingService.MatchAnidbToTmdbEpisodes(series.AniDB_ID.Value, body.TmdbShowID.Value, body.TmdbSeasonID, useExisting: body.KeepExisting, useExistingOtherShows: body.ConsiderExistingOtherLinks, saveToDatabase: true);
 
         if (tmdbShow.CreatedAt == tmdbShow.LastUpdatedAt)
         {
@@ -1798,7 +1819,10 @@ public class SeriesController : BaseController
         if (!User.AllowedSeries(series))
             return Forbid(TmdbForbiddenForUser);
 
-        _tmdbLinkingService.ResetAllEpisodeLinks(series.AniDB_ID, true);
+        if (series.AniDB_ID is null or 0)
+            return NotFound("Series does not have an AniDB link.");
+
+        _tmdbLinkingService.ResetAllEpisodeLinks(series.AniDB_ID.Value, true);
 
         return NoContent();
     }
@@ -2645,9 +2669,12 @@ public class SeriesController : BaseController
         if (!image.IsEnabled)
             return ValidationProblem(InvalidImageIsDisabled);
 
+        if (series.AniDB_ID is null or 0)
+            return NotFound("Series does not have an AniDB link.");
+
         // Create or update the entry if something changed.
-        var defaultImage = RepoFactory.AniDB_Anime_PreferredImage.GetByAnidbAnimeIDAndType(series.AniDB_ID, imageEntityType) ??
-            new() { AnidbAnimeID = series.AniDB_ID, ImageType = imageEntityType };
+        var defaultImage = RepoFactory.AniDB_Anime_PreferredImage.GetByAnidbAnimeIDAndType(series.AniDB_ID.Value, imageEntityType) ??
+            new() { AnidbAnimeID = series.AniDB_ID.Value, ImageType = imageEntityType };
         if (defaultImage.ImageID == body.ID && defaultImage.ImageSource == dataSource)
             return new Image(body.ID, imageEntityType, dataSource, true);
 
@@ -2685,9 +2712,12 @@ public class SeriesController : BaseController
         if (!User.AllowedSeries(series))
             return Forbid(SeriesForbiddenForUser);
 
+        if (series.AniDB_ID is null or 0)
+            return NotFound("Series does not have an AniDB link.");
+
         // Check if a default image is set.
         var imageEntityType = imageType.ToServer();
-        var defaultImage = RepoFactory.AniDB_Anime_PreferredImage.GetByAnidbAnimeIDAndType(series.AniDB_ID, imageEntityType);
+        var defaultImage = RepoFactory.AniDB_Anime_PreferredImage.GetByAnidbAnimeIDAndType(series.AniDB_ID.Value, imageEntityType);
         if (defaultImage == null)
             return ValidationProblem("No default image for the selected type.");
 
@@ -2855,7 +2885,10 @@ public class SeriesController : BaseController
             return Forbid(SeriesForbiddenForUser);
         }
 
-        return Series.GetCast(series.AniDB_ID, roleType);
+        if (series.AniDB_ID is null or 0)
+            return NotFound("Series does not have an AniDB link.");
+
+        return Series.GetCast(series.AniDB_ID.Value, roleType);
     }
 
     #endregion

@@ -83,7 +83,7 @@ public partial class DaCollectorServiceImplementation
         var languages = new HashSet<string> { "en", "x-jat" };
         languages.UnionWith(languagePreference.Select(b => b.ToLower()));
 
-        foreach (var title in RepoFactory.AniDB_Anime_Title.GetByAnimeID(a.AniDB_ID)
+        foreach (var title in RepoFactory.AniDB_Anime_Title.GetByAnimeID(a.AniDB_ID ?? 0)
                      .Where(b => b.TitleType != DaCollector.Abstractions.Metadata.Enums.TitleType.Short && languages.Contains(b.LanguageCode))
                      .Select(b => b.Title?.ToLowerInvariant()).ToList())
         {
@@ -477,7 +477,7 @@ public partial class DaCollectorServiceImplementation
                     .Where(aniep => aniep.HasAired)
                     .Select(aniep => new CL_MissingEpisode
                     {
-                        AnimeID = ser.AniDB_ID,
+                        AnimeID = ser.AniDB_ID ?? 0,
                         MediaSeries = _legacyV1Service.GetV1UserContract(ser, userID),
                         AnimeTitle = anime.MainTitle,
                         EpisodeID = aniep.EpisodeID,
@@ -643,7 +643,7 @@ public partial class DaCollectorServiceImplementation
         {
             foreach (var ser in RepoFactory.MediaSeries.GetAll())
             {
-                if (RepoFactory.VideoLocal.GetByAniDBAnimeID(ser.AniDB_ID).Count == 0)
+                if (RepoFactory.VideoLocal.GetByAniDBAnimeID(ser.AniDB_ID ?? 0).Count == 0)
                 {
                     var can = _legacyV1Service.GetV1UserContract(ser, userID);
                     if (can != null)
@@ -838,7 +838,7 @@ public partial class DaCollectorServiceImplementation
             {
                 var allSeries = RepoFactory.MediaSeries.GetAll();
                 foreach (var ser in allSeries)
-                    dictSeriesAnime[ser.MediaSeriesID] = ser.AniDB_ID;
+                    dictSeriesAnime[ser.MediaSeriesID] = ser.AniDB_ID ?? 0;
 
                 var allAnime = RepoFactory.AniDB_Anime.GetAll();
                 foreach (var anime in allAnime)

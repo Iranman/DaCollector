@@ -1307,7 +1307,7 @@ public class FileController(
         var episodeList = new List<AniDB_Episode>();
         for (var episodeNumber = rangeStart; episodeNumber <= rangeEnd; episodeNumber++)
         {
-            var MetadataEpisode = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeTypeNumber(series.AniDB_ID, episodeType, episodeNumber)[0];
+            var MetadataEpisode = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeTypeNumber(series.AniDB_ID ?? 0, episodeType, episodeNumber)[0];
             if (MetadataEpisode == null)
             {
                 ModelState.AddModelError("Episodes", $"Could not find the AniDB entry for the {episodeType.ToString().ToLowerInvariant()} episode {episodeNumber}.");
@@ -1421,7 +1421,7 @@ public class FileController(
         var episodeList = new List<(VideoLocal, AniDB_Episode)>();
         foreach (var file in files)
         {
-            var MetadataEpisode = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeTypeNumber(series.AniDB_ID, episodeType, episodeNumber)[0];
+            var MetadataEpisode = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeTypeNumber(series.AniDB_ID ?? 0, episodeType, episodeNumber)[0];
             if (MetadataEpisode == null)
             {
                 ModelState.AddModelError("Episodes", $"Could not find the AniDB entry for the {episodeType.ToString().ToLowerInvariant()} episode {episodeNumber}.");

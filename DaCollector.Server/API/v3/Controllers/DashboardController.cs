@@ -140,8 +140,8 @@ public class DashboardController : BaseController
         if (ser.IsTMDBAutoMatchingDisabled)
             return false;
 
-        var tmdbMovieLinkMissing = RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbAnimeID(ser.AniDB_ID).Count == 0;
-        var tmdbShowLinkMissing = RepoFactory.CrossRef_AniDB_TMDB_Show.GetByAnidbAnimeID(ser.AniDB_ID).Count == 0;
+        var tmdbMovieLinkMissing = RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbAnimeID(ser.AniDB_ID ?? 0).Count == 0;
+        var tmdbShowLinkMissing = RepoFactory.CrossRef_AniDB_TMDB_Show.GetByAnidbAnimeID(ser.AniDB_ID ?? 0).Count == 0;
         return tmdbMovieLinkMissing && tmdbShowLinkMissing;
     }
 
@@ -469,7 +469,8 @@ public class DashboardController : BaseController
             .Select(anime => RepoFactory.MediaSeries.GetByAnimeID(anime.AnimeID))
             .WhereNotNull()
             .Distinct()
-            .ToDictionary(anime => anime.AniDB_ID);
+            .Where(anime => anime.AniDB_ID.HasValue)
+            .ToDictionary(anime => anime.AniDB_ID!.Value);
         return episodeList
             .Where(episode =>
             {

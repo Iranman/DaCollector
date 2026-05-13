@@ -280,9 +280,9 @@ public class GroupController : BaseController
         }
 
         var seriesDict = (recursive ? group.AllSeries : group.Series)
-            .ToDictionary(series => series.AniDB_ID);
-        var animeIds = seriesDict.Values
-            .Select(series => series.AniDB_ID)
+            .Where(series => series.AniDB_ID.HasValue)
+            .ToDictionary(series => series.AniDB_ID!.Value);
+        var animeIds = seriesDict.Keys
             .ToHashSet();
 
         // TODO: Replace with a more generic implementation capable of supplying relations from more than just AniDB.
@@ -290,7 +290,7 @@ public class GroupController : BaseController
             .Concat(RepoFactory.AniDB_Anime_Relation.GetByRelatedAnimeID(animeIds).OfType<IRelatedMetadata>().Select(a => a.Reversed))
             .Distinct()
             .Select(relation => (relation, relatedSeries: RepoFactory.MediaSeries.GetByAnimeID(relation.RelatedID)))
-            .Where(tuple => tuple.relatedSeries != null && animeIds.Contains(tuple.relatedSeries.AniDB_ID))
+            .Where(tuple => tuple.relatedSeries != null && tuple.relatedSeries.AniDB_ID.HasValue && animeIds.Contains(tuple.relatedSeries.AniDB_ID.Value))
             .OrderBy(tuple => tuple.relation.BaseID)
             .ThenBy(tuple => tuple.relation.RelatedID)
             .ThenBy(tuple => tuple.relation.RelationType)

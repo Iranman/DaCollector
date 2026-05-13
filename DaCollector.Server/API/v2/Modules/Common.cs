@@ -1542,7 +1542,7 @@ public class Common : BaseController
         var now = DateTime.Now;
         var result = allSeries.Where(ser =>
             {
-                var anime = RepoFactory.AniDB_Anime.GetByAnimeID(ser.AniDB_ID);
+                var anime = RepoFactory.AniDB_Anime.GetByAnimeID(ser.AniDB_ID ?? 0);
                 // It might end today, but that's okay
                 if (anime.EndDate != null)
                 {
@@ -2859,7 +2859,7 @@ public class Common : BaseController
         }
 
         var roles = new List<Role>();
-        var xref_animestaff = RepoFactory.AniDB_Anime_Character_Creator.GetByAnimeID(series.AniDB_ID);
+        var xref_animestaff = RepoFactory.AniDB_Anime_Character_Creator.GetByAnimeID(series.AniDB_ID ?? 0);
         foreach (var xref in xref_animestaff)
         {
             var character = RepoFactory.AniDB_Character.GetByID(xref.CharacterID);

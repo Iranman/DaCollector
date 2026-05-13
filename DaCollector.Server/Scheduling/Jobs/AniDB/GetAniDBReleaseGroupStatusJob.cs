@@ -120,7 +120,7 @@ public class GetAniDBReleaseGroupStatusJob : BaseJob
             }
 
             // update the missing episode stats on groups and children
-            await scheduler.StartJob<RefreshAnimeStatsJob>(a => a.AnimeID = series.AniDB_ID);
+            await scheduler.StartJob<RefreshAnimeStatsJob>(a => a.AnimeID = series.AniDB_ID ?? 0);
         }
     }
 
