@@ -77,6 +77,9 @@ public static class RepositoryStartup
         services.AddCachedRepository<CrossRef_AniDB_TMDB_ShowRepository>();
         services.AddCachedRepository<CrossRef_CustomTagRepository>();
         services.AddCachedRepository<CrossRef_File_EpisodeRepository>();
+        services.AddCachedRepository<CrossRef_File_TmdbEpisodeRepository>();
+        services.AddCachedRepository<CrossRef_File_TmdbMovieRepository>();
+        services.AddCachedRepository<CrossRef_File_TvdbEpisodeRepository>();
         services.AddCachedRepository<CustomTagRepository>();
         services.AddCachedRepository<StoredReleaseInfoRepository>();
         services.AddCachedRepository<StoredReleaseInfo_MatchAttemptRepository>();
