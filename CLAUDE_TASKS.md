@@ -1006,6 +1006,18 @@ Direct file→provider cross-reference tables that bypass the AniDB import path:
 
 Follow-up needed: `ProcessFileTmdbJob` currently picks the top TMDB result blindly. Wire in confidence scoring from `MediaFileMatchCandidateService` so low-confidence matches go to the review queue instead of auto-linking.
 
+### ✅ Fix WebUI TypeScript Build Error in Log.tsx — DONE
+
+2026-05-13. Commit `5bbfa01` (DaCollector-WebUI).
+
+- `src/pages/Log.tsx` line 81: renamed `backlog` → `_backlog` in the `GetBacklog` SignalR handler to fix TS6133 unused-variable error that was breaking the Docker WebUI build step.
+
+### ✅ Fix cleanup-docker-images Workflow — DONE
+
+2026-05-13. Commit `7dd89dc`.
+
+- `.github/workflows/cleanup-docker-images.yml`: corrected `package-name` from `'server'` to `'dacollector'` (matching the actual GHCR package `ghcr.io/iranman/dacollector`); added explicit `token: ${{ secrets.GITHUB_TOKEN }}` so the delete API call authenticates correctly.
+
 ---
 
 ## P2 MVP Completion Summary
