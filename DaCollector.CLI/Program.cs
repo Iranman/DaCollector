@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Sentry;
 using DaCollector.Abstractions.Core.Events;
 using DaCollector.Server.Scheduling;
 using DaCollector.Server.Server;
@@ -17,6 +18,16 @@ public static class Program
 
     public static async Task<int> Main()
     {
+        // Initialize Sentry as early as possible to capture pre-host crashes.
+        // The opt-out check in UseSentryConfig covers the main ASP.NET Core runtime.
+        using var sentry = Constants.SentryDsn.StartsWith("https://")
+            ? SentrySdk.Init(options =>
+            {
+                options.Dsn = Constants.SentryDsn;
+                options.AutoSessionTracking = true;
+            })
+            : null;
+
         try
         {
             UnhandledExceptionManager.AddHandler();
