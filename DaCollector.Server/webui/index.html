@@ -7,6 +7,19 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <script src="https://cdn.tailwindcss.com"></script>
     <title>DaCollector</title>
+    <script>
+        (async function () {
+            try {
+                const r = await fetch('/api/v3/Init/Status');
+                if (r.ok) {
+                    const s = await r.json();
+                    if (s.state === 'Waiting') {
+                        window.location.replace('/webui/setup.html');
+                    }
+                }
+            } catch (e) {}
+        })();
+    </script>
 </head>
 <body class="flex justify-center items-center h-screen bg-[#282E38]">
 

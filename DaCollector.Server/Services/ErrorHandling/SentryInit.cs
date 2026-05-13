@@ -69,6 +69,7 @@ public static class SentryInit
             if (versionInfo.SourceRevision is { Length: > 0 } gitCommit) opts.DefaultTags.Add("commit", gitCommit);
             if (versionInfo.ReleaseTag is { Length: > 0 } gitTag) opts.DefaultTags.Add("commit.tag", gitTag);
 
+            opts.AutoSessionTracking = true;
             opts.SampleRate = 0.5f;
 
             opts.SetBeforeSend(BeforeSentrySend);

@@ -1,0 +1,1030 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <title>DaCollector — First Run Setup</title>
+    <style>
+        * { box-sizing: border-box; }
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #44A3FF40; border-radius: 3px; }
+        input::placeholder { color: #4B5563; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .spin { animation: spin 1s linear infinite; }
+        .fade-in { animation: fadeIn 0.2s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body style="background:#12151C;color:#CFD8E3;height:100vh;display:flex;overflow:hidden;font-family:system-ui,-apple-system,sans-serif;margin:0">
+
+<!-- ══════════════════════════════════════════════
+     SIDEBAR
+══════════════════════════════════════════════ -->
+<aside style="width:256px;background:#0D1017;flex-shrink:0;display:flex;flex-direction:column;padding:24px 20px;border-right:1px solid #1E2330">
+    <!-- Branding -->
+    <div style="margin-bottom:32px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
+            <div style="width:38px;height:38px;background:#44A3FF;border-radius:9px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px;color:#0D1017;flex-shrink:0">D</div>
+            <span style="font-weight:600;font-size:17px;color:#FFFFFF">DaCollector</span>
+        </div>
+        <div id="version-text" style="font-size:12px;color:#4B5563;padding-left:50px">Loading…</div>
+    </div>
+
+    <!-- Step list -->
+    <nav id="step-nav" style="display:flex;flex-direction:column;gap:4px;flex:1"></nav>
+
+    <!-- Bottom links -->
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:24px">
+        <a href="https://discord.gg/vpeHDsg" target="_blank"
+           style="background:#1E2330;border-radius:8px;padding:10px 14px;text-align:center;font-size:13px;text-decoration:none;color:#CFD8E3;border:1px solid #2A3040">
+            Discord
+        </a>
+        <a href="https://github.com/Iranman/DaCollector#readme" target="_blank"
+           style="background:#1E2330;border-radius:8px;padding:10px 14px;text-align:center;font-size:13px;text-decoration:none;color:#CFD8E3;border:1px solid #2A3040">
+            Documentation
+        </a>
+    </div>
+</aside>
+
+<!-- ══════════════════════════════════════════════
+     MAIN
+══════════════════════════════════════════════ -->
+<main style="flex:1;display:flex;flex-direction:column;overflow:hidden;background:#1A1D27">
+    <div id="step-content" style="flex:1;overflow-y:auto;padding:40px 48px" class="fade-in"></div>
+
+    <!-- Nav bar -->
+    <div style="display:flex;align-items:center;padding:16px 48px;border-top:1px solid #1E2330;gap:12px">
+        <button id="btn-back" onclick="prevStep()"
+            style="background:#1E2330;border:1px solid #2A3040;border-radius:8px;padding:10px 24px;font-size:14px;font-weight:500;color:#CFD8E3;cursor:pointer;display:none">
+            Back
+        </button>
+        <button id="btn-next" onclick="nextStep()"
+            style="background:#44A3FF;border:none;border-radius:8px;padding:10px 28px;font-size:14px;font-weight:600;color:#0D1017;cursor:pointer;margin-left:auto">
+            Next
+        </button>
+    </div>
+</main>
+
+<script>
+// ──────────────────────────────────────────────────────────
+// State
+// ──────────────────────────────────────────────────────────
+let currentStep = 0;
+
+const state = {
+    username: '', password: '',
+    tmdbApiKey: '', tmdbTested: false, tmdbTestOk: false,
+    tvdbEnabled: false, tvdbApiKey: '', tvdbPin: '', tvdbTested: false, tvdbTestOk: false,
+    imdbEnabled: false, imdbDatasetPath: '',
+    sentryOptOut: false, // false = reporting enabled (opt-in by default)
+    importFolders: [],   // { name, path, watchForNewFiles, dropFolderType }
+    apiKey: '',          // populated after server starts; used to save folders
+};
+
+// Transient form state for the Add Folder form (not persisted to state.importFolders until Add is clicked)
+const folderForm = {
+    watchForNewFiles: true,
+    dropFolderType: 'None', // 'None' | 'Source' | 'Destination' | 'Both'
+};
+
+const STEPS = [
+    { label: 'Welcome',           render: renderWelcome    },
+    { label: 'Account Setup',     render: renderAccount    },
+    { label: 'Metadata Sources',  render: renderProviders  },
+    { label: 'Data Collection',   render: renderTelemetry  },
+    { label: 'Start Server',      render: renderStart      },
+    { label: 'Import Folders',    render: renderFolders    },
+];
+
+// ──────────────────────────────────────────────────────────
+// API
+// ──────────────────────────────────────────────────────────
+async function api(method, path, body) {
+    const opts = { method, headers: { 'Content-Type': 'application/json' } };
+    if (body !== undefined) opts.body = JSON.stringify(body);
+    const r = await fetch('/api/v3/' + path, opts);
+    if (!r.ok) throw new Error(await r.text() || r.statusText);
+    const ct = r.headers.get('Content-Type') || '';
+    return ct.includes('json') ? r.json() : r.text();
+}
+
+// ──────────────────────────────────────────────────────────
+// Navigation
+// ──────────────────────────────────────────────────────────
+function renderNav() {
+    const nav = document.getElementById('step-nav');
+    nav.innerHTML = STEPS.map((s, i) => {
+        const done = i < currentStep, active = i === currentStep;
+        const circleBg   = done ? '#44A3FF' : active ? '#44A3FF22' : 'transparent';
+        const circleBdr  = done ? 'none' : active ? '2px solid #44A3FF' : '2px solid #2A3040';
+        const icon = done
+            ? svg('M20 6 9 17 4 12', 'polyline', 'white')
+            : `<span style="font-size:11px;color:${active?'#44A3FF':'#4B5563'};font-weight:600">${i+1}</span>`;
+        const bg    = active ? '#44A3FF12' : 'transparent';
+        const color = active ? '#FFFFFF' : done ? '#9CA3AF' : '#4B5563';
+        const weight = active ? '600' : '400';
+        return `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;background:${bg}">
+            <div style="width:26px;height:26px;border-radius:50%;background:${circleBg};border:${circleBdr};display:flex;align-items:center;justify-content:center;flex-shrink:0">${icon}</div>
+            <span style="font-size:13px;color:${color};font-weight:${weight}">${s.label}</span>
+        </div>`;
+    }).join('');
+
+    document.getElementById('btn-back').style.display = currentStep > 0 && currentStep < STEPS.length - 1 ? 'inline-block' : 'none';
+}
+
+function showStep() {
+    renderNav();
+    const el = document.getElementById('step-content');
+    el.classList.remove('fade-in');
+    void el.offsetWidth;
+    el.classList.add('fade-in');
+    el.innerHTML = '';
+    document.getElementById('btn-next').textContent = 'Next';
+    document.getElementById('btn-next').onclick = nextStep;
+    document.getElementById('btn-next').disabled = false;
+    STEPS[currentStep].render(el);
+}
+
+async function nextStep() {
+    const ok = await validateStep();
+    if (!ok) return;
+    if (currentStep < STEPS.length - 1) { currentStep++; showStep(); }
+}
+
+function prevStep() {
+    if (currentStep > 0) { currentStep--; showStep(); }
+}
+
+async function validateStep() {
+    if (currentStep === 1) return validateAccount();
+    if (currentStep === 2) return saveProviders();
+    if (currentStep === 3) return saveTelemetry();
+    // Step 5 (Import Folders) — handled by its own Finish button
+    return true;
+}
+
+// ──────────────────────────────────────────────────────────
+// Step: Welcome
+// ──────────────────────────────────────────────────────────
+function renderWelcome(el) {
+    document.getElementById('btn-next').textContent = 'Get Started';
+    el.innerHTML = `
+        <div style="max-width:560px">
+            <h1 style="font-size:26px;font-weight:700;color:#FFFFFF;margin:0 0 8px">Welcome to DaCollector</h1>
+            <p style="color:#6B7280;font-size:14px;margin:0 0 28px">Let's get your media collection manager set up in a few steps.</p>
+
+            <div style="background:#1E2330;border-radius:12px;padding:20px 24px;margin-bottom:16px;border:1px solid #2A3040">
+                <p style="font-size:14px;line-height:1.8;color:#CFD8E3;margin:0">
+                    DaCollector is an open-source media collection manager for movies and TV files you already own.
+                    It scans your folders, matches files against TMDB and TVDB, enriches metadata, and tracks your
+                    collection — all from a single local server.
+                </p>
+            </div>
+            <div style="background:#1E2330;border-radius:12px;padding:20px 24px;border:1px solid #2A3040">
+                <p style="font-size:13px;color:#6B7280;line-height:1.8;margin:0">
+                    This wizard will walk you through creating your admin account, configuring metadata providers,
+                    and adding your first import folders. Everything can be changed later from the server settings.
+                </p>
+            </div>
+        </div>`;
+}
+
+// ──────────────────────────────────────────────────────────
+// Step: Account
+// ──────────────────────────────────────────────────────────
+function renderAccount(el) {
+    el.innerHTML = `
+        <div style="max-width:420px">
+            <h1 style="font-size:26px;font-weight:700;color:#FFFFFF;margin:0 0 8px">Create Your Account</h1>
+            <p style="color:#6B7280;font-size:14px;margin:0 0 28px">This will be the admin account for your DaCollector server.</p>
+
+            <div style="display:flex;flex-direction:column;gap:18px">
+                ${field('inp-username','Username','text',state.username,'e.g. admin')}
+                ${field('inp-password','Password','password',state.password,'At least 4 characters')}
+                ${field('inp-confirm','Confirm Password','password','','Re-enter your password')}
+                <div id="account-err" style="color:#EF4444;font-size:13px;display:none"></div>
+            </div>
+        </div>`;
+}
+
+function validateAccount() {
+    const u = val('inp-username'), p = val('inp-password'), c = val('inp-confirm');
+    const err = document.getElementById('account-err');
+    if (!u)           { return setErr(err, 'Username is required.'); }
+    if (p.length < 4) { return setErr(err, 'Password must be at least 4 characters.'); }
+    if (p !== c)      { return setErr(err, 'Passwords do not match.'); }
+    err.style.display = 'none';
+    state.username = u; state.password = p;
+    api('POST', 'Init/DefaultUser', { Username: u, Password: p }).catch(() => {});
+    return true;
+}
+
+// ──────────────────────────────────────────────────────────
+// Step: Metadata Sources
+// ──────────────────────────────────────────────────────────
+function renderProviders(el) {
+    el.innerHTML = `
+        <div style="max-width:600px">
+            <h1 style="font-size:26px;font-weight:700;color:#FFFFFF;margin:0 0 8px">Metadata Sources</h1>
+            <p style="color:#6B7280;font-size:14px;margin:0 0 28px">
+                Configure the providers DaCollector uses to match and enrich your media collection.
+            </p>
+            <div style="display:flex;flex-direction:column;gap:16px" id="providers-list">
+                ${renderTmdbCard()}
+                ${renderTvdbCard()}
+                ${renderImdbCard()}
+            </div>
+        </div>`;
+}
+
+function rerenderProviders() {
+    const el = document.getElementById('providers-list');
+    if (!el) return;
+    el.innerHTML = renderTmdbCard() + renderTvdbCard() + renderImdbCard();
+}
+
+function renderTmdbCard() {
+    return `
+    <div style="background:#1E2330;border-radius:12px;border:1px solid #2A3040;overflow:hidden">
+        <div style="display:flex;align-items:center;gap:16px;padding:20px 24px">
+            <div style="width:42px;height:42px;border-radius:10px;background:#01B4E415;border:1px solid #01B4E440;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#01B4E4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="2" width="20" height="20" rx="2.18"/>
+                    <line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/>
+                    <line x1="2" y1="12" x2="22" y2="12"/>
+                    <line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/>
+                    <line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/>
+                </svg>
+            </div>
+            <div style="flex:1;min-width:0">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
+                    <span style="font-size:15px;font-weight:600;color:#FFFFFF">TMDB</span>
+                    <span style="font-size:10px;font-weight:700;background:#44A3FF22;color:#44A3FF;border-radius:4px;padding:2px 8px;letter-spacing:0.05em">PRIMARY</span>
+                </div>
+                <div style="font-size:12px;color:#6B7280">The Movie Database — movies &amp; TV shows</div>
+            </div>
+        </div>
+        <div style="border-top:1px solid #2A3040;padding:20px 24px;display:flex;flex-direction:column;gap:16px">
+            <p style="font-size:13px;color:#6B7280;line-height:1.7;margin:0">
+                A built-in API key is included. Providing your own removes rate-limit restrictions.
+                Get a free key at <a href="https://www.themoviedb.org/settings/api" target="_blank" style="color:#44A3FF">themoviedb.org</a>.
+            </p>
+            <div>
+                <label style="display:block;font-size:12px;font-weight:500;color:#9CA3AF;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em">
+                    API Key <span style="color:#4B5563;text-transform:none;letter-spacing:0;font-weight:400">(optional)</span>
+                </label>
+                <div style="display:flex;gap:8px">
+                    <input id="inp-tmdb-key" type="password" value="${esc(state.tmdbApiKey)}"
+                        placeholder="Leave blank to use the built-in key"
+                        oninput="state.tmdbApiKey=this.value;state.tmdbTested=false"
+                        style="${inputStyle('flex:1')}">
+                    <button onclick="testTmdb()" id="btn-test-tmdb" style="${outlineBtn()}">Test Key</button>
+                </div>
+                ${testBadge('tmdb')}
+            </div>
+        </div>
+    </div>`;
+}
+
+function renderTvdbCard() {
+    return `
+    <div style="background:#1E2330;border-radius:12px;border:1px solid ${state.tvdbEnabled ? '#44A3FF40' : '#2A3040'};overflow:hidden">
+        <div style="display:flex;align-items:center;gap:16px;padding:20px 24px">
+            <div style="width:42px;height:42px;border-radius:10px;background:#4DB6AC15;border:1px solid #4DB6AC40;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4DB6AC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="7" width="20" height="15" rx="2"/>
+                    <polyline points="17 2 12 7 7 2"/>
+                </svg>
+            </div>
+            <div style="flex:1;min-width:0">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
+                    <span style="font-size:15px;font-weight:600;color:#FFFFFF">TVDB</span>
+                    <span style="font-size:10px;font-weight:700;background:#2A3040;color:#6B7280;border-radius:4px;padding:2px 8px;letter-spacing:0.05em">OPTIONAL</span>
+                </div>
+                <div style="font-size:12px;color:#6B7280">TheTVDB — supplemental TV show metadata</div>
+            </div>
+            <button onclick="toggleTvdb()"
+                style="width:44px;height:24px;border-radius:12px;border:none;cursor:pointer;position:relative;flex-shrink:0;background:${state.tvdbEnabled ? '#44A3FF' : '#2A3040'}">
+                <div style="width:18px;height:18px;background:white;border-radius:50%;position:absolute;top:3px;left:${state.tvdbEnabled ? '23px' : '3px'}"></div>
+            </button>
+        </div>
+        ${state.tvdbEnabled ? `
+        <div style="border-top:1px solid #2A3040;padding:20px 24px;display:flex;flex-direction:column;gap:16px" class="fade-in">
+            <p style="font-size:13px;color:#6B7280;line-height:1.7;margin:0">
+                Get an API key at <a href="https://thetvdb.com/api-information" target="_blank" style="color:#44A3FF">thetvdb.com</a>.
+                A subscriber PIN is only required for subscriber-tier accounts.
+            </p>
+            <div>
+                <label style="display:block;font-size:12px;font-weight:500;color:#9CA3AF;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em">API Key</label>
+                <input id="inp-tvdb-key" type="password" value="${esc(state.tvdbApiKey)}"
+                    placeholder="Your TVDB API key"
+                    oninput="state.tvdbApiKey=this.value;state.tvdbTested=false"
+                    style="${inputStyle('width:100%')}">
+            </div>
+            <div>
+                <label style="display:block;font-size:12px;font-weight:500;color:#9CA3AF;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em">
+                    PIN <span style="color:#4B5563;text-transform:none;letter-spacing:0;font-weight:400">(optional)</span>
+                </label>
+                <input id="inp-tvdb-pin" type="password" value="${esc(state.tvdbPin)}"
+                    placeholder="Subscriber PIN"
+                    oninput="state.tvdbPin=this.value;state.tvdbTested=false"
+                    style="${inputStyle('width:100%')}">
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px">
+                <button onclick="testTvdb()" id="btn-test-tvdb" style="${outlineBtn()};align-self:flex-start">Test Credentials</button>
+                ${testBadge('tvdb')}
+            </div>
+        </div>` : ''}
+    </div>`;
+}
+
+function renderImdbCard() {
+    return `
+    <div style="background:#1E2330;border-radius:12px;border:1px solid ${state.imdbEnabled ? '#44A3FF40' : '#2A3040'};overflow:hidden">
+        <div style="display:flex;align-items:center;gap:16px;padding:20px 24px">
+            <div style="width:42px;height:42px;border-radius:10px;background:#F5C51815;border:1px solid #F5C51840;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="#F5C518" stroke="#F5C518" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                </svg>
+            </div>
+            <div style="flex:1;min-width:0">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
+                    <span style="font-size:15px;font-weight:600;color:#FFFFFF">IMDb</span>
+                    <span style="font-size:10px;font-weight:700;background:#2A3040;color:#6B7280;border-radius:4px;padding:2px 8px;letter-spacing:0.05em">OPTIONAL</span>
+                </div>
+                <div style="font-size:12px;color:#6B7280">Internet Movie Database — local dataset files, no API key</div>
+            </div>
+            <button onclick="toggleImdb()"
+                style="width:44px;height:24px;border-radius:12px;border:none;cursor:pointer;position:relative;flex-shrink:0;background:${state.imdbEnabled ? '#44A3FF' : '#2A3040'}">
+                <div style="width:18px;height:18px;background:white;border-radius:50%;position:absolute;top:3px;left:${state.imdbEnabled ? '23px' : '3px'}"></div>
+            </button>
+        </div>
+        ${state.imdbEnabled ? `
+        <div style="border-top:1px solid #2A3040;padding:20px 24px;display:flex;flex-direction:column;gap:16px" class="fade-in">
+            <p style="font-size:13px;color:#6B7280;line-height:1.7;margin:0">
+                IMDb uses local .tsv.gz dataset files — no API key required. Download datasets from
+                <a href="https://datasets.imdbws.com" target="_blank" style="color:#44A3FF">datasets.imdbws.com</a>
+                and provide the directory path below.
+            </p>
+            <div>
+                <label style="display:block;font-size:12px;font-weight:500;color:#9CA3AF;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em">Dataset Directory</label>
+                <input id="inp-imdb-path" type="text" value="${esc(state.imdbDatasetPath)}"
+                    placeholder="/path/to/imdb-datasets"
+                    oninput="state.imdbDatasetPath=this.value"
+                    style="${inputStyle('width:100%')}">
+                <p style="font-size:12px;color:#4B5563;margin:6px 0 0">Directory containing the .tsv.gz files from IMDb.</p>
+            </div>
+        </div>` : ''}
+    </div>`;
+}
+
+function testBadge(provider) {
+    const tested = provider === 'tmdb' ? state.tmdbTested : state.tvdbTested;
+    const ok = provider === 'tmdb' ? state.tmdbTestOk : state.tvdbTestOk;
+    const errId = provider + '-err-msg';
+    if (!tested) return '';
+    return ok
+        ? `<div style="display:flex;align-items:center;gap:6px;color:#34D399;font-size:13px;margin-top:10px">
+            ${svgCheck()} Verified successfully
+           </div>`
+        : `<div style="display:flex;align-items:center;gap:6px;color:#EF4444;font-size:13px;margin-top:10px">
+            ${svgX()} <span id="${errId}">Verification failed</span>
+           </div>`;
+}
+
+// ──────────────────────────────────────────────────────────
+// Step: Data Collection
+// ──────────────────────────────────────────────────────────
+function renderTelemetry(el) {
+    const enabled = !state.sentryOptOut;
+    el.innerHTML = `
+        <div style="max-width:600px">
+            <h1 style="font-size:26px;font-weight:700;color:#FFFFFF;margin:0 0 8px">Data Collection</h1>
+            <p style="color:#6B7280;font-size:14px;margin:0 0 28px">
+                Help us improve DaCollector while keeping your privacy intact.
+            </p>
+
+            <!-- Enable / disable card -->
+            <div style="background:#1E2330;border-radius:12px;border:1px solid ${enabled ? '#44A3FF40' : '#2A3040'};padding:20px 24px;margin-bottom:20px;display:flex;align-items:center;gap:16px">
+                <div style="flex:1;min-width:0">
+                    <div style="font-size:15px;font-weight:600;color:#FFFFFF;margin-bottom:4px">Error &amp; Performance Reporting</div>
+                    <div style="font-size:13px;color:#6B7280;line-height:1.6">
+                        Send anonymous crash reports and performance data to help us fix bugs faster.
+                    </div>
+                </div>
+                <button id="btn-sentry-toggle" onclick="toggleSentry()"
+                    style="width:44px;height:24px;border-radius:12px;border:none;cursor:pointer;position:relative;flex-shrink:0;background:${enabled ? '#44A3FF' : '#2A3040'}">
+                    <div style="width:18px;height:18px;background:white;border-radius:50%;position:absolute;top:3px;left:${enabled ? '23px' : '3px'}"></div>
+                </button>
+            </div>
+
+            <!-- What we collect / don't collect -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+                <div style="background:#1E2330;border-radius:10px;border:1px solid #2A3040;padding:18px 20px">
+                    <div style="font-size:12px;font-weight:700;color:#34D399;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px">What we collect</div>
+                    <ul style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px">
+                        ${collectItem(true, 'Error messages and stack traces')}
+                        ${collectItem(true, 'Performance and timing data')}
+                        ${collectItem(true, 'Server version and OS type')}
+                        ${collectItem(true, 'Feature usage frequency')}
+                    </ul>
+                </div>
+                <div style="background:#1E2330;border-radius:10px;border:1px solid #2A3040;padding:18px 20px">
+                    <div style="font-size:12px;font-weight:700;color:#EF4444;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px">What we never collect</div>
+                    <ul style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px">
+                        ${collectItem(false, 'Your username or password')}
+                        ${collectItem(false, 'Titles in your collection')}
+                        ${collectItem(false, 'What you watch or when')}
+                        ${collectItem(false, 'File paths or folder names')}
+                        ${collectItem(false, 'IP address or location')}
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Sentry attribution -->
+            <div style="background:#1E2330;border-radius:10px;border:1px solid #2A3040;padding:14px 18px;display:flex;gap:10px;align-items:flex-start">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6B7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px">
+                    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                <p style="font-size:12px;color:#4B5563;line-height:1.7;margin:0">
+                    Telemetry is powered by <strong style="color:#6B7280">Sentry</strong>, a third-party error tracking service.
+                    Data is aggregated and used only to guide improvements to DaCollector.
+                    You can change this preference at any time in server settings.
+                </p>
+            </div>
+        </div>`;
+}
+
+function collectItem(yes, text) {
+    const icon = yes
+        ? `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="2.5" style="flex-shrink:0"><polyline points="20 6 9 17 4 12"/></svg>`
+        : `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2.5" style="flex-shrink:0"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
+    return `<li style="display:flex;align-items:flex-start;gap:8px;font-size:12px;color:#9CA3AF;line-height:1.5">${icon}<span>${text}</span></li>`;
+}
+
+function toggleSentry() {
+    state.sentryOptOut = !state.sentryOptOut;
+    const enabled = !state.sentryOptOut;
+    const btn = document.getElementById('btn-sentry-toggle');
+    if (!btn) return;
+    btn.style.background = enabled ? '#44A3FF' : '#2A3040';
+    btn.firstElementChild.style.left = enabled ? '23px' : '3px';
+    // Update card border
+    btn.closest('div[style]').style.borderColor = enabled ? '#44A3FF40' : '#2A3040';
+}
+
+async function saveTelemetry() {
+    try {
+        await api('POST', 'Init/Telemetry', { OptOut: state.sentryOptOut });
+    } catch (e) { console.warn('Telemetry save error:', e); }
+    return true;
+}
+
+// ──────────────────────────────────────────────────────────
+// Step: Import Folders
+// ──────────────────────────────────────────────────────────
+function renderFolders(el) {
+    // Server is now running — this is the last step
+    document.getElementById('btn-next').textContent = 'Finish Setup';
+    document.getElementById('btn-next').onclick = finishSetup;
+    document.getElementById('btn-back').style.display = 'none';
+
+    el.innerHTML = `
+        <div style="max-width:620px">
+            <h1 style="font-size:26px;font-weight:700;color:#FFFFFF;margin:0 0 8px">Import Folders</h1>
+            <p style="color:#6B7280;font-size:14px;margin:0 0 24px">
+                Import folders are the physical locations where your media files are stored.
+                You can skip this step and add folders in settings after setup.
+            </p>
+
+            <!-- Warning card -->
+            <div style="background:#1E2330;border-radius:12px;border:1px solid #F59E0B40;padding:16px 20px;margin-bottom:24px;display:flex;gap:14px;align-items:flex-start">
+                <div style="flex-shrink:0;margin-top:1px">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                </div>
+                <p style="font-size:13px;color:#9CA3AF;line-height:1.7;margin:0">
+                    Import folders must remain <strong style="color:#CFD8E3">consistently accessible and online</strong>.
+                    If a folder goes offline, DaCollector may remove its files from your collection.
+                    Removable drives and cloud-mounted paths are not recommended.
+                </p>
+            </div>
+
+            <!-- How it works cards -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px">
+                <div style="background:#1E2330;border-radius:10px;border:1px solid #2A3040;padding:16px 18px">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+                        <div style="width:28px;height:28px;border-radius:7px;background:#44A3FF18;border:1px solid #44A3FF30;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#44A3FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                            </svg>
+                        </div>
+                        <span style="font-size:13px;font-weight:600;color:#FFFFFF">Watch for New Files</span>
+                    </div>
+                    <p style="font-size:12px;color:#6B7280;line-height:1.6;margin:0">
+                        DaCollector monitors the folder and automatically imports any newly detected files.
+                    </p>
+                </div>
+                <div style="background:#1E2330;border-radius:10px;border:1px solid #2A3040;padding:16px 18px">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+                        <div style="width:28px;height:28px;border-radius:7px;background:#34D39918;border:1px solid #34D39930;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+                                <polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+                            </svg>
+                        </div>
+                        <span style="font-size:13px;font-weight:600;color:#FFFFFF">Drop Folders</span>
+                    </div>
+                    <p style="font-size:12px;color:#6B7280;line-height:1.6;margin:0">
+                        Move files from a <em>Drop Source</em> to a <em>Drop Destination</em> for organized file management.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Folder list -->
+            <div id="folder-list" style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px">
+                ${renderFolderItems()}
+            </div>
+
+            <!-- Add folder form -->
+            <div style="background:#1E2330;border-radius:12px;border:1px solid #2A3040;padding:20px 24px">
+                <div style="font-size:14px;font-weight:600;color:#FFFFFF;margin-bottom:18px">Add Folder</div>
+                <div style="display:flex;flex-direction:column;gap:16px">
+
+                    <!-- Path -->
+                    <div>
+                        <label style="display:block;font-size:12px;font-weight:500;color:#9CA3AF;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em">
+                            Path <span style="color:#EF4444;text-transform:none">*</span>
+                        </label>
+                        <input id="inp-folder-path" type="text"
+                            placeholder="/mnt/media/Movies  or  C:\\Media\\Movies"
+                            style="${inputStyle('width:100%')}">
+                    </div>
+
+                    <!-- Name -->
+                    <div>
+                        <label style="display:block;font-size:12px;font-weight:500;color:#9CA3AF;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em">
+                            Display Name <span style="color:#4B5563;text-transform:none;letter-spacing:0;font-weight:400">(optional)</span>
+                        </label>
+                        <input id="inp-folder-name" type="text"
+                            placeholder="e.g. Movies, TV Shows"
+                            style="${inputStyle('width:100%')}">
+                    </div>
+
+                    <!-- Watch toggle + Drop type -->
+                    <div style="display:flex;gap:28px;flex-wrap:wrap;align-items:flex-start">
+
+                        <!-- Watch toggle -->
+                        <div>
+                            <div style="font-size:12px;font-weight:500;color:#9CA3AF;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.05em">Watch for New Files</div>
+                            <button id="btn-folder-watch" onclick="toggleFolderWatch()"
+                                style="width:44px;height:24px;border-radius:12px;border:none;cursor:pointer;position:relative;background:${folderForm.watchForNewFiles ? '#44A3FF' : '#2A3040'}">
+                                <div style="width:18px;height:18px;background:white;border-radius:50%;position:absolute;top:3px;left:${folderForm.watchForNewFiles ? '23px' : '3px'}"></div>
+                            </button>
+                        </div>
+
+                        <!-- Drop folder type -->
+                        <div style="flex:1">
+                            <div style="font-size:12px;font-weight:500;color:#9CA3AF;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.05em">Drop Folder Role</div>
+                            <div style="display:flex;gap:6px;flex-wrap:wrap">
+                                ${dropTypeBtn('None',        'No Role')}
+                                ${dropTypeBtn('Source',      'Drop Source')}
+                                ${dropTypeBtn('Destination', 'Drop Destination')}
+                                ${dropTypeBtn('Both',        'Source &amp; Destination')}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Add button + error -->
+                    <div style="display:flex;align-items:center;gap:12px;padding-top:4px">
+                        <button onclick="addFolder()"
+                            style="background:#44A3FF;border:none;border-radius:8px;padding:10px 22px;font-size:13px;font-weight:600;color:#0D1017;cursor:pointer">
+                            Add Folder
+                        </button>
+                        <span id="folder-err" style="color:#EF4444;font-size:13px;display:none"></span>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+}
+
+function dropTypeBtn(value, label) {
+    const active = folderForm.dropFolderType === value;
+    return `<button id="drop-btn-${value}" onclick="setDropType('${value}')"
+        style="font-size:12px;padding:7px 12px;border-radius:6px;border:1px solid ${active ? '#44A3FF' : '#2A3040'};background:${active ? '#44A3FF22' : 'transparent'};color:${active ? '#44A3FF' : '#6B7280'};cursor:pointer;white-space:nowrap">
+        ${label}
+    </button>`;
+}
+
+function setDropType(value) {
+    folderForm.dropFolderType = value;
+    ['None','Source','Destination','Both'].forEach(v => {
+        const btn = document.getElementById('drop-btn-' + v);
+        if (!btn) return;
+        const active = v === value;
+        btn.style.borderColor = active ? '#44A3FF' : '#2A3040';
+        btn.style.background  = active ? '#44A3FF22' : 'transparent';
+        btn.style.color       = active ? '#44A3FF' : '#6B7280';
+    });
+}
+
+function toggleFolderWatch() {
+    folderForm.watchForNewFiles = !folderForm.watchForNewFiles;
+    const btn = document.getElementById('btn-folder-watch');
+    if (!btn) return;
+    btn.style.background = folderForm.watchForNewFiles ? '#44A3FF' : '#2A3040';
+    btn.firstElementChild.style.left = folderForm.watchForNewFiles ? '23px' : '3px';
+}
+
+function renderFolderItems() {
+    if (state.importFolders.length === 0) {
+        return `<div style="text-align:center;padding:28px 20px;color:#4B5563;font-size:13px;background:#1E2330;border-radius:10px;border:1px dashed #2A3040">
+            No folders added yet. Add your first import folder below.
+        </div>`;
+    }
+    return state.importFolders.map((f, i) => {
+        const hasWatch = f.watchForNewFiles;
+        const hasDrop  = f.dropFolderType !== 'None';
+        const dropLabel = f.dropFolderType === 'Both' ? 'Source &amp; Destination'
+                        : f.dropFolderType === 'Source' ? 'Drop Source'
+                        : f.dropFolderType === 'Destination' ? 'Drop Destination' : '';
+        return `
+        <div style="background:#1E2330;border-radius:10px;border:1px solid #2A3040;padding:14px 18px;display:flex;align-items:center;gap:14px">
+            <div style="width:36px;height:36px;border-radius:8px;background:#44A3FF12;border:1px solid #44A3FF20;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#44A3FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                </svg>
+            </div>
+            <div style="flex:1;min-width:0">
+                ${f.name ? `<div style="font-size:13px;font-weight:600;color:#FFFFFF;margin-bottom:2px">${esc(f.name)}</div>` : ''}
+                <div style="font-size:12px;color:#9CA3AF;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(f.path)}</div>
+                <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
+                    ${hasWatch ? `<span style="font-size:11px;background:#44A3FF18;color:#44A3FF;border-radius:4px;padding:2px 8px;border:1px solid #44A3FF30">Watched</span>` : ''}
+                    ${hasDrop  ? `<span style="font-size:11px;background:#34D39918;color:#34D399;border-radius:4px;padding:2px 8px;border:1px solid #34D39930">${dropLabel}</span>` : ''}
+                    ${!hasWatch && !hasDrop ? `<span style="font-size:11px;color:#4B5563">No active role</span>` : ''}
+                </div>
+            </div>
+            <button onclick="removeFolderAt(${i})"
+                style="background:transparent;border:1px solid #2A3040;border-radius:6px;padding:7px 9px;cursor:pointer;color:#6B7280;line-height:0;flex-shrink:0"
+                title="Remove">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>`;
+    }).join('');
+}
+
+function rerenderFolderList() {
+    const el = document.getElementById('folder-list');
+    if (el) el.innerHTML = renderFolderItems();
+}
+
+function addFolder() {
+    const path = (val('inp-folder-path') || '').trim();
+    const name = (val('inp-folder-name') || '').trim();
+    const errEl = document.getElementById('folder-err');
+
+    if (!path) {
+        if (errEl) { errEl.textContent = 'A folder path is required.'; errEl.style.display = 'inline'; }
+        document.getElementById('inp-folder-path')?.focus();
+        return;
+    }
+    if (errEl) errEl.style.display = 'none';
+
+    state.importFolders.push({
+        name,
+        path,
+        watchForNewFiles: folderForm.watchForNewFiles,
+        dropFolderType:   folderForm.dropFolderType,
+    });
+
+    // Reset path/name inputs; leave toggle/drop state as-is for convenience
+    const pathEl = document.getElementById('inp-folder-path');
+    const nameEl = document.getElementById('inp-folder-name');
+    if (pathEl) pathEl.value = '';
+    if (nameEl) nameEl.value = '';
+
+    rerenderFolderList();
+}
+
+function removeFolderAt(index) {
+    state.importFolders.splice(index, 1);
+    rerenderFolderList();
+}
+
+async function finishSetup() {
+    const btn = document.getElementById('btn-next');
+    btn.disabled = true; btn.textContent = 'Saving…'; btn.style.opacity = '0.7';
+
+    if (state.importFolders.length > 0) {
+        const failed = await saveFolders();
+        if (failed > 0) {
+            // Show brief warning then redirect anyway
+            btn.textContent = `${failed} folder(s) failed — check settings`;
+            await sleep(2500);
+        }
+    }
+
+    window.location.replace('/webui/');
+}
+
+// ──────────────────────────────────────────────────────────
+// Step: Start Server
+// ──────────────────────────────────────────────────────────
+function renderStart(el) {
+    document.getElementById('btn-next').textContent = 'Start Server';
+    document.getElementById('btn-next').onclick = startServer;
+    document.getElementById('btn-back').style.display = 'inline-block';
+
+    const tvdbSummary = state.tvdbEnabled
+        ? (state.tvdbApiKey ? 'Enabled — API key set' : 'Enabled — no API key')
+        : 'Disabled';
+    const imdbSummary = state.imdbEnabled
+        ? (state.imdbDatasetPath ? state.imdbDatasetPath : 'Enabled') : 'Disabled';
+    el.innerHTML = `
+        <div style="max-width:520px">
+            <h1 style="font-size:26px;font-weight:700;color:#FFFFFF;margin:0 0 8px">Ready to start</h1>
+            <p style="color:#6B7280;font-size:14px;margin:0 0 28px">Review your configuration, then start the server. You'll add import folders on the next screen.</p>
+
+            <div style="background:#1E2330;border-radius:12px;padding:20px 24px;border:1px solid #2A3040;display:flex;flex-direction:column;gap:14px;margin-bottom:24px">
+                ${summaryRow('Account',    state.username || '(not set)')}
+                ${summaryRow('TMDB',       state.tmdbApiKey ? 'Custom API key configured' : 'Using built-in key')}
+                ${summaryRow('TVDB',       tvdbSummary)}
+                ${summaryRow('IMDb',       imdbSummary)}
+                ${summaryRow('Telemetry',  state.sentryOptOut ? 'Disabled' : 'Enabled')}
+            </div>
+
+            <div id="start-status"></div>
+        </div>`;
+}
+
+function summaryRow(label, value) {
+    return `<div style="display:flex;justify-content:space-between;align-items:center;font-size:14px">
+        <span style="color:#6B7280">${label}</span>
+        <span style="color:#CFD8E3;font-weight:500">${esc(value)}</span>
+    </div>`;
+}
+
+// ──────────────────────────────────────────────────────────
+// Provider actions
+// ──────────────────────────────────────────────────────────
+function syncProviderFields() {
+    const tmdbKey = val('inp-tmdb-key');
+    if (tmdbKey !== null) state.tmdbApiKey = tmdbKey;
+    const tvdbKey = val('inp-tvdb-key');
+    if (tvdbKey !== null) state.tvdbApiKey = tvdbKey;
+    const tvdbPin = val('inp-tvdb-pin');
+    if (tvdbPin !== null) state.tvdbPin = tvdbPin;
+    const imdbPath = val('inp-imdb-path');
+    if (imdbPath !== null) state.imdbDatasetPath = imdbPath;
+}
+
+async function testTmdb() {
+    const key = val('inp-tmdb-key');
+    if (key !== null) state.tmdbApiKey = key;
+    setBtnLoading('btn-test-tmdb', 'Testing…');
+    try {
+        const r = await api('POST', 'Init/Provider/TMDB', { ApiKey: state.tmdbApiKey || null });
+        state.tmdbTested = true; state.tmdbTestOk = r.success;
+        rerenderProviders();
+        if (!r.success) {
+            const e = document.getElementById('tmdb-err-msg');
+            if (e) e.textContent = r.error || 'Invalid API key';
+        }
+    } catch (e) {
+        state.tmdbTested = true; state.tmdbTestOk = false;
+        rerenderProviders();
+    }
+}
+
+async function testTvdb() {
+    const key = val('inp-tvdb-key'), pin = val('inp-tvdb-pin');
+    if (key !== null) state.tvdbApiKey = key;
+    if (pin !== null) state.tvdbPin = pin;
+    setBtnLoading('btn-test-tvdb', 'Testing…');
+    try {
+        const r = await api('POST', 'Init/Provider/TVDB', { Enabled: state.tvdbEnabled, ApiKey: state.tvdbApiKey || null, Pin: state.tvdbPin || null });
+        state.tvdbTested = true; state.tvdbTestOk = r.success;
+        rerenderProviders();
+        if (!r.success) {
+            const e = document.getElementById('tvdb-err-msg');
+            if (e) e.textContent = r.error || 'Invalid credentials';
+        }
+    } catch (e) {
+        state.tvdbTested = true; state.tvdbTestOk = false;
+        rerenderProviders();
+    }
+}
+
+function toggleTvdb() { state.tvdbEnabled = !state.tvdbEnabled; state.tvdbTested = false; rerenderProviders(); }
+function toggleImdb() { state.imdbEnabled = !state.imdbEnabled; rerenderProviders(); }
+
+async function saveProviders() {
+    syncProviderFields();
+    try {
+        await api('POST', 'Init/Provider/TMDB', { ApiKey: state.tmdbApiKey || null });
+        await api('POST', 'Init/Provider/TVDB', { Enabled: state.tvdbEnabled, ApiKey: state.tvdbApiKey || null, Pin: state.tvdbPin || null });
+        await api('POST', 'Init/Provider/IMDB', { Enabled: state.imdbEnabled, DatasetPath: state.imdbDatasetPath || null });
+    } catch (e) { console.warn('Provider save error:', e); }
+    return true;
+}
+
+// ──────────────────────────────────────────────────────────
+// Start server flow
+// ──────────────────────────────────────────────────────────
+async function startServer() {
+    const btn = document.getElementById('btn-next');
+    btn.disabled = true; btn.textContent = 'Starting…'; btn.style.opacity = '0.7';
+    document.getElementById('btn-back').style.display = 'none';
+
+    const statusEl = document.getElementById('start-status');
+
+    setStatus(statusEl, 'loading', 'Saving settings…');
+    try { await api('POST', 'Init/DefaultUser', { Username: state.username, Password: state.password }); } catch (e) {}
+    try {
+        await api('POST', 'Init/Provider/TMDB', { ApiKey: state.tmdbApiKey || null });
+        await api('POST', 'Init/Provider/TVDB', { Enabled: state.tvdbEnabled, ApiKey: state.tvdbApiKey || null, Pin: state.tvdbPin || null });
+        await api('POST', 'Init/Provider/IMDB', { Enabled: state.imdbEnabled, DatasetPath: state.imdbDatasetPath || null });
+    } catch (e) {}
+
+    setStatus(statusEl, 'loading', 'Starting the server…');
+    try {
+        await api('POST', 'Init/CompleteSetup');
+    } catch (e) {
+        setStatus(statusEl, 'error', 'Failed to start: ' + e.message);
+        btn.disabled = false; btn.textContent = 'Retry'; btn.style.opacity = '1';
+        document.getElementById('btn-back').style.display = 'inline-block';
+        return;
+    }
+
+    setStatus(statusEl, 'loading', 'Waiting for server to come online…');
+
+    for (let i = 0; i < 90; i++) {
+        await sleep(2000);
+        try {
+            const s = await api('GET', 'Init/Status');
+            if (s.state === 'Started') {
+                setStatus(statusEl, 'loading', 'Verifying login…');
+                await finishLogin(statusEl);
+                return;
+            }
+            if (s.state === 'Failed') {
+                setStatus(statusEl, 'error', 'Startup failed: ' + (s.startupMessage || 'Check server logs.'));
+                btn.disabled = false; btn.textContent = 'Retry'; btn.style.opacity = '1';
+                document.getElementById('btn-back').style.display = 'inline-block';
+                return;
+            }
+            if (s.startupMessage) setStatus(statusEl, 'loading', s.startupMessage);
+        } catch (_) {}
+    }
+
+    setStatus(statusEl, 'error', 'Startup timed out. Check server logs.');
+    btn.disabled = false; btn.textContent = 'Retry'; btn.style.opacity = '1';
+    document.getElementById('btn-back').style.display = 'inline-block';
+}
+
+async function finishLogin(statusEl) {
+    try {
+        const r = await api('POST', 'Init/VerifyLogin', { Username: state.username, Password: state.password, Device: 'WebSetup' });
+        if (r.ready && r.apiKey) {
+            try { localStorage.setItem('apiKey', r.apiKey); } catch (_) {}
+            state.apiKey = r.apiKey;
+            setStatus(statusEl, 'success', 'Server is running — add your import folders.');
+            await sleep(600);
+            currentStep++;
+            showStep();
+        } else {
+            // No API key (e.g. account not set up yet) — skip folders, go to dashboard
+            setStatus(statusEl, 'success', 'Server started — redirecting…');
+            await sleep(1000);
+            window.location.replace('/webui/');
+        }
+    } catch (e) {
+        // Login failed — still advance; user can configure folders in settings
+        setStatus(statusEl, 'success', 'Server started — redirecting…');
+        await sleep(1000);
+        window.location.replace('/webui/');
+    }
+}
+
+async function saveFolders() {
+    let failed = 0;
+    for (const folder of state.importFolders) {
+        try {
+            const r = await fetch('/api/v3/ManagedFolder', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'apikey': state.apiKey,
+                },
+                body: JSON.stringify({
+                    Name: folder.name || folder.path,
+                    Path: folder.path,
+                    WatchForNewFiles: folder.watchForNewFiles,
+                    DropFolderType: folder.dropFolderType,
+                }),
+            });
+            if (!r.ok) failed++;
+        } catch (e) { failed++; }
+    }
+    return failed;
+}
+
+// ──────────────────────────────────────────────────────────
+// Helpers
+// ──────────────────────────────────────────────────────────
+function setStatus(el, type, msg) {
+    const color = { loading: '#9CA3AF', success: '#34D399', error: '#EF4444' }[type];
+    const icon = type === 'loading'
+        ? `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="spin" style="flex-shrink:0"><path d="M21 12a9 9 0 1 1-6.2-8.6"/></svg>`
+        : type === 'success'
+        ? `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink:0"><polyline points="20 6 9 17 4 12"/></svg>`
+        : `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`;
+    el.innerHTML = `<div style="display:flex;align-items:center;gap:8px;color:${color};font-size:14px">${icon}<span>${esc(msg)}</span></div>`;
+}
+
+function setBtnLoading(id, label) {
+    const b = document.getElementById(id);
+    if (b) { b.textContent = label; b.disabled = true; }
+}
+
+function field(id, label, type, value, placeholder) {
+    return `<div>
+        <label style="display:block;font-size:13px;font-weight:500;margin-bottom:8px">${label}</label>
+        <input id="${id}" type="${type}" value="${esc(value)}" placeholder="${placeholder}"
+            style="${inputStyle('width:100%')}">
+    </div>`;
+}
+
+function inputStyle(extra) {
+    return `${extra};background:#1E2330;border:1px solid #2A3040;border-radius:8px;padding:10px 14px;font-size:14px;color:#FFFFFF;outline:none;transition:border-color 0.15s;font-family:inherit`;
+}
+
+function outlineBtn() {
+    return `background:#1E2330;border:1px solid #44A3FF50;border-radius:8px;padding:10px 16px;font-size:13px;font-weight:500;color:#44A3FF;cursor:pointer;white-space:nowrap`;
+}
+
+function val(id) {
+    const el = document.getElementById(id);
+    return el ? el.value : null;
+}
+
+function setErr(el, msg) { el.textContent = msg; el.style.display = 'block'; return false; }
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+function esc(s) { return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function svg(d, tag, stroke) {
+    return `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="${stroke||'currentColor'}" stroke-width="2.5"><${tag} points="${d}"/></svg>`;
+}
+function svgCheck() { return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`; }
+function svgX()     { return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`; }
+
+// ──────────────────────────────────────────────────────────
+// Focus ring on inputs (keyboard UX)
+// ──────────────────────────────────────────────────────────
+document.addEventListener('focusin', e => {
+    if (e.target.tagName === 'INPUT') e.target.style.borderColor = '#44A3FF';
+});
+document.addEventListener('focusout', e => {
+    if (e.target.tagName === 'INPUT') e.target.style.borderColor = '#2A3040';
+});
+
+// ──────────────────────────────────────────────────────────
+// Init
+// ──────────────────────────────────────────────────────────
+(async function init() {
+    // If server already started (setup not needed), go to dashboard
+    try {
+        const s = await api('GET', 'Init/Status');
+        if (s.state === 'Started') { window.location.replace('/webui/'); return; }
+    } catch (_) {}
+
+    // Load version
+    try {
+        const v = await api('GET', 'Init/Version');
+        const ver = v?.server?.version;
+        document.getElementById('version-text').textContent = ver ? 'v' + ver : '';
+    } catch (_) {}
+
+    // Load saved provider and telemetry state
+    try {
+        const [tmdb, tvdb, imdb, telemetry] = await Promise.all([
+            api('GET', 'Init/Provider/TMDB'),
+            api('GET', 'Init/Provider/TVDB'),
+            api('GET', 'Init/Provider/IMDB'),
+            api('GET', 'Init/Telemetry'),
+        ]);
+        state.tvdbEnabled     = tvdb.enabled      || false;
+        state.imdbEnabled     = imdb.enabled      || false;
+        state.imdbDatasetPath = imdb.datasetPath  || '';
+        state.sentryOptOut    = telemetry.optOut  || false;
+    } catch (_) {}
+
+    showStep();
+})();
+</script>
+</body>
+</html>

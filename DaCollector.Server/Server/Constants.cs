@@ -2,7 +2,7 @@ namespace DaCollector.Server.Server;
 
 public static class Constants
 {
-    public const string SentryDsn = "SENTRY_DSN_KEY_GOES_HERE";
+    public const string SentryDsn = "https://26412a6ade028e07421ec1b34e8959c5@o4511384841617408.ingest.us.sentry.io/4511384850595840";
 
     public static readonly string AniDBTitlesURL = @"https://anidb.net/api/anime-titles.xml.gz";
 

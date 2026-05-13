@@ -421,6 +421,27 @@ public class InitController : BaseController
     }
 
     /// <summary>
+    /// Gets the current telemetry (Sentry error reporting) opt-out state.
+    /// </summary>
+    [Authorize("init")]
+    [HttpGet("Telemetry")]
+    public ActionResult<TelemetryInfo> GetTelemetry()
+        => new TelemetryInfo { OptOut = SettingsProvider.GetSettings().SentryOptOut };
+
+    /// <summary>
+    /// Sets the telemetry (Sentry error reporting) opt-out preference.
+    /// </summary>
+    [Authorize("init")]
+    [HttpPost("Telemetry")]
+    public ActionResult SetTelemetry([FromBody] TelemetryInput input)
+    {
+        var settings = SettingsProvider.GetSettings();
+        settings.SentryOptOut = input.OptOut;
+        SettingsProvider.SaveSettings(settings);
+        return Ok();
+    }
+
+    /// <summary>
     /// Verifies that the supplied credentials are valid and, if so, returns an API key.
     /// Only callable once the server has fully started.
     /// </summary>
@@ -473,6 +494,13 @@ public class InitController : BaseController
     }
 
     public record LoginVerificationResult(bool Ready, string? ApiKey, string? Error);
+
+    public record TelemetryInput(bool OptOut);
+
+    public record TelemetryInfo
+    {
+        public bool OptOut { get; init; }
+    }
 
     #endregion
 }
