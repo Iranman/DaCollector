@@ -10,7 +10,7 @@
         * { box-sizing: border-box; }
         ::-webkit-scrollbar { width: 5px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #44A3FF40; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb { background: #C9A22740; border-radius: 3px; }
         input::placeholder { color: #4B5563; }
         @keyframes spin { to { transform: rotate(360deg); } }
         .spin { animation: spin 1s linear infinite; }
@@ -18,16 +18,16 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
-<body style="background:#12151C;color:#CFD8E3;height:100vh;display:flex;overflow:hidden;font-family:system-ui,-apple-system,sans-serif;margin:0">
+<body style="background:#0A0A0A;color:#D4C5A9;height:100vh;display:flex;overflow:hidden;font-family:system-ui,-apple-system,sans-serif;margin:0">
 
 <!-- ══════════════════════════════════════════════
      SIDEBAR
 ══════════════════════════════════════════════ -->
-<aside style="width:256px;background:#0D1017;flex-shrink:0;display:flex;flex-direction:column;padding:24px 20px;border-right:1px solid #1E2330">
+<aside style="width:256px;background:#0D0D0D;flex-shrink:0;display:flex;flex-direction:column;padding:24px 20px;border-right:1px solid #1C1C1C">
     <!-- Branding -->
     <div style="margin-bottom:32px">
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
-            <div style="width:38px;height:38px;background:#44A3FF;border-radius:9px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px;color:#0D1017;flex-shrink:0">D</div>
+            <div style="width:38px;height:38px;background:#C9A227;border-radius:9px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px;color:#0D0D0D;flex-shrink:0">D</div>
             <span style="font-weight:600;font-size:17px;color:#FFFFFF">DaCollector</span>
         </div>
         <div id="version-text" style="font-size:12px;color:#4B5563;padding-left:50px">Loading…</div>
@@ -39,11 +39,11 @@
     <!-- Bottom links -->
     <div style="display:flex;flex-direction:column;gap:8px;margin-top:24px">
         <a href="https://discord.gg/vpeHDsg" target="_blank"
-           style="background:#1E2330;border-radius:8px;padding:10px 14px;text-align:center;font-size:13px;text-decoration:none;color:#CFD8E3;border:1px solid #2A3040">
+           style="background:#1C1C1C;border-radius:8px;padding:10px 14px;text-align:center;font-size:13px;text-decoration:none;color:#D4C5A9;border:1px solid #2A2A2A">
             Discord
         </a>
         <a href="https://github.com/Iranman/DaCollector#readme" target="_blank"
-           style="background:#1E2330;border-radius:8px;padding:10px 14px;text-align:center;font-size:13px;text-decoration:none;color:#CFD8E3;border:1px solid #2A3040">
+           style="background:#1C1C1C;border-radius:8px;padding:10px 14px;text-align:center;font-size:13px;text-decoration:none;color:#D4C5A9;border:1px solid #2A2A2A">
             Documentation
         </a>
     </div>
@@ -52,17 +52,17 @@
 <!-- ══════════════════════════════════════════════
      MAIN
 ══════════════════════════════════════════════ -->
-<main style="flex:1;display:flex;flex-direction:column;overflow:hidden;background:#1A1D27">
+<main style="flex:1;display:flex;flex-direction:column;overflow:hidden;background:#141414">
     <div id="step-content" style="flex:1;overflow-y:auto;padding:40px 48px" class="fade-in"></div>
 
     <!-- Nav bar -->
-    <div style="display:flex;align-items:center;padding:16px 48px;border-top:1px solid #1E2330;gap:12px">
+    <div style="display:flex;align-items:center;padding:16px 48px;border-top:1px solid #1C1C1C;gap:12px">
         <button id="btn-back" onclick="prevStep()"
-            style="background:#1E2330;border:1px solid #2A3040;border-radius:8px;padding:10px 24px;font-size:14px;font-weight:500;color:#CFD8E3;cursor:pointer;display:none">
+            style="background:#1C1C1C;border:1px solid #2A2A2A;border-radius:8px;padding:10px 24px;font-size:14px;font-weight:500;color:#D4C5A9;cursor:pointer;display:none">
             Back
         </button>
         <button id="btn-next" onclick="nextStep()"
-            style="background:#44A3FF;border:none;border-radius:8px;padding:10px 28px;font-size:14px;font-weight:600;color:#0D1017;cursor:pointer;margin-left:auto">
+            style="background:#C9A227;border:none;border-radius:8px;padding:10px 28px;font-size:14px;font-weight:600;color:#0D0D0D;cursor:pointer;margin-left:auto">
             Next
         </button>
     </div>
@@ -118,12 +118,12 @@ function renderNav() {
     const nav = document.getElementById('step-nav');
     nav.innerHTML = STEPS.map((s, i) => {
         const done = i < currentStep, active = i === currentStep;
-        const circleBg   = done ? '#44A3FF' : active ? '#44A3FF22' : 'transparent';
-        const circleBdr  = done ? 'none' : active ? '2px solid #44A3FF' : '2px solid #2A3040';
+        const circleBg   = done ? '#C9A227' : active ? '#C9A22722' : 'transparent';
+        const circleBdr  = done ? 'none' : active ? '2px solid #C9A227' : '2px solid #2A2A2A';
         const icon = done
             ? svg('M20 6 9 17 4 12', 'polyline', 'white')
-            : `<span style="font-size:11px;color:${active?'#44A3FF':'#4B5563'};font-weight:600">${i+1}</span>`;
-        const bg    = active ? '#44A3FF12' : 'transparent';
+            : `<span style="font-size:11px;color:${active?'#C9A227':'#4B5563'};font-weight:600">${i+1}</span>`;
+        const bg    = active ? '#C9A22712' : 'transparent';
         const color = active ? '#FFFFFF' : done ? '#9CA3AF' : '#4B5563';
         const weight = active ? '600' : '400';
         return `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;background:${bg}">
@@ -176,14 +176,14 @@ function renderWelcome(el) {
             <h1 style="font-size:26px;font-weight:700;color:#FFFFFF;margin:0 0 8px">Welcome to DaCollector</h1>
             <p style="color:#6B7280;font-size:14px;margin:0 0 28px">Let's get your media collection manager set up in a few steps.</p>
 
-            <div style="background:#1E2330;border-radius:12px;padding:20px 24px;margin-bottom:16px;border:1px solid #2A3040">
-                <p style="font-size:14px;line-height:1.8;color:#CFD8E3;margin:0">
+            <div style="background:#1C1C1C;border-radius:12px;padding:20px 24px;margin-bottom:16px;border:1px solid #2A2A2A">
+                <p style="font-size:14px;line-height:1.8;color:#D4C5A9;margin:0">
                     DaCollector is an open-source media collection manager for movies and TV files you already own.
                     It scans your folders, matches files against TMDB and TVDB, enriches metadata, and tracks your
                     collection — all from a single local server.
                 </p>
             </div>
-            <div style="background:#1E2330;border-radius:12px;padding:20px 24px;border:1px solid #2A3040">
+            <div style="background:#1C1C1C;border-radius:12px;padding:20px 24px;border:1px solid #2A2A2A">
                 <p style="font-size:13px;color:#6B7280;line-height:1.8;margin:0">
                     This wizard will walk you through creating your admin account, configuring metadata providers,
                     and adding your first import folders. Everything can be changed later from the server settings.
@@ -248,7 +248,7 @@ function rerenderProviders() {
 
 function renderTmdbCard() {
     return `
-    <div style="background:#1E2330;border-radius:12px;border:1px solid #2A3040;overflow:hidden">
+    <div style="background:#1C1C1C;border-radius:12px;border:1px solid #2A2A2A;overflow:hidden">
         <div style="display:flex;align-items:center;gap:16px;padding:20px 24px">
             <div style="width:42px;height:42px;border-radius:10px;background:#01B4E415;border:1px solid #01B4E440;display:flex;align-items:center;justify-content:center;flex-shrink:0">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#01B4E4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -262,15 +262,15 @@ function renderTmdbCard() {
             <div style="flex:1;min-width:0">
                 <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
                     <span style="font-size:15px;font-weight:600;color:#FFFFFF">TMDB</span>
-                    <span style="font-size:10px;font-weight:700;background:#44A3FF22;color:#44A3FF;border-radius:4px;padding:2px 8px;letter-spacing:0.05em">PRIMARY</span>
+                    <span style="font-size:10px;font-weight:700;background:#C9A22722;color:#C9A227;border-radius:4px;padding:2px 8px;letter-spacing:0.05em">PRIMARY</span>
                 </div>
                 <div style="font-size:12px;color:#6B7280">The Movie Database — movies &amp; TV shows</div>
             </div>
         </div>
-        <div style="border-top:1px solid #2A3040;padding:20px 24px;display:flex;flex-direction:column;gap:16px">
+        <div style="border-top:1px solid #2A2A2A;padding:20px 24px;display:flex;flex-direction:column;gap:16px">
             <p style="font-size:13px;color:#6B7280;line-height:1.7;margin:0">
                 A built-in API key is included. Providing your own removes rate-limit restrictions.
-                Get a free key at <a href="https://www.themoviedb.org/settings/api" target="_blank" style="color:#44A3FF">themoviedb.org</a>.
+                Get a free key at <a href="https://www.themoviedb.org/settings/api" target="_blank" style="color:#C9A227">themoviedb.org</a>.
             </p>
             <div>
                 <label style="display:block;font-size:12px;font-weight:500;color:#9CA3AF;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em">
@@ -291,7 +291,7 @@ function renderTmdbCard() {
 
 function renderTvdbCard() {
     return `
-    <div style="background:#1E2330;border-radius:12px;border:1px solid ${state.tvdbEnabled ? '#44A3FF40' : '#2A3040'};overflow:hidden">
+    <div style="background:#1C1C1C;border-radius:12px;border:1px solid ${state.tvdbEnabled ? '#C9A22740' : '#2A2A2A'};overflow:hidden">
         <div style="display:flex;align-items:center;gap:16px;padding:20px 24px">
             <div style="width:42px;height:42px;border-radius:10px;background:#4DB6AC15;border:1px solid #4DB6AC40;display:flex;align-items:center;justify-content:center;flex-shrink:0">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4DB6AC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -302,19 +302,19 @@ function renderTvdbCard() {
             <div style="flex:1;min-width:0">
                 <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
                     <span style="font-size:15px;font-weight:600;color:#FFFFFF">TVDB</span>
-                    <span style="font-size:10px;font-weight:700;background:#2A3040;color:#6B7280;border-radius:4px;padding:2px 8px;letter-spacing:0.05em">OPTIONAL</span>
+                    <span style="font-size:10px;font-weight:700;background:#2A2A2A;color:#6B7280;border-radius:4px;padding:2px 8px;letter-spacing:0.05em">OPTIONAL</span>
                 </div>
                 <div style="font-size:12px;color:#6B7280">TheTVDB — supplemental TV show metadata</div>
             </div>
             <button onclick="toggleTvdb()"
-                style="width:44px;height:24px;border-radius:12px;border:none;cursor:pointer;position:relative;flex-shrink:0;background:${state.tvdbEnabled ? '#44A3FF' : '#2A3040'}">
+                style="width:44px;height:24px;border-radius:12px;border:none;cursor:pointer;position:relative;flex-shrink:0;background:${state.tvdbEnabled ? '#C9A227' : '#2A2A2A'}">
                 <div style="width:18px;height:18px;background:white;border-radius:50%;position:absolute;top:3px;left:${state.tvdbEnabled ? '23px' : '3px'}"></div>
             </button>
         </div>
         ${state.tvdbEnabled ? `
-        <div style="border-top:1px solid #2A3040;padding:20px 24px;display:flex;flex-direction:column;gap:16px" class="fade-in">
+        <div style="border-top:1px solid #2A2A2A;padding:20px 24px;display:flex;flex-direction:column;gap:16px" class="fade-in">
             <p style="font-size:13px;color:#6B7280;line-height:1.7;margin:0">
-                Get an API key at <a href="https://thetvdb.com/api-information" target="_blank" style="color:#44A3FF">thetvdb.com</a>.
+                Get an API key at <a href="https://thetvdb.com/api-information" target="_blank" style="color:#C9A227">thetvdb.com</a>.
                 A subscriber PIN is only required for subscriber-tier accounts.
             </p>
             <div>
@@ -343,7 +343,7 @@ function renderTvdbCard() {
 
 function renderImdbCard() {
     return `
-    <div style="background:#1E2330;border-radius:12px;border:1px solid ${state.imdbEnabled ? '#44A3FF40' : '#2A3040'};overflow:hidden">
+    <div style="background:#1C1C1C;border-radius:12px;border:1px solid ${state.imdbEnabled ? '#C9A22740' : '#2A2A2A'};overflow:hidden">
         <div style="display:flex;align-items:center;gap:16px;padding:20px 24px">
             <div style="width:42px;height:42px;border-radius:10px;background:#F5C51815;border:1px solid #F5C51840;display:flex;align-items:center;justify-content:center;flex-shrink:0">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="#F5C518" stroke="#F5C518" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -353,20 +353,20 @@ function renderImdbCard() {
             <div style="flex:1;min-width:0">
                 <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
                     <span style="font-size:15px;font-weight:600;color:#FFFFFF">IMDb</span>
-                    <span style="font-size:10px;font-weight:700;background:#2A3040;color:#6B7280;border-radius:4px;padding:2px 8px;letter-spacing:0.05em">OPTIONAL</span>
+                    <span style="font-size:10px;font-weight:700;background:#2A2A2A;color:#6B7280;border-radius:4px;padding:2px 8px;letter-spacing:0.05em">OPTIONAL</span>
                 </div>
                 <div style="font-size:12px;color:#6B7280">Internet Movie Database — local dataset files, no API key</div>
             </div>
             <button onclick="toggleImdb()"
-                style="width:44px;height:24px;border-radius:12px;border:none;cursor:pointer;position:relative;flex-shrink:0;background:${state.imdbEnabled ? '#44A3FF' : '#2A3040'}">
+                style="width:44px;height:24px;border-radius:12px;border:none;cursor:pointer;position:relative;flex-shrink:0;background:${state.imdbEnabled ? '#C9A227' : '#2A2A2A'}">
                 <div style="width:18px;height:18px;background:white;border-radius:50%;position:absolute;top:3px;left:${state.imdbEnabled ? '23px' : '3px'}"></div>
             </button>
         </div>
         ${state.imdbEnabled ? `
-        <div style="border-top:1px solid #2A3040;padding:20px 24px;display:flex;flex-direction:column;gap:16px" class="fade-in">
+        <div style="border-top:1px solid #2A2A2A;padding:20px 24px;display:flex;flex-direction:column;gap:16px" class="fade-in">
             <p style="font-size:13px;color:#6B7280;line-height:1.7;margin:0">
                 IMDb uses local .tsv.gz dataset files — no API key required. Download datasets from
-                <a href="https://datasets.imdbws.com" target="_blank" style="color:#44A3FF">datasets.imdbws.com</a>
+                <a href="https://datasets.imdbws.com" target="_blank" style="color:#C9A227">datasets.imdbws.com</a>
                 and provide the directory path below.
             </p>
             <div>
@@ -408,7 +408,7 @@ function renderTelemetry(el) {
             </p>
 
             <!-- Enable / disable card -->
-            <div style="background:#1E2330;border-radius:12px;border:1px solid ${enabled ? '#44A3FF40' : '#2A3040'};padding:20px 24px;margin-bottom:20px;display:flex;align-items:center;gap:16px">
+            <div style="background:#1C1C1C;border-radius:12px;border:1px solid ${enabled ? '#C9A22740' : '#2A2A2A'};padding:20px 24px;margin-bottom:20px;display:flex;align-items:center;gap:16px">
                 <div style="flex:1;min-width:0">
                     <div style="font-size:15px;font-weight:600;color:#FFFFFF;margin-bottom:4px">Error &amp; Performance Reporting</div>
                     <div style="font-size:13px;color:#6B7280;line-height:1.6">
@@ -416,14 +416,14 @@ function renderTelemetry(el) {
                     </div>
                 </div>
                 <button id="btn-sentry-toggle" onclick="toggleSentry()"
-                    style="width:44px;height:24px;border-radius:12px;border:none;cursor:pointer;position:relative;flex-shrink:0;background:${enabled ? '#44A3FF' : '#2A3040'}">
+                    style="width:44px;height:24px;border-radius:12px;border:none;cursor:pointer;position:relative;flex-shrink:0;background:${enabled ? '#C9A227' : '#2A2A2A'}">
                     <div style="width:18px;height:18px;background:white;border-radius:50%;position:absolute;top:3px;left:${enabled ? '23px' : '3px'}"></div>
                 </button>
             </div>
 
             <!-- What we collect / don't collect -->
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
-                <div style="background:#1E2330;border-radius:10px;border:1px solid #2A3040;padding:18px 20px">
+                <div style="background:#1C1C1C;border-radius:10px;border:1px solid #2A2A2A;padding:18px 20px">
                     <div style="font-size:12px;font-weight:700;color:#34D399;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px">What we collect</div>
                     <ul style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px">
                         ${collectItem(true, 'Error messages and stack traces')}
@@ -432,7 +432,7 @@ function renderTelemetry(el) {
                         ${collectItem(true, 'Feature usage frequency')}
                     </ul>
                 </div>
-                <div style="background:#1E2330;border-radius:10px;border:1px solid #2A3040;padding:18px 20px">
+                <div style="background:#1C1C1C;border-radius:10px;border:1px solid #2A2A2A;padding:18px 20px">
                     <div style="font-size:12px;font-weight:700;color:#EF4444;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px">What we never collect</div>
                     <ul style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px">
                         ${collectItem(false, 'Your username or password')}
@@ -445,7 +445,7 @@ function renderTelemetry(el) {
             </div>
 
             <!-- Sentry attribution -->
-            <div style="background:#1E2330;border-radius:10px;border:1px solid #2A3040;padding:14px 18px;display:flex;gap:10px;align-items:flex-start">
+            <div style="background:#1C1C1C;border-radius:10px;border:1px solid #2A2A2A;padding:14px 18px;display:flex;gap:10px;align-items:flex-start">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6B7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px">
                     <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
                 </svg>
@@ -470,10 +470,10 @@ function toggleSentry() {
     const enabled = !state.sentryOptOut;
     const btn = document.getElementById('btn-sentry-toggle');
     if (!btn) return;
-    btn.style.background = enabled ? '#44A3FF' : '#2A3040';
+    btn.style.background = enabled ? '#C9A227' : '#2A2A2A';
     btn.firstElementChild.style.left = enabled ? '23px' : '3px';
     // Update card border
-    btn.closest('div[style]').style.borderColor = enabled ? '#44A3FF40' : '#2A3040';
+    btn.closest('div[style]').style.borderColor = enabled ? '#C9A22740' : '#2A2A2A';
 }
 
 async function saveTelemetry() {
@@ -501,7 +501,7 @@ function renderFolders(el) {
             </p>
 
             <!-- Warning card -->
-            <div style="background:#1E2330;border-radius:12px;border:1px solid #F59E0B40;padding:16px 20px;margin-bottom:24px;display:flex;gap:14px;align-items:flex-start">
+            <div style="background:#1C1C1C;border-radius:12px;border:1px solid #F59E0B40;padding:16px 20px;margin-bottom:24px;display:flex;gap:14px;align-items:flex-start">
                 <div style="flex-shrink:0;margin-top:1px">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
@@ -509,7 +509,7 @@ function renderFolders(el) {
                     </svg>
                 </div>
                 <p style="font-size:13px;color:#9CA3AF;line-height:1.7;margin:0">
-                    Import folders must remain <strong style="color:#CFD8E3">consistently accessible and online</strong>.
+                    Import folders must remain <strong style="color:#D4C5A9">consistently accessible and online</strong>.
                     If a folder goes offline, DaCollector may remove its files from your collection.
                     Removable drives and cloud-mounted paths are not recommended.
                 </p>
@@ -517,10 +517,10 @@ function renderFolders(el) {
 
             <!-- How it works cards -->
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px">
-                <div style="background:#1E2330;border-radius:10px;border:1px solid #2A3040;padding:16px 18px">
+                <div style="background:#1C1C1C;border-radius:10px;border:1px solid #2A2A2A;padding:16px 18px">
                     <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-                        <div style="width:28px;height:28px;border-radius:7px;background:#44A3FF18;border:1px solid #44A3FF30;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#44A3FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <div style="width:28px;height:28px;border-radius:7px;background:#C9A22718;border:1px solid #C9A22730;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C9A227" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
                             </svg>
                         </div>
@@ -530,7 +530,7 @@ function renderFolders(el) {
                         DaCollector monitors the folder and automatically imports any newly detected files.
                     </p>
                 </div>
-                <div style="background:#1E2330;border-radius:10px;border:1px solid #2A3040;padding:16px 18px">
+                <div style="background:#1C1C1C;border-radius:10px;border:1px solid #2A2A2A;padding:16px 18px">
                     <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
                         <div style="width:28px;height:28px;border-radius:7px;background:#34D39918;border:1px solid #34D39930;display:flex;align-items:center;justify-content:center;flex-shrink:0">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -552,7 +552,7 @@ function renderFolders(el) {
             </div>
 
             <!-- Add folder form -->
-            <div style="background:#1E2330;border-radius:12px;border:1px solid #2A3040;padding:20px 24px">
+            <div style="background:#1C1C1C;border-radius:12px;border:1px solid #2A2A2A;padding:20px 24px">
                 <div style="font-size:14px;font-weight:600;color:#FFFFFF;margin-bottom:18px">Add Folder</div>
                 <div style="display:flex;flex-direction:column;gap:16px">
 
@@ -583,7 +583,7 @@ function renderFolders(el) {
                         <div>
                             <div style="font-size:12px;font-weight:500;color:#9CA3AF;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.05em">Watch for New Files</div>
                             <button id="btn-folder-watch" onclick="toggleFolderWatch()"
-                                style="width:44px;height:24px;border-radius:12px;border:none;cursor:pointer;position:relative;background:${folderForm.watchForNewFiles ? '#44A3FF' : '#2A3040'}">
+                                style="width:44px;height:24px;border-radius:12px;border:none;cursor:pointer;position:relative;background:${folderForm.watchForNewFiles ? '#C9A227' : '#2A2A2A'}">
                                 <div style="width:18px;height:18px;background:white;border-radius:50%;position:absolute;top:3px;left:${folderForm.watchForNewFiles ? '23px' : '3px'}"></div>
                             </button>
                         </div>
@@ -603,7 +603,7 @@ function renderFolders(el) {
                     <!-- Add button + error -->
                     <div style="display:flex;align-items:center;gap:12px;padding-top:4px">
                         <button onclick="addFolder()"
-                            style="background:#44A3FF;border:none;border-radius:8px;padding:10px 22px;font-size:13px;font-weight:600;color:#0D1017;cursor:pointer">
+                            style="background:#C9A227;border:none;border-radius:8px;padding:10px 22px;font-size:13px;font-weight:600;color:#0D0D0D;cursor:pointer">
                             Add Folder
                         </button>
                         <span id="folder-err" style="color:#EF4444;font-size:13px;display:none"></span>
@@ -616,7 +616,7 @@ function renderFolders(el) {
 function dropTypeBtn(value, label) {
     const active = folderForm.dropFolderType === value;
     return `<button id="drop-btn-${value}" onclick="setDropType('${value}')"
-        style="font-size:12px;padding:7px 12px;border-radius:6px;border:1px solid ${active ? '#44A3FF' : '#2A3040'};background:${active ? '#44A3FF22' : 'transparent'};color:${active ? '#44A3FF' : '#6B7280'};cursor:pointer;white-space:nowrap">
+        style="font-size:12px;padding:7px 12px;border-radius:6px;border:1px solid ${active ? '#C9A227' : '#2A2A2A'};background:${active ? '#C9A22722' : 'transparent'};color:${active ? '#C9A227' : '#6B7280'};cursor:pointer;white-space:nowrap">
         ${label}
     </button>`;
 }
@@ -627,9 +627,9 @@ function setDropType(value) {
         const btn = document.getElementById('drop-btn-' + v);
         if (!btn) return;
         const active = v === value;
-        btn.style.borderColor = active ? '#44A3FF' : '#2A3040';
-        btn.style.background  = active ? '#44A3FF22' : 'transparent';
-        btn.style.color       = active ? '#44A3FF' : '#6B7280';
+        btn.style.borderColor = active ? '#C9A227' : '#2A2A2A';
+        btn.style.background  = active ? '#C9A22722' : 'transparent';
+        btn.style.color       = active ? '#C9A227' : '#6B7280';
     });
 }
 
@@ -637,13 +637,13 @@ function toggleFolderWatch() {
     folderForm.watchForNewFiles = !folderForm.watchForNewFiles;
     const btn = document.getElementById('btn-folder-watch');
     if (!btn) return;
-    btn.style.background = folderForm.watchForNewFiles ? '#44A3FF' : '#2A3040';
+    btn.style.background = folderForm.watchForNewFiles ? '#C9A227' : '#2A2A2A';
     btn.firstElementChild.style.left = folderForm.watchForNewFiles ? '23px' : '3px';
 }
 
 function renderFolderItems() {
     if (state.importFolders.length === 0) {
-        return `<div style="text-align:center;padding:28px 20px;color:#4B5563;font-size:13px;background:#1E2330;border-radius:10px;border:1px dashed #2A3040">
+        return `<div style="text-align:center;padding:28px 20px;color:#4B5563;font-size:13px;background:#1C1C1C;border-radius:10px;border:1px dashed #2A2A2A">
             No folders added yet. Add your first import folder below.
         </div>`;
     }
@@ -654,9 +654,9 @@ function renderFolderItems() {
                         : f.dropFolderType === 'Source' ? 'Drop Source'
                         : f.dropFolderType === 'Destination' ? 'Drop Destination' : '';
         return `
-        <div style="background:#1E2330;border-radius:10px;border:1px solid #2A3040;padding:14px 18px;display:flex;align-items:center;gap:14px">
-            <div style="width:36px;height:36px;border-radius:8px;background:#44A3FF12;border:1px solid #44A3FF20;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#44A3FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <div style="background:#1C1C1C;border-radius:10px;border:1px solid #2A2A2A;padding:14px 18px;display:flex;align-items:center;gap:14px">
+            <div style="width:36px;height:36px;border-radius:8px;background:#C9A22712;border:1px solid #C9A22720;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C9A227" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
                 </svg>
             </div>
@@ -664,13 +664,13 @@ function renderFolderItems() {
                 ${f.name ? `<div style="font-size:13px;font-weight:600;color:#FFFFFF;margin-bottom:2px">${esc(f.name)}</div>` : ''}
                 <div style="font-size:12px;color:#9CA3AF;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(f.path)}</div>
                 <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
-                    ${hasWatch ? `<span style="font-size:11px;background:#44A3FF18;color:#44A3FF;border-radius:4px;padding:2px 8px;border:1px solid #44A3FF30">Watched</span>` : ''}
+                    ${hasWatch ? `<span style="font-size:11px;background:#C9A22718;color:#C9A227;border-radius:4px;padding:2px 8px;border:1px solid #C9A22730">Watched</span>` : ''}
                     ${hasDrop  ? `<span style="font-size:11px;background:#34D39918;color:#34D399;border-radius:4px;padding:2px 8px;border:1px solid #34D39930">${dropLabel}</span>` : ''}
                     ${!hasWatch && !hasDrop ? `<span style="font-size:11px;color:#4B5563">No active role</span>` : ''}
                 </div>
             </div>
             <button onclick="removeFolderAt(${i})"
-                style="background:transparent;border:1px solid #2A3040;border-radius:6px;padding:7px 9px;cursor:pointer;color:#6B7280;line-height:0;flex-shrink:0"
+                style="background:transparent;border:1px solid #2A2A2A;border-radius:6px;padding:7px 9px;cursor:pointer;color:#6B7280;line-height:0;flex-shrink:0"
                 title="Remove">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
@@ -729,7 +729,7 @@ async function finishSetup() {
         }
     }
 
-    window.location.replace('/webui/');
+    window.location.replace('/webui/dashboard.html');
 }
 
 // ──────────────────────────────────────────────────────────
@@ -750,7 +750,7 @@ function renderStart(el) {
             <h1 style="font-size:26px;font-weight:700;color:#FFFFFF;margin:0 0 8px">Ready to start</h1>
             <p style="color:#6B7280;font-size:14px;margin:0 0 28px">Review your configuration, then start the server. You'll add import folders on the next screen.</p>
 
-            <div style="background:#1E2330;border-radius:12px;padding:20px 24px;border:1px solid #2A3040;display:flex;flex-direction:column;gap:14px;margin-bottom:24px">
+            <div style="background:#1C1C1C;border-radius:12px;padding:20px 24px;border:1px solid #2A2A2A;display:flex;flex-direction:column;gap:14px;margin-bottom:24px">
                 ${summaryRow('Account',    state.username || '(not set)')}
                 ${summaryRow('TMDB',       state.tmdbApiKey ? 'Custom API key configured' : 'Using built-in key')}
                 ${summaryRow('TVDB',       tvdbSummary)}
@@ -765,7 +765,7 @@ function renderStart(el) {
 function summaryRow(label, value) {
     return `<div style="display:flex;justify-content:space-between;align-items:center;font-size:14px">
         <span style="color:#6B7280">${label}</span>
-        <span style="color:#CFD8E3;font-weight:500">${esc(value)}</span>
+        <span style="color:#D4C5A9;font-weight:500">${esc(value)}</span>
     </div>`;
 }
 
@@ -901,13 +901,13 @@ async function finishLogin(statusEl) {
             // No API key (e.g. account not set up yet) — skip folders, go to dashboard
             setStatus(statusEl, 'success', 'Server started — redirecting…');
             await sleep(1000);
-            window.location.replace('/webui/');
+            window.location.replace('/webui/dashboard.html');
         }
     } catch (e) {
         // Login failed — still advance; user can configure folders in settings
         setStatus(statusEl, 'success', 'Server started — redirecting…');
         await sleep(1000);
-        window.location.replace('/webui/');
+        window.location.replace('/webui/dashboard.html');
     }
 }
 
@@ -961,11 +961,11 @@ function field(id, label, type, value, placeholder) {
 }
 
 function inputStyle(extra) {
-    return `${extra};background:#1E2330;border:1px solid #2A3040;border-radius:8px;padding:10px 14px;font-size:14px;color:#FFFFFF;outline:none;transition:border-color 0.15s;font-family:inherit`;
+    return `${extra};background:#1C1C1C;border:1px solid #2A2A2A;border-radius:8px;padding:10px 14px;font-size:14px;color:#FFFFFF;outline:none;transition:border-color 0.15s;font-family:inherit`;
 }
 
 function outlineBtn() {
-    return `background:#1E2330;border:1px solid #44A3FF50;border-radius:8px;padding:10px 16px;font-size:13px;font-weight:500;color:#44A3FF;cursor:pointer;white-space:nowrap`;
+    return `background:#1C1C1C;border:1px solid #C9A22750;border-radius:8px;padding:10px 16px;font-size:13px;font-weight:500;color:#C9A227;cursor:pointer;white-space:nowrap`;
 }
 
 function val(id) {
@@ -986,10 +986,10 @@ function svgX()     { return `<svg width="14" height="14" viewBox="0 0 24 24" fi
 // Focus ring on inputs (keyboard UX)
 // ──────────────────────────────────────────────────────────
 document.addEventListener('focusin', e => {
-    if (e.target.tagName === 'INPUT') e.target.style.borderColor = '#44A3FF';
+    if (e.target.tagName === 'INPUT') e.target.style.borderColor = '#C9A227';
 });
 document.addEventListener('focusout', e => {
-    if (e.target.tagName === 'INPUT') e.target.style.borderColor = '#2A3040';
+    if (e.target.tagName === 'INPUT') e.target.style.borderColor = '#2A2A2A';
 });
 
 // ──────────────────────────────────────────────────────────

@@ -15,6 +15,11 @@
                     const s = await r.json();
                     if (s.state === 'Waiting') {
                         window.location.replace('/webui/setup.html');
+                        return;
+                    }
+                    if (s.state === 'Started') {
+                        window.location.replace('/webui/dashboard.html');
+                        return;
                     }
                 }
             } catch (e) {}
