@@ -181,16 +181,25 @@ docker compose -f docker-compose.yml up -d
 
 ## TrueNAS and ZFS
 
+### How ownership repair works
+
+On startup the entrypoint checks whether `DACOLLECTOR_HOME` is owned by `PUID:PGID`.
+
+- If ownership is already correct, nothing changes.
+- If it is wrong, the entrypoint always fixes the top-level directory itself (one fast `chown`) so the server can write new files. Whether it also recurses into existing data depends on `SKIP_CHOWN`.
+
+On ZFS/NFS/CIFS volumes the recursive step is skipped automatically — one `chown` per directory is instant; recursing into thousands of inodes is not.
+
 ### Slow first-boot (ownership repair stall)
 
-On a TrueNAS or ZFS-backed Docker volume, the container may appear stuck after:
+On a non-ZFS volume the container may appear stuck after:
 
 ```
 Ownership mismatch on /home/dacollector/.dacollector/DaCollector
-Starting ownership repair. This may be slow on large datasets or ZFS/TrueNAS volumes.
+Starting recursive ownership repair (this may be slow on large datasets).
 ```
 
-The container is recursively `chown`-ing the data directory to match `PUID:PGID`. On a ZFS dataset with thousands of inodes, this can take minutes.
+The container is recursively `chown`-ing the data directory to match `PUID:PGID`. On a dataset with many inodes this can take minutes.
 
 **Preferred fix — match `PUID`/`PGID` to the dataset owner:**
 
@@ -206,20 +215,51 @@ environment:
   PGID: "1000"
 ```
 
-On the next start, the ownership check passes immediately and `chown` is skipped.
+On the next start, the ownership check passes immediately and no `chown` is needed.
 
-**Alternative — skip `chown` entirely for ACL-managed datasets:**
+**Alternative — skip recursive `chown` for ACL-managed datasets:**
 
 ```yaml
 # In docker-compose.yml:
 SKIP_CHOWN: "true"
 ```
 
-The startup log will confirm:
+With `SKIP_CHOWN=true` the entrypoint still fixes the top-level `DACOLLECTOR_HOME` directory so the server can start cleanly, but it does not recurse into existing data files. The startup log will confirm:
 
 ```
-Ownership repair skipped (SKIP_CHOWN=true). Owner of /home/dacollector/.dacollector/DaCollector: 1000:1000
+Top-level directory ownership set to 1000:100.
+Recursive chown skipped (SKIP_CHOWN=true). Existing files inside ... keep their previous ownership.
 ```
+
+### Running as root (PUID=0)
+
+If you prefer to run the container as root, set `PUID=0` in `docker-compose.yml`:
+
+```yaml
+environment:
+  PUID: "0"
+  PGID: "0"
+```
+
+Root bypasses all user creation and ownership repair — the server process can write to `DACOLLECTOR_HOME` regardless of its ownership. The default data path (`/home/dacollector/.dacollector/DaCollector`) works with `PUID=0`; no custom path is required.
+
+### Diagnosing a permission error
+
+If the server fails to start with `Access to the path '...' is denied`, check that `DACOLLECTOR_HOME` is writable by the configured `PUID`:
+
+```bash
+# Check current ownership of the data directory
+docker exec dacollector stat -c '%u:%g %n' /home/dacollector/.dacollector/DaCollector
+
+# Check which user the server process runs as
+docker exec dacollector id dacollector
+```
+
+Fix options:
+
+- **Match `PUID`/`PGID` to the directory owner** (preferred — no permissions change needed).
+- **Fix host ownership** — on TrueNAS: `chown -R 1000:1000 /mnt/your-pool/dacollector-data`.
+- **Use `PUID=0`** — root can always write, no ownership changes required.
 
 ### Diagnosing a stalled container
 
@@ -234,7 +274,7 @@ docker compose -f docker-compose.yml logs --tail 30 dacollector
 docker exec dacollector stat -c '%u:%g %n' /home/dacollector/.dacollector/DaCollector
 ```
 
-If the log shows `Starting ownership repair...` but nothing after it, the recursive `chown` is still running. Wait for it to finish, or stop the container and set `SKIP_CHOWN: "true"` in `docker-compose.yml`.
+If the log shows `Starting recursive ownership repair...` but nothing after it, the recursive `chown` is still running. Wait for it to finish, or stop the container and set `SKIP_CHOWN: "true"` in `docker-compose.yml`.
 
 ### Media mounts on TrueNAS
 

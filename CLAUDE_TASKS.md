@@ -1004,7 +1004,14 @@ Direct file→provider cross-reference tables that bypass the AniDB import path:
 - `ProcessFileJob` now enqueues `ProcessFileTmdbJob` for unrecognized files (after candidate scan)
 - `POST /api/v3/Series/CreateFromProvider` — admin endpoint to create/retrieve a series by `provider` + `providerID` + `mediaType`
 
-Follow-up needed: `ProcessFileTmdbJob` currently picks the top TMDB result blindly. Wire in confidence scoring from `MediaFileMatchCandidateService` so low-confidence matches go to the review queue instead of auto-linking.
+Confidence scoring wired in (2026-05-13):
+- `MediaFileMatchCandidateService.AutoMatchThreshold` promoted to `internal const` so it can be read from the job.
+- `ProcessFileTmdbJob` now injects `MediaFileMatchCandidateService` and checks scored candidates before doing any raw TMDB search:
+  1. If the file already has cross-refs, skip.
+  2. If an Approved TMDB candidate exists (auto-approved by `ScanFileAsync`), use it to write the cross-ref.
+  3. If a Pending candidate scores ≥ 0.92, use it to write the cross-ref.
+  4. If candidates exist but all score below threshold, log and leave in the review queue.
+  5. Only if no candidates exist at all, fall back to raw TMDB filename search (preserving old behavior for files the scored system hasn't seen).
 
 ### ✅ Fix WebUI TypeScript Build Error in Log.tsx — DONE
 
@@ -1017,6 +1024,24 @@ Follow-up needed: `ProcessFileTmdbJob` currently picks the top TMDB result blind
 2026-05-13. Commit `7dd89dc`.
 
 - `.github/workflows/cleanup-docker-images.yml`: corrected `package-name` from `'server'` to `'dacollector'` (matching the actual GHCR package `ghcr.io/iranman/dacollector`); added explicit `token: ${{ secrets.GITHUB_TOKEN }}` so the delete API call authenticates correctly.
+
+### ✅ Fix Docker Ownership for PUID=0 and SKIP_CHOWN — DONE
+
+2026-05-13.
+
+**Problem**: Two separate ownership failures in `dockerentry.sh`:
+1. `PUID=0` was blocked — the script exited with an error if `PUID=0` and `DACOLLECTOR_HOME` was the default path, making root deployments impossible.
+2. `SKIP_CHOWN=true` (auto-set on ZFS) skipped ALL ownership work, including the top-level directory. On first boot this left `DACOLLECTOR_HOME` owned by root while the server ran as uid=1000, causing `Access denied` on the first config file write.
+
+**Fix (`dockerentry.sh`)**:
+- `PUID=0`: server now runs as root with no restriction on `DACOLLECTOR_HOME`. User/group creation is skipped (root already exists). Ownership repair is skipped (root can write anywhere).
+- `SKIP_CHOWN=true` now means "skip the expensive recursive `-R` chown only". The top-level `DACOLLECTOR_HOME` directory and its parents are always fixed (one fast `chown` per path, instant on ZFS). This ensures the server can write new files on first boot even when `SKIP_CHOWN=true`.
+- Log dir (`$DACOLLECTOR_HOME/logs`) is always created; chown only runs for non-root.
+
+**Docs updated** (`docs/getting-started/installation/docker.md`):
+- Rewrote TrueNAS/ZFS section to explain the two-level repair (top-level always, recursive optional).
+- Added `PUID=0` section.
+- Added "Diagnosing a permission error" section with fix options.
 
 ### ✅ Fix issue-no-response Workflow — DONE
 

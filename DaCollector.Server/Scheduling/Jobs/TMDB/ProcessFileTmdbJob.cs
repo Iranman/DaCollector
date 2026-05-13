@@ -5,8 +5,10 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
+using DaCollector.Server.Media;
 using DaCollector.Server.Models.CrossReference;
 using DaCollector.Server.Models.DaCollector;
+using DaCollector.Server.Models.Internal;
 using DaCollector.Server.Providers.TMDB;
 using DaCollector.Server.Repositories;
 using DaCollector.Server.Scheduling.Acquisition.Attributes;
@@ -28,6 +30,7 @@ public class ProcessFileTmdbJob : BaseJob
 {
     private readonly TmdbSearchService _tmdbSearchService;
     private readonly MediaSeriesService _seriesService;
+    private readonly MediaFileMatchCandidateService _candidateService;
 
     private VideoLocal _vlocal;
     private string _fileName;
@@ -67,6 +70,47 @@ public class ProcessFileTmdbJob : BaseJob
                 return;
         }
 
+        // Skip if already cross-referenced
+        if (RepoFactory.CrossRef_File_TmdbMovie.GetByVideoLocalID(VideoLocalID).Count > 0 ||
+            RepoFactory.CrossRef_File_TmdbEpisode.GetByVideoLocalID(VideoLocalID).Count > 0)
+        {
+            _logger.LogDebug("File {ID} already has TMDB cross-references; skipping.", VideoLocalID);
+            return;
+        }
+
+        var now = DateTime.UtcNow;
+
+        // Use scored candidates produced by MediaFileMatchCandidateService.ScanFileAsync
+        var candidates = _candidateService.GetCandidatesForFile(VideoLocalID);
+
+        var approvedTmdb = candidates.FirstOrDefault(c => c.Status == "Approved" && c.Provider == "tmdb");
+        if (approvedTmdb != null)
+        {
+            WriteTmdbCrossRef(approvedTmdb, now);
+            return;
+        }
+
+        var bestPending = candidates
+            .Where(c => c.Status == "Pending" && c.Provider == "tmdb")
+            .MaxBy(c => c.ConfidenceScore);
+
+        if (bestPending != null)
+        {
+            if (bestPending.ConfidenceScore >= MediaFileMatchCandidateService.AutoMatchThreshold)
+            {
+                _logger.LogInformation("Using high-confidence TMDB candidate for file {ID}: {Title} (score {Score:F4})",
+                    VideoLocalID, bestPending.Title, bestPending.ConfidenceScore);
+                WriteTmdbCrossRef(bestPending, now);
+            }
+            else
+            {
+                _logger.LogInformation("File {ID} has TMDB candidates below threshold (best: {Score:F4}); leaving in review queue.",
+                    VideoLocalID, bestPending.ConfidenceScore);
+            }
+            return;
+        }
+
+        // No scored candidates — fall back to raw TMDB filename search
         var rawName = Path.GetFileNameWithoutExtension(_fileName ?? _vlocal.FirstValidPlace?.RelativePath ?? string.Empty);
         if (string.IsNullOrWhiteSpace(rawName))
         {
@@ -74,9 +118,7 @@ public class ProcessFileTmdbJob : BaseJob
             return;
         }
 
-        var now = DateTime.UtcNow;
-
-        var (movieResults, movieTotal) = await _tmdbSearchService.SearchMoviesRaw(rawName).ConfigureAwait(false);
+        var (movieResults, _) = await _tmdbSearchService.SearchMoviesRaw(rawName).ConfigureAwait(false);
         if (movieResults.Count > 0)
         {
             var best = movieResults[0];
@@ -95,7 +137,7 @@ public class ProcessFileTmdbJob : BaseJob
             return;
         }
 
-        var (showResults, showTotal) = await _tmdbSearchService.SearchShowsRaw(rawName).ConfigureAwait(false);
+        var (showResults, _) = await _tmdbSearchService.SearchShowsRaw(rawName).ConfigureAwait(false);
         if (showResults.Count > 0)
         {
             var best = showResults[0];
@@ -129,10 +171,54 @@ public class ProcessFileTmdbJob : BaseJob
         _logger.LogInformation("No TMDB match found for '{Name}' (VideoLocal {ID})", rawName, VideoLocalID);
     }
 
-    public ProcessFileTmdbJob(TmdbSearchService tmdbSearchService, MediaSeriesService seriesService)
+    private void WriteTmdbCrossRef(MediaFileMatchCandidate candidate, DateTime now)
+    {
+        if (candidate.ProviderType == "movie")
+        {
+            var xref = new CrossRef_File_TmdbMovie
+            {
+                VideoLocalID = VideoLocalID,
+                TmdbMovieID = candidate.ProviderItemID,
+                IsManuallyLinked = false,
+                CreatedAt = now,
+                UpdatedAt = now
+            };
+            RepoFactory.CrossRef_File_TmdbMovie.Save(xref);
+            _logger.LogInformation("Linked file {ID} to TMDB movie {MovieID} ({Title})", VideoLocalID, candidate.ProviderItemID, candidate.Title);
+        }
+        else if (candidate.ProviderType == "show")
+        {
+            var episodes = RepoFactory.TMDB_Episode.GetByTmdbShowID(candidate.ProviderItemID);
+            if (episodes.Count > 0)
+            {
+                var firstEp = episodes[0];
+                var xref = new CrossRef_File_TmdbEpisode
+                {
+                    VideoLocalID = VideoLocalID,
+                    TmdbEpisodeID = firstEp.TmdbEpisodeID,
+                    Percentage = 100,
+                    EpisodeOrder = 1,
+                    IsManuallyLinked = false,
+                    CreatedAt = now,
+                    UpdatedAt = now
+                };
+                RepoFactory.CrossRef_File_TmdbEpisode.Save(xref);
+                _logger.LogInformation("Linked file {ID} to TMDB show {ShowID} ({Title}), episode {EpID}",
+                    VideoLocalID, candidate.ProviderItemID, candidate.Title, firstEp.TmdbEpisodeID);
+            }
+            else
+            {
+                _logger.LogDebug("No cached TMDB episodes for show ID {ShowID}; episode cross-reference not created", candidate.ProviderItemID);
+            }
+        }
+        _seriesService.GetOrCreateSeriesFromProvider("tmdb", candidate.ProviderItemID, candidate.ProviderType);
+    }
+
+    public ProcessFileTmdbJob(TmdbSearchService tmdbSearchService, MediaSeriesService seriesService, MediaFileMatchCandidateService candidateService)
     {
         _tmdbSearchService = tmdbSearchService;
         _seriesService = seriesService;
+        _candidateService = candidateService;
     }
 
     protected ProcessFileTmdbJob() { }

@@ -26,7 +26,7 @@ public class MediaFileMatchCandidateService(
 )
 {
     private const double MinScore = 0.5;
-    private const double AutoMatchThreshold = 0.92;
+    internal const double AutoMatchThreshold = 0.92;
 
     public Task<MediaFileMatchScanResult> ScanFileAsync(
         int videoLocalID,

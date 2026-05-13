@@ -304,8 +304,11 @@ MediaFileMatchCandidateService.ScanFileAsync
         │
         ▼
 ProcessFileTmdbJob  (DaCollector.Server/Scheduling/Jobs/TMDB/ProcessFileTmdbJob.cs)
-  Searches TMDB by filename for movie/show
-  Writes CrossRef_File_TmdbMovie or CrossRef_File_TmdbEpisode
+  Checks existing cross-refs and scored candidates from MediaFileMatchCandidateService:
+    - Skips if file already has CrossRef_File_TmdbMovie or CrossRef_File_TmdbEpisode
+    - Uses Approved or high-confidence (≥ 0.92) TMDB candidate to write cross-ref
+    - Leaves low-confidence files as Pending in the review queue
+    - Falls back to raw TMDB filename search only when no candidates exist
   Calls MediaSeriesService.GetOrCreateSeriesFromProvider
 ```
 
