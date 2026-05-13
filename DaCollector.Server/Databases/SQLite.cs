@@ -898,6 +898,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         new(149,  3, "CREATE INDEX IX_MediaFileMatchCandidate_Status ON MediaFileMatchCandidate(Status);"),
         new(149,  4, "CREATE UNIQUE INDEX UIX_MediaFileMatchCandidate ON MediaFileMatchCandidate(VideoLocalID, Provider, ProviderItemID, ProviderType);"),
         new(150,  1, MakeMediaSeriesAniDB_IDNullable),
+        new(151,  1, MakeMediaEpisodeAniDB_EpisodeIDNullable),
     ];
 
     #endregion
@@ -1512,6 +1513,38 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
                 """,
                 [
                     "CREATE UNIQUE INDEX UIX_MediaSeries_AniDB_ID ON MediaSeries(AniDB_ID) WHERE AniDB_ID IS NOT NULL;",
+                ]
+            );
+            return new Tuple<bool, string>(true, null);
+        }
+        catch (Exception e)
+        {
+            return new Tuple<bool, string>(false, e.ToString());
+        }
+    }
+
+    private static Tuple<bool, string> MakeMediaEpisodeAniDB_EpisodeIDNullable(object connection)
+    {
+        try
+        {
+            var factory = (SQLite)Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
+            factory.Alter(
+                (SqliteConnection)connection,
+                "MediaEpisode",
+                """
+                    CREATE TABLE MediaEpisode (
+                        MediaEpisodeID INTEGER PRIMARY KEY AUTOINCREMENT,
+                        MediaSeriesID INTEGER NOT NULL,
+                        AniDB_EpisodeID INTEGER NULL,
+                        DateTimeUpdated DATETIME NOT NULL,
+                        DateTimeCreated DATETIME NOT NULL,
+                        IsHidden INTEGER NOT NULL DEFAULT 0,
+                        EpisodeNameOverride TEXT NULL
+                    );
+                """,
+                [
+                    "CREATE UNIQUE INDEX UIX_MediaEpisode_AniDB_EpisodeID ON MediaEpisode(AniDB_EpisodeID) WHERE AniDB_EpisodeID IS NOT NULL;",
+                    "CREATE INDEX IX_MediaEpisode_MediaSeriesID ON MediaEpisode(MediaSeriesID);",
                 ]
             );
             return new Tuple<bool, string>(true, null);

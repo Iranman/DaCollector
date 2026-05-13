@@ -541,7 +541,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
                 if (seriesEpisodeChanges.Count > 0)
                     videos.AddRange(
                         seriesEpisodeChanges.Keys
-                            .SelectMany(a => _crossReferenceRepository.GetByEpisodeID(a.AniDB_EpisodeID))
+                            .SelectMany(a => _crossReferenceRepository.GetByEpisodeID(a.AniDB_EpisodeID ?? 0))
                             .WhereNotNull()
                             .Select(a => a.VideoLocal)
                             .WhereNotNull()

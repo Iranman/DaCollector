@@ -546,7 +546,7 @@ public class DatabaseFixes
                     return true;
 
                 // AniDB Episode doesn't exist anymore.
-                if (!allAniDBEpisodes.TryGetValue(episode.AniDB_EpisodeID, out var MetadataEpisode))
+                if (!allAniDBEpisodes.TryGetValue(episode.AniDB_EpisodeID ?? 0, out var MetadataEpisode))
                     return true;
 
                 return false;
@@ -591,13 +591,13 @@ public class DatabaseFixes
         var tmdbXrefsToRemove = new List<CrossRef_AniDB_TMDB_Episode>();
         foreach (var dacollectorEpisode in dacollectorEpisodesToRemove)
         {
-            var xrefs = RepoFactory.CrossRef_File_Episode.GetByEpisodeID(dacollectorEpisode.AniDB_EpisodeID);
+            var xrefs = RepoFactory.CrossRef_File_Episode.GetByEpisodeID(dacollectorEpisode.AniDB_EpisodeID ?? 0);
             var videos = xrefs
                 .Select(xref => RepoFactory.VideoLocal.GetByEd2kAndSize(xref.Hash, xref.FileSize))
                 .WhereNotNull()
                 .ToList();
-            var databaseReleases = RepoFactory.StoredReleaseInfo.GetByAnidbEpisodeID(dacollectorEpisode.AniDB_EpisodeID);
-            var tmdbXrefs = RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByAnidbEpisodeID(dacollectorEpisode.AniDB_EpisodeID);
+            var databaseReleases = RepoFactory.StoredReleaseInfo.GetByAnidbEpisodeID(dacollectorEpisode.AniDB_EpisodeID ?? 0);
+            var tmdbXrefs = RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByAnidbEpisodeID(dacollectorEpisode.AniDB_EpisodeID ?? 0);
             xrefsToRemove.AddRange(xrefs);
             videosToRefetch.AddRange(videos);
             databaseReleasesToRemove.AddRange(databaseReleases);

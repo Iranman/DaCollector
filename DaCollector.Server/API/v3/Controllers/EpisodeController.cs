@@ -197,7 +197,7 @@ public class EpisodeController : BaseController
                     // If we should hide voted episodes and the episode is voted, then hide it.
                     // Or if we should only show voted episodes and the episode is not voted, then hide it.
                     var shouldHideVoted = includeVoted == IncludeOnlyFilter.False;
-                    var isVoted = RepoFactory.MediaEpisode_User.GetByUserAndEpisodeID(user.JMMUserID, dacollector.AniDB_EpisodeID) is { HasUserRating: true };
+                    var isVoted = RepoFactory.MediaEpisode_User.GetByUserAndEpisodeID(user.JMMUserID, dacollector.AniDB_EpisodeID ?? 0) is { HasUserRating: true };
                     if (shouldHideVoted == isVoted)
                         return false;
                 }
@@ -558,7 +558,7 @@ public class EpisodeController : BaseController
         if (!User.AllowedSeries(series))
             return Forbid(EpisodeForbiddenForUser);
 
-        await _tmdbLinkingService.AddMovieLinkForEpisode(episode.AniDB_EpisodeID, body.ID, additiveLink: !body.Replace);
+        await _tmdbLinkingService.AddMovieLinkForEpisode(episode.AniDB_EpisodeID ?? 0, body.ID, additiveLink: !body.Replace);
 
         var needRefresh = RepoFactory.TMDB_Movie.GetByTmdbMovieID(body.ID) is null || body.Refresh;
         if (needRefresh)
@@ -592,9 +592,9 @@ public class EpisodeController : BaseController
             return Forbid(EpisodeForbiddenForUser);
 
         if (body != null && body.ID > 0)
-            await _tmdbLinkingService.RemoveMovieLinkForEpisode(episode.AniDB_EpisodeID, body.ID, body.Purge);
+            await _tmdbLinkingService.RemoveMovieLinkForEpisode(episode.AniDB_EpisodeID ?? 0, body.ID, body.Purge);
         else
-            await _tmdbLinkingService.RemoveAllMovieLinksForEpisode(episode.AniDB_EpisodeID, body?.Purge ?? false);
+            await _tmdbLinkingService.RemoveAllMovieLinksForEpisode(episode.AniDB_EpisodeID ?? 0, body?.Purge ?? false);
 
         return NoContent();
     }
@@ -821,8 +821,8 @@ public class EpisodeController : BaseController
             return NotFound("Series does not have an AniDB link.");
 
         // Create or update the entry if something changed.
-        var defaultImage = RepoFactory.AniDB_Episode_PreferredImage.GetByAnidbEpisodeIDAndType(episode.AniDB_EpisodeID, imageEntityType) ??
-            new(series.AniDB_ID.Value, episode.AniDB_EpisodeID, imageEntityType);
+        var defaultImage = RepoFactory.AniDB_Episode_PreferredImage.GetByAnidbEpisodeIDAndType(episode.AniDB_EpisodeID ?? 0, imageEntityType) ??
+            new(series.AniDB_ID.Value, episode.AniDB_EpisodeID ?? 0, imageEntityType);
         if (defaultImage.ImageID == body.ID && defaultImage.ImageSource == dataSource)
             return new Image(body.ID, imageEntityType, dataSource, true);
 
@@ -862,7 +862,7 @@ public class EpisodeController : BaseController
 
         // Check if a default image is set.
         var imageEntityType = imageType.ToServer();
-        var defaultImage = RepoFactory.AniDB_Episode_PreferredImage.GetByAnidbEpisodeIDAndType(episode.AniDB_EpisodeID, imageEntityType);
+        var defaultImage = RepoFactory.AniDB_Episode_PreferredImage.GetByAnidbEpisodeIDAndType(episode.AniDB_EpisodeID ?? 0, imageEntityType);
         if (defaultImage == null)
             return ValidationProblem("No default image for the selected type.");
 

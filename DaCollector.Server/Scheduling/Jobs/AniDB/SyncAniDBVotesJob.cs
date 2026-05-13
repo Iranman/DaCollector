@@ -138,7 +138,7 @@ public class SyncAniDBVotesJob : BaseJob
             {
                 await scheduler.StartJob<VoteAniDBEpisodeJob>(c =>
                 {
-                    c.EpisodeID = episode.AniDB_EpisodeID;
+                    c.EpisodeID = episode.AniDB_EpisodeID ?? 0;
                     c.VoteValue = userData.UserRating.Value;
                 });
             }
@@ -146,7 +146,7 @@ public class SyncAniDBVotesJob : BaseJob
             {
                 await scheduler.StartJob<VoteAniDBEpisodeJob>(c =>
                 {
-                    c.EpisodeID = episode.AniDB_EpisodeID;
+                    c.EpisodeID = episode.AniDB_EpisodeID ?? 0;
                     c.VoteValue = -1;
                 });
             }
@@ -154,7 +154,7 @@ public class SyncAniDBVotesJob : BaseJob
             {
                 await scheduler.StartJob<VoteAniDBEpisodeJob>(c =>
                 {
-                    c.EpisodeID = episode.AniDB_EpisodeID;
+                    c.EpisodeID = episode.AniDB_EpisodeID ?? 0;
                     c.VoteValue = userData.UserRating.Value;
                 });
             }

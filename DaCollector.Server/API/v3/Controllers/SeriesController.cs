@@ -1185,7 +1185,7 @@ public class SeriesController : BaseController
 
         if (!User.AllowedSeries(series))
             return Forbid(SeriesForbiddenForUser);
-        var episodeIDs = series.AllAnimeEpisodes.Select(e => e.AniDB_EpisodeID).ToList();
+        var episodeIDs = series.AllAnimeEpisodes.Select(e => e.AniDB_EpisodeID ?? 0).ToList();
         if (body.EpisodeID > 0)
         {
             if (!episodeIDs.Contains(body.EpisodeID))
@@ -2198,7 +2198,7 @@ public class SeriesController : BaseController
                     // If we should hide voted episodes and the episode is voted, then hide it.
                     // Or if we should only show voted episodes and the episode is not voted, then hide it.
                     var shouldHideVoted = includeVoted == IncludeOnlyFilter.False;
-                    var isVoted = RepoFactory.MediaEpisode_User.GetByUserAndEpisodeID(user.JMMUserID, dacollector.AniDB_EpisodeID) is { HasUserRating: true };
+                    var isVoted = RepoFactory.MediaEpisode_User.GetByUserAndEpisodeID(user.JMMUserID, dacollector.AniDB_EpisodeID ?? 0) is { HasUserRating: true };
                     if (shouldHideVoted == isVoted)
                         return false;
                 }

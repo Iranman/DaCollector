@@ -12,7 +12,7 @@ public class MediaEpisodeMap : ClassMap<MediaEpisode>
         Not.LazyLoad();
         Id(x => x.MediaEpisodeID);
 
-        Map(x => x.AniDB_EpisodeID).Not.Nullable();
+        Map(x => x.AniDB_EpisodeID).Nullable();
         Map(x => x.MediaSeriesID).Not.Nullable();
         Map(x => x.DateTimeCreated).Not.Nullable();
         Map(x => x.DateTimeUpdated).Not.Nullable();

@@ -802,7 +802,7 @@ public class DaCollectorServiceImplementationMetro : IHttpContextAccessor
 
                 foreach (var ep in animeEpisodeList)
                 {
-                    if (animeEpisodeDict.TryGetValue(ep.AniDB_EpisodeID, out var MetadataEpisode))
+                    if (animeEpisodeDict.TryGetValue(ep.AniDB_EpisodeID ?? 0, out var MetadataEpisode))
                     {
                         if (MetadataEpisode.EpisodeType is EpisodeType.Episode or EpisodeType.Special)
                         {

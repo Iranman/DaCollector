@@ -46,7 +46,7 @@ public class MediaEpisode : IDaCollectorEpisode, IEquatable<MediaEpisode>
     /// Also see <seealso cref="AniDB.AniDB_Episode"/> for a local representation
     /// of the anidb episode data.
     /// </remarks>
-    public int AniDB_EpisodeID { get; set; }
+    public int? AniDB_EpisodeID { get; set; }
 
     /// <summary>
     /// Timestamp for when the entry was first created.
@@ -94,7 +94,7 @@ public class MediaEpisode : IDaCollectorEpisode, IEquatable<MediaEpisode>
                     return _defaultTitle;
 
                 // Fallback to English if available.
-                if (RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(AniDB_EpisodeID, TitleLanguage.English) is { Count: > 0 } titles)
+                if (RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(AniDB_EpisodeID ?? 0, TitleLanguage.English) is { Count: > 0 } titles)
                     return _defaultTitle = titles[0];
 
                 return _defaultTitle = new TitleStub()
@@ -130,7 +130,7 @@ public class MediaEpisode : IDaCollectorEpisode, IEquatable<MediaEpisode>
             // Lazy load AniDB titles if needed.
             IReadOnlyList<AniDB_Episode_Title>? anidbTitles = null;
             IReadOnlyList<AniDB_Episode_Title> GetAnidbTitles()
-                => anidbTitles ??= RepoFactory.AniDB_Episode_Title.GetByEpisodeID(AniDB_EpisodeID);
+                => anidbTitles ??= RepoFactory.AniDB_Episode_Title.GetByEpisodeID(AniDB_EpisodeID ?? 0);
 
             // Lazy load TMDB titles if needed.
             IReadOnlyList<TMDB_Title>? tmdbTitles = null;
@@ -262,14 +262,14 @@ public class MediaEpisode : IDaCollectorEpisode, IEquatable<MediaEpisode>
     #region Images
 
     public IImage? GetPreferredImageForType(ImageEntityType entityType)
-        => RepoFactory.AniDB_Episode_PreferredImage.GetByAnidbEpisodeIDAndType(AniDB_EpisodeID, entityType)?.GetImageMetadata();
+        => RepoFactory.AniDB_Episode_PreferredImage.GetByAnidbEpisodeIDAndType(AniDB_EpisodeID ?? 0, entityType)?.GetImageMetadata();
 
     public IReadOnlyList<IImage> GetImages(ImageEntityType? entityType = null)
     {
         var preferredImages = (
                 entityType.HasValue
-                    ? [RepoFactory.AniDB_Episode_PreferredImage.GetByAnidbEpisodeIDAndType(AniDB_EpisodeID, entityType.Value)!]
-                    : RepoFactory.AniDB_Episode_PreferredImage.GetByEpisodeID(AniDB_EpisodeID)
+                    ? [RepoFactory.AniDB_Episode_PreferredImage.GetByAnidbEpisodeIDAndType(AniDB_EpisodeID ?? 0, entityType.Value)!]
+                    : RepoFactory.AniDB_Episode_PreferredImage.GetByEpisodeID(AniDB_EpisodeID ?? 0)
             )
             .WhereNotNull()
             .Select(preferredImage => preferredImage.GetImageMetadata())
@@ -309,16 +309,16 @@ public class MediaEpisode : IDaCollectorEpisode, IEquatable<MediaEpisode>
         => RepoFactory.MediaSeries.GetByID(MediaSeriesID);
 
     public IReadOnlyList<VideoLocal> VideoLocals
-        => RepoFactory.VideoLocal.GetByAniDBEpisodeID(AniDB_EpisodeID);
+        => RepoFactory.VideoLocal.GetByAniDBEpisodeID(AniDB_EpisodeID ?? 0);
 
     public IReadOnlyList<CrossRef_File_Episode> FileCrossReferences
-        => RepoFactory.CrossRef_File_Episode.GetByEpisodeID(AniDB_EpisodeID);
+        => RepoFactory.CrossRef_File_Episode.GetByEpisodeID(AniDB_EpisodeID ?? 0);
 
     #endregion
 
     #region AniDB
 
-    public AniDB_Episode? AniDB_Episode => RepoFactory.AniDB_Episode.GetByEpisodeID(AniDB_EpisodeID);
+    public AniDB_Episode? AniDB_Episode => RepoFactory.AniDB_Episode.GetByEpisodeID(AniDB_EpisodeID ?? 0);
 
     public AniDB_Anime? AniDB_Anime => AniDB_Episode?.AniDB_Anime;
 
@@ -327,7 +327,7 @@ public class MediaEpisode : IDaCollectorEpisode, IEquatable<MediaEpisode>
     #region TMDB
 
     public IReadOnlyList<CrossRef_AniDB_TMDB_Movie> TmdbMovieCrossReferences =>
-        RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbEpisodeID(AniDB_EpisodeID);
+        RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbEpisodeID(AniDB_EpisodeID ?? 0);
 
     public IReadOnlyList<TMDB_Movie> TmdbMovies =>
         TmdbMovieCrossReferences
@@ -336,7 +336,7 @@ public class MediaEpisode : IDaCollectorEpisode, IEquatable<MediaEpisode>
             .ToList();
 
     public IReadOnlyList<CrossRef_AniDB_TMDB_Episode> TmdbEpisodeCrossReferences =>
-        RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByAnidbEpisodeID(AniDB_EpisodeID);
+        RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByAnidbEpisodeID(AniDB_EpisodeID ?? 0);
 
     public IReadOnlyList<TMDB_Episode> TmdbEpisodes =>
         TmdbEpisodeCrossReferences
@@ -497,10 +497,10 @@ public class MediaEpisode : IDaCollectorEpisode, IEquatable<MediaEpisode>
     IReadOnlyList<IDaCollectorEpisode> IEpisode.DaCollectorEpisodes => [this];
 
     IReadOnlyList<IVideoCrossReference> IEpisode.CrossReferences =>
-        RepoFactory.CrossRef_File_Episode.GetByEpisodeID(AniDB_EpisodeID);
+        RepoFactory.CrossRef_File_Episode.GetByEpisodeID(AniDB_EpisodeID ?? 0);
 
     IReadOnlyList<IVideo> IEpisode.VideoList =>
-        RepoFactory.CrossRef_File_Episode.GetByEpisodeID(AniDB_EpisodeID)
+        RepoFactory.CrossRef_File_Episode.GetByEpisodeID(AniDB_EpisodeID ?? 0)
             .DistinctBy(xref => xref.Hash)
             .Select(xref => xref.VideoLocal)
             .WhereNotNull()
@@ -510,7 +510,7 @@ public class MediaEpisode : IDaCollectorEpisode, IEquatable<MediaEpisode>
 
     #region IDaCollectorEpisode Implementation
 
-    int IDaCollectorEpisode.AnidbEpisodeID => AniDB_EpisodeID;
+    int IDaCollectorEpisode.AnidbEpisodeID => AniDB_EpisodeID ?? 0;
 
     IDaCollectorSeries? IDaCollectorEpisode.Series => MediaSeries;
 

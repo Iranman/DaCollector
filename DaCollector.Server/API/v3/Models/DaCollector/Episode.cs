@@ -155,7 +155,7 @@ public class Episode : BaseModel
         {
             ID = episode.MediaEpisodeID,
             ParentSeries = episode.MediaSeriesID,
-            SourceID = episode.AniDB_EpisodeID,
+            SourceID = episode.AniDB_EpisodeID ?? 0,
             TvDB = tmdbEpisodeXRefs.Select(xref => xref.TmdbEpisode?.TvdbEpisodeID).WhereNotNull().Distinct().ToList(),
             IMDB = tmdbMovieXRefs
                 .Select(xref => xref.TmdbMovie?.ImdbMovieID)

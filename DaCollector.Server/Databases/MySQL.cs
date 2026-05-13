@@ -1080,6 +1080,7 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(167,  3, "CREATE INDEX IX_MediaFileMatchCandidate_Status ON MediaFileMatchCandidate(Status);"),
         new(167,  4, "CREATE UNIQUE INDEX UIX_MediaFileMatchCandidate ON MediaFileMatchCandidate(VideoLocalID, Provider, ProviderItemID, ProviderType);"),
         new(168,  1, "ALTER TABLE `MediaSeries` MODIFY `AniDB_ID` INT NULL;"),
+        new(169,  1, "ALTER TABLE `MediaEpisode` MODIFY `AniDB_EpisodeID` INT NULL;"),
     ];
 
     #endregion

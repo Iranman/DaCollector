@@ -18,7 +18,7 @@ public class MediaEpisodeRepository : BaseCachedRepository<MediaEpisode, int>
 {
     private PocoIndex<int, MediaEpisode, int>? _seriesIDs;
 
-    private PocoIndex<int, MediaEpisode, int>? _anidbEpisodeIDs;
+    private PocoIndex<int, MediaEpisode, int?>? _anidbEpisodeIDs;
 
     public MediaEpisodeRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
     {

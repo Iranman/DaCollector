@@ -185,7 +185,7 @@ public class WebUI
                     var airDate = anidb.GetAirDateAsDate();
                     return new
                     {
-                        ID = dacollector.AniDB_EpisodeID,
+                        ID = dacollector.AniDB_EpisodeID ?? 0,
                         Type = type,
                         Number = anidb.EpisodeNumber,
                         AirDate = airDate,

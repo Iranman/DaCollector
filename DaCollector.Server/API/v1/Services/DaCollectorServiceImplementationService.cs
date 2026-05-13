@@ -245,7 +245,7 @@ public class DaCollectorServiceImplementationService(
         var episodeUserRecord = epUsers.GetByUserAndEpisodeID(userID, ep.MediaEpisodeID);
         var contract = new CL_AnimeEpisode_User
         {
-            AniDB_EpisodeID = ep.AniDB_EpisodeID,
+            AniDB_EpisodeID = ep.AniDB_EpisodeID ?? 0,
             MediaEpisodeID = ep.MediaEpisodeID,
             MediaSeriesID = ep.MediaSeriesID,
             DateTimeCreated = ep.DateTimeCreated,
@@ -254,9 +254,9 @@ public class DaCollectorServiceImplementationService(
             StoppedCount = episodeUserRecord?.StoppedCount ?? 0,
             WatchedCount = episodeUserRecord?.WatchedCount ?? 0,
             WatchedDate = episodeUserRecord?.WatchedDate,
-            AniDB_EnglishName = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(ep.AniDB_EpisodeID, TitleLanguage.English)
+            AniDB_EnglishName = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(ep.AniDB_EpisodeID ?? 0, TitleLanguage.English)
                 .FirstOrDefault()?.Title,
-            AniDB_RomajiName = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(ep.AniDB_EpisodeID, TitleLanguage.Romaji)
+            AniDB_RomajiName = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(ep.AniDB_EpisodeID ?? 0, TitleLanguage.Romaji)
                 .FirstOrDefault()?.Title,
             AniDB_AirDate = MetadataEpisode.GetAirDateAsDate(),
             AniDB_LengthSeconds = MetadataEpisode.LengthSeconds,
@@ -541,7 +541,7 @@ public class DaCollectorServiceImplementationService(
 
                 var epVids = new List<VideoLocal>();
 
-                foreach (var xref in crossRefsLookup[ep.AniDB_EpisodeID])
+                foreach (var xref in crossRefsLookup[ep.AniDB_EpisodeID ?? 0])
                 {
                     if (xref.EpisodeID != ep.AniDB_EpisodeID)
                     {
