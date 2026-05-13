@@ -1,28 +1,35 @@
 name: No Response
 
-# Both `issue_comment` and `scheduled` event types are required for this Action
-# to work properly.
 on:
-  issue_comment:
-    types: [created]
   schedule:
     # Schedule to run at 00:50 every Monday
     - cron: '50 0 * * 1'
+  workflow_dispatch:
 
 jobs:
   noResponse:
     runs-on: ubuntu-latest
+    permissions:
+      issues: write
     steps:
-      - uses: lee-dohm/no-response@v0.5.0
+      - uses: actions/stale@v9
         with:
-          token: ${{ github.token }}
-          closeComment: >
+          stale-issue-message: >
+            This issue has been automatically marked as stale because there has been no
+            response to our request for more information from the original author. With
+            only the information that is currently in the issue, we don't have enough
+            information to take action. Please reach out if you have or find the answers
+            we need so that we can investigate further. You can also reach out to us on
+            Discord: https://discord.gg/vpeHDsg
+          close-issue-message: >
             This issue has been automatically closed because there has been no response
             to our request for more information from the original author. With only the
             information that is currently in the issue, we don't have enough information
             to take action. Please reach out if you have or find the answers we need so
             that we can investigate further. You can also reach out to us on Discord:
             https://discord.gg/vpeHDsg
-          daysUntilClose: 30
-          responseRequiredLabel: More Information Required
-          responseRequiredColor: 844B5A
+          days-before-issue-stale: 30
+          days-before-issue-close: 7
+          stale-issue-label: 'More Information Required'
+          only-labels: 'More Information Required'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
