@@ -1018,6 +1018,12 @@ Follow-up needed: `ProcessFileTmdbJob` currently picks the top TMDB result blind
 
 - `.github/workflows/cleanup-docker-images.yml`: corrected `package-name` from `'server'` to `'dacollector'` (matching the actual GHCR package `ghcr.io/iranman/dacollector`); added explicit `token: ${{ secrets.GITHUB_TOKEN }}` so the delete API call authenticates correctly.
 
+### ✅ Fix issue-no-response Workflow — DONE
+
+2026-05-13. Commit `7577531`.
+
+- `.github/workflows/issue-no-response.yml`: replaced unmaintained `lee-dohm/no-response@v0.5.0` with `actions/stale@v9` (officially maintained by GitHub). Added `permissions: issues: write` and `workflow_dispatch`. Preserved the 30-day window, close message, and `More Information Required` label; split into 30-day stale + 7-day close as required by `actions/stale`.
+
 ---
 
 ## P2 MVP Completion Summary
