@@ -989,6 +989,23 @@ Implemented 2026-05-13. Commit `e36df03`. 152/152 tests pass.
 - Removed v1/v2 swagger conditionals from `APIExtensions`
 - Updated `DatabaseFixes`, `MediaGroupService`, `LegacyConditionConverter`, `LegacyFilterConverter`, and test imports
 
+### ✅ Native File-to-TMDB/TVDB Cross-References — DONE
+
+Implemented 2026-05-13. Commit `20333d4`. 152/152 tests pass.
+
+Direct file→provider cross-reference tables that bypass the AniDB import path:
+
+- `CrossRef_File_TmdbEpisode` — model, NHibernate map, cached repo, DB migrations (SQLite v152, MySQL v170, SQLServer v165)
+- `CrossRef_File_TmdbMovie` — model, NHibernate map, cached repo, DB migrations (SQLite v153, MySQL v171, SQLServer v166)
+- `CrossRef_File_TvdbEpisode` — model, NHibernate map, cached repo, DB migrations (SQLite v154, MySQL v172, SQLServer v167)
+- `RepoFactory` wired for all three
+- `ProcessFileTmdbJob` — new Quartz job; searches TMDB by filename, writes cross-refs, calls `GetOrCreateSeriesFromProvider`
+- `MediaSeriesService.GetOrCreateSeriesFromProvider` — creates `MediaSeries` from a provider ID without requiring `AniDB_ID`
+- `ProcessFileJob` now enqueues `ProcessFileTmdbJob` for unrecognized files (after candidate scan)
+- `POST /api/v3/Series/CreateFromProvider` — admin endpoint to create/retrieve a series by `provider` + `providerID` + `mediaType`
+
+Follow-up needed: `ProcessFileTmdbJob` currently picks the top TMDB result blindly. Wire in confidence scoring from `MediaFileMatchCandidateService` so low-confidence matches go to the review queue instead of auto-linking.
+
 ---
 
 ## P2 MVP Completion Summary

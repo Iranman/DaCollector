@@ -112,7 +112,7 @@ NHibernate-mapped entities. Organized by source:
 - `DaCollector.Server.Models.AniDB` — AniDB metadata cache: `AniDB_Anime`, `AniDB_Episode`, `AniDB_Character`, `AniDB_Creator`, `AniDB_Tag`, etc.
 - `DaCollector.Server.Models.TMDB` — TMDB metadata cache: `TMDB_Show`, `TMDB_Movie`, `TMDB_Episode`, `TMDB_Image`, etc.
 - `DaCollector.Server.Models.TVDB` — TVDB metadata cache: `TVDB_Show`, `TVDB_Movie`, `TVDB_Season`, `TVDB_Episode`, etc.
-- `DaCollector.Server.Models.CrossReference` — cross-reference tables linking providers (AniDB↔TMDB, AniDB↔MAL, AniDB↔Trakt)
+- `DaCollector.Server.Models.CrossReference` — cross-reference tables linking providers (AniDB↔TMDB, AniDB↔MAL, AniDB↔Trakt) and direct file→provider links (`CrossRef_File_TmdbEpisode`, `CrossRef_File_TmdbMovie`, `CrossRef_File_TvdbEpisode`)
 - `DaCollector.Server.Models.Release` — release/video file associations
 - `DaCollector.Server.Models.Trakt` — Trakt metadata cache
 - `DaCollector.Server.Models.Image` — image metadata
@@ -292,9 +292,26 @@ Image download jobs  (DownloadAniDBImageJob, DownloadTmdbImageJob)
   Download poster/backdrop/thumbnail files to local image cache
 ```
 
+If the release provider finds **no match** (file unrecognized by AniDB), `ProcessFileJob` runs the native TMDB path instead:
+
+```
+ProcessFileJob  [no release match]
+        │
+        ▼
+MediaFileMatchCandidateService.ScanFileAsync
+  Parses filename, scores cached TMDB/TVDB candidates
+  Auto-approves if exactly one candidate scores ≥ 0.92
+        │
+        ▼
+ProcessFileTmdbJob  (DaCollector.Server/Scheduling/Jobs/TMDB/ProcessFileTmdbJob.cs)
+  Searches TMDB by filename for movie/show
+  Writes CrossRef_File_TmdbMovie or CrossRef_File_TmdbEpisode
+  Calls MediaSeriesService.GetOrCreateSeriesFromProvider
+```
+
 ### Orchestration Pattern
 
-Jobs do not use a central orchestrator. Each job enqueues its successor directly via `IJobFactory` / `IScheduler`. `ProcessFileJob` is the inherited AniDB pivot: it reads the `AnimeID` from the AniDB response and checks whether `AniDB_Anime` already exists before deciding to enqueue `GetAniDBAnimeJob`.
+Jobs do not use a central orchestrator. Each job enqueues its successor directly via `IJobFactory` / `IScheduler`. `ProcessFileJob` is the AniDB pivot for recognized files and the TMDB native path entry point for unrecognized ones.
 
 **`ImportJob`** (`DaCollector.Server/Scheduling/Jobs/Actions/ImportJob.cs`) is a periodic sweep that catches anything the live pipeline missed: it calls `ActionService.ScheduleMissingAnidbAnimeForFiles()` to queue `GetAniDBAnimeJob` for any file whose anime was never fetched, and `IVideoService.ScheduleScanForManagedFolders()` to rescan all watched folders.
 
