@@ -56,6 +56,9 @@ public class RepoFactory
     public static CrossRef_AniDB_TMDB_ShowRepository CrossRef_AniDB_TMDB_Show;
     public static CrossRef_CustomTagRepository CrossRef_CustomTag;
     public static CrossRef_File_EpisodeRepository CrossRef_File_Episode;
+    public static CrossRef_File_TmdbEpisodeRepository CrossRef_File_TmdbEpisode;
+    public static CrossRef_File_TmdbMovieRepository CrossRef_File_TmdbMovie;
+    public static CrossRef_File_TvdbEpisodeRepository CrossRef_File_TvdbEpisode;
     public static CustomTagRepository CustomTag;
     public static FileNameHashRepository FileNameHash;
     public static FilterPresetRepository FilterPreset;
@@ -137,6 +140,9 @@ public class RepoFactory
         CrossRef_AniDB_TMDB_ShowRepository crossRefAniDBTmdbShow,
         CrossRef_CustomTagRepository crossRefCustomTag,
         CrossRef_File_EpisodeRepository crossRefFileEpisode,
+        CrossRef_File_TmdbEpisodeRepository crossRefFileTmdbEpisode,
+        CrossRef_File_TmdbMovieRepository crossRefFileTmdbMovie,
+        CrossRef_File_TvdbEpisodeRepository crossRefFileTvdbEpisode,
         CustomTagRepository customTag,
         FileNameHashRepository fileNameHash,
         FilterPresetRepository filterPreset,
@@ -218,6 +224,9 @@ public class RepoFactory
         CrossRef_AniDB_TMDB_Show = crossRefAniDBTmdbShow;
         CrossRef_CustomTag = crossRefCustomTag;
         CrossRef_File_Episode = crossRefFileEpisode;
+        CrossRef_File_TmdbEpisode = crossRefFileTmdbEpisode;
+        CrossRef_File_TmdbMovie = crossRefFileTmdbMovie;
+        CrossRef_File_TvdbEpisode = crossRefFileTvdbEpisode;
         CustomTag = customTag;
         FileNameHash = fileNameHash;
         FilterPreset = filterPreset;

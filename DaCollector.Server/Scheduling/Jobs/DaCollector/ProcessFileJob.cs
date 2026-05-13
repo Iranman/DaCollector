@@ -9,6 +9,7 @@ using DaCollector.Server.Repositories;
 using DaCollector.Server.Scheduling.Acquisition.Attributes;
 using DaCollector.Server.Scheduling.Attributes;
 using DaCollector.Server.Scheduling.Concurrency;
+using DaCollector.Server.Scheduling.Jobs.TMDB;
 using DaCollector.Server.Utilities;
 
 #pragma warning disable CS8618
@@ -27,6 +28,8 @@ public class ProcessFileJob : BaseJob
     private readonly IVideoRelocationService _relocationService;
 
     private readonly MediaFileMatchCandidateService _candidateService;
+
+    private readonly ISchedulerFactory _schedulerFactory;
 
     private VideoLocal _vlocal;
 
@@ -94,15 +97,20 @@ public class ProcessFileJob : BaseJob
         // For files with no release match, run the filename-parser / candidate-scan path so they
         // appear in the unmatched review queue with parsed metadata and provider candidates.
         if (!hadExistingRelease)
+        {
             await _candidateService.ScanFileAsync(VideoLocalID, refreshExplicitIds: true);
+            var scheduler = await _schedulerFactory.GetScheduler().ConfigureAwait(false);
+            await scheduler.StartJob<ProcessFileTmdbJob>(c => c.VideoLocalID = VideoLocalID).ConfigureAwait(false);
+        }
     }
 
 
-    public ProcessFileJob(IVideoReleaseService videoReleaseService, IVideoRelocationService relocationService, MediaFileMatchCandidateService candidateService)
+    public ProcessFileJob(IVideoReleaseService videoReleaseService, IVideoRelocationService relocationService, MediaFileMatchCandidateService candidateService, ISchedulerFactory schedulerFactory)
     {
         _videoReleaseService = videoReleaseService;
         _relocationService = relocationService;
         _candidateService = candidateService;
+        _schedulerFactory = schedulerFactory;
     }
 
     protected ProcessFileJob() { }

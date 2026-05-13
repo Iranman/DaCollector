@@ -982,6 +982,14 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(162,  4, "CREATE UNIQUE INDEX UIX_MediaFileMatchCandidate ON MediaFileMatchCandidate(VideoLocalID, Provider, ProviderItemID, ProviderType);"),
         new(163,  1, "ALTER TABLE MediaSeries ALTER COLUMN AniDB_ID INT NULL;"),
         new(164,  1, "ALTER TABLE MediaEpisode ALTER COLUMN AniDB_EpisodeID INT NULL;"),
+        new(165,  1, "CREATE TABLE CrossRef_File_TmdbEpisode ( CrossRef_File_TmdbEpisodeID INT IDENTITY(1,1) PRIMARY KEY, VideoLocalID INT NOT NULL, TmdbEpisodeID INT NOT NULL, Percentage INT NOT NULL DEFAULT 100, EpisodeOrder INT NOT NULL DEFAULT 1, IsManuallyLinked BIT NOT NULL DEFAULT 0, CreatedAt DATETIME NOT NULL, UpdatedAt DATETIME NOT NULL );"),
+        new(165,  2, "CREATE INDEX IX_CrossRef_File_TmdbEpisode_VideoLocalID ON CrossRef_File_TmdbEpisode(VideoLocalID);"),
+        new(165,  3, "CREATE INDEX IX_CrossRef_File_TmdbEpisode_TmdbEpisodeID ON CrossRef_File_TmdbEpisode(TmdbEpisodeID);"),
+        new(166,  1, "CREATE TABLE CrossRef_File_TmdbMovie ( CrossRef_File_TmdbMovieID INT IDENTITY(1,1) PRIMARY KEY, VideoLocalID INT NOT NULL, TmdbMovieID INT NOT NULL, IsManuallyLinked BIT NOT NULL DEFAULT 0, CreatedAt DATETIME NOT NULL, UpdatedAt DATETIME NOT NULL );"),
+        new(166,  2, "CREATE UNIQUE INDEX UIX_CrossRef_File_TmdbMovie ON CrossRef_File_TmdbMovie(VideoLocalID, TmdbMovieID);"),
+        new(167,  1, "CREATE TABLE CrossRef_File_TvdbEpisode ( CrossRef_File_TvdbEpisodeID INT IDENTITY(1,1) PRIMARY KEY, VideoLocalID INT NOT NULL, TvdbEpisodeID INT NOT NULL, Percentage INT NOT NULL DEFAULT 100, EpisodeOrder INT NOT NULL DEFAULT 1, IsManuallyLinked BIT NOT NULL DEFAULT 0, CreatedAt DATETIME NOT NULL, UpdatedAt DATETIME NOT NULL );"),
+        new(167,  2, "CREATE INDEX IX_CrossRef_File_TvdbEpisode_VideoLocalID ON CrossRef_File_TvdbEpisode(VideoLocalID);"),
+        new(167,  3, "CREATE INDEX IX_CrossRef_File_TvdbEpisode_TvdbEpisodeID ON CrossRef_File_TvdbEpisode(TvdbEpisodeID);"),
     ];
 
     #endregion

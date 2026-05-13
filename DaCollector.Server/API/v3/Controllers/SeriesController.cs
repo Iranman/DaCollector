@@ -211,6 +211,35 @@ public class SeriesController : BaseController
     }
 
     /// <summary>
+    /// Create or retrieve a <see cref="Series"/> from a TMDB or TVDB provider reference without requiring an AniDB ID.
+    /// </summary>
+    /// <param name="body">Provider reference body.</param>
+    /// <returns></returns>
+    [Authorize("admin")]
+    [HttpPost("CreateFromProvider")]
+    public ActionResult<Series> CreateSeriesFromProvider([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] CreateFromProviderBody body)
+    {
+        if (!new[] { "tmdb", "tvdb" }.Contains(body.Provider, StringComparer.OrdinalIgnoreCase))
+            return ValidationProblem("Provider must be 'tmdb' or 'tvdb'.");
+
+        if (!new[] { "show", "movie" }.Contains(body.MediaType, StringComparer.OrdinalIgnoreCase))
+            return ValidationProblem("MediaType must be 'show' or 'movie'.");
+
+        var provider = body.Provider.ToLowerInvariant();
+        var mediaType = body.MediaType.ToLowerInvariant();
+
+        var series = _seriesService.GetOrCreateSeriesFromProvider(provider, body.ProviderID, mediaType);
+        return new Series(series, User.JMMUserID);
+    }
+
+    public class CreateFromProviderBody
+    {
+        public string Provider { get; set; } = string.Empty;
+        public int ProviderID { get; set; }
+        public string MediaType { get; set; } = string.Empty;
+    }
+
+    /// <summary>
     /// Override the title of a Series
     /// </summary>
     /// <param name="seriesID">The ID of the Series</param>

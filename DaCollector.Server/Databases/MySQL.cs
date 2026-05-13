@@ -1081,6 +1081,14 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(167,  4, "CREATE UNIQUE INDEX UIX_MediaFileMatchCandidate ON MediaFileMatchCandidate(VideoLocalID, Provider, ProviderItemID, ProviderType);"),
         new(168,  1, "ALTER TABLE `MediaSeries` MODIFY `AniDB_ID` INT NULL;"),
         new(169,  1, "ALTER TABLE `MediaEpisode` MODIFY `AniDB_EpisodeID` INT NULL;"),
+        new(170,  1, "CREATE TABLE `CrossRef_File_TmdbEpisode` ( `CrossRef_File_TmdbEpisodeID` INT NOT NULL AUTO_INCREMENT, `VideoLocalID` INT NOT NULL, `TmdbEpisodeID` INT NOT NULL, `Percentage` INT NOT NULL DEFAULT 100, `EpisodeOrder` INT NOT NULL DEFAULT 1, `IsManuallyLinked` TINYINT(1) NOT NULL DEFAULT 0, `CreatedAt` DATETIME NOT NULL, `UpdatedAt` DATETIME NOT NULL, PRIMARY KEY (`CrossRef_File_TmdbEpisodeID`) );"),
+        new(170,  2, "CREATE INDEX IX_CrossRef_File_TmdbEpisode_VideoLocalID ON CrossRef_File_TmdbEpisode(VideoLocalID);"),
+        new(170,  3, "CREATE INDEX IX_CrossRef_File_TmdbEpisode_TmdbEpisodeID ON CrossRef_File_TmdbEpisode(TmdbEpisodeID);"),
+        new(171,  1, "CREATE TABLE `CrossRef_File_TmdbMovie` ( `CrossRef_File_TmdbMovieID` INT NOT NULL AUTO_INCREMENT, `VideoLocalID` INT NOT NULL, `TmdbMovieID` INT NOT NULL, `IsManuallyLinked` TINYINT(1) NOT NULL DEFAULT 0, `CreatedAt` DATETIME NOT NULL, `UpdatedAt` DATETIME NOT NULL, PRIMARY KEY (`CrossRef_File_TmdbMovieID`) );"),
+        new(171,  2, "CREATE UNIQUE INDEX UIX_CrossRef_File_TmdbMovie ON CrossRef_File_TmdbMovie(VideoLocalID, TmdbMovieID);"),
+        new(172,  1, "CREATE TABLE `CrossRef_File_TvdbEpisode` ( `CrossRef_File_TvdbEpisodeID` INT NOT NULL AUTO_INCREMENT, `VideoLocalID` INT NOT NULL, `TvdbEpisodeID` INT NOT NULL, `Percentage` INT NOT NULL DEFAULT 100, `EpisodeOrder` INT NOT NULL DEFAULT 1, `IsManuallyLinked` TINYINT(1) NOT NULL DEFAULT 0, `CreatedAt` DATETIME NOT NULL, `UpdatedAt` DATETIME NOT NULL, PRIMARY KEY (`CrossRef_File_TvdbEpisodeID`) );"),
+        new(172,  2, "CREATE INDEX IX_CrossRef_File_TvdbEpisode_VideoLocalID ON CrossRef_File_TvdbEpisode(VideoLocalID);"),
+        new(172,  3, "CREATE INDEX IX_CrossRef_File_TvdbEpisode_TvdbEpisodeID ON CrossRef_File_TvdbEpisode(TvdbEpisodeID);"),
     ];
 
     #endregion

@@ -19,6 +19,7 @@ using DaCollector.Server.Repositories;
 using DaCollector.Server.Repositories.Cached;
 using DaCollector.Server.Scheduling;
 using DaCollector.Server.Scheduling.Jobs.Actions;
+using DaCollector.Server.Tasks;
 using DaCollector.Server.Utilities;
 
 using MediaType = DaCollector.Abstractions.Metadata.Enums.MediaType;
@@ -32,18 +33,62 @@ public class MediaSeriesService
     private readonly ILogger<MediaSeriesService> _logger;
     private readonly VideoLocal_UserRepository _vlUsers;
     private readonly MediaGroupService _groupService;
+    private readonly MediaGroupCreator _groupCreator;
     private readonly ISchedulerFactory _schedulerFactory;
     private readonly IVideoReleaseService _videoReleaseService;
     private readonly UserDataService _userDataService;
 
-    public MediaSeriesService(ILogger<MediaSeriesService> logger, ISchedulerFactory schedulerFactory, MediaGroupService groupService, VideoLocal_UserRepository vlUsers, IVideoReleaseService videoReleaseService, IUserDataService userDataService)
+    public MediaSeriesService(ILogger<MediaSeriesService> logger, ISchedulerFactory schedulerFactory, MediaGroupService groupService, MediaGroupCreator groupCreator, VideoLocal_UserRepository vlUsers, IVideoReleaseService videoReleaseService, IUserDataService userDataService)
     {
         _logger = logger;
         _schedulerFactory = schedulerFactory;
         _groupService = groupService;
+        _groupCreator = groupCreator;
         _vlUsers = vlUsers;
         _videoReleaseService = videoReleaseService;
         _userDataService = (UserDataService)userDataService;
+    }
+
+    public MediaSeries GetOrCreateSeriesFromProvider(string provider, int providerID, string mediaType)
+    {
+        var existing = provider switch
+        {
+            "tmdb" when mediaType == "show" => RepoFactory.MediaSeries.GetAll().FirstOrDefault(s => s.TMDB_ShowID == providerID),
+            "tmdb" when mediaType == "movie" => RepoFactory.MediaSeries.GetAll().FirstOrDefault(s => s.TMDB_MovieID == providerID),
+            "tvdb" when mediaType == "show" => RepoFactory.MediaSeries.GetAll().FirstOrDefault(s => s.TvdbShowExternalID == providerID),
+            "tvdb" when mediaType == "movie" => RepoFactory.MediaSeries.GetAll().FirstOrDefault(s => s.TvdbMovieExternalID == providerID),
+            _ => null
+        };
+
+        if (existing is not null)
+            return existing;
+
+        var now = DateTime.Now;
+        var series = new MediaSeries
+        {
+            AniDB_ID = null,
+            LatestLocalEpisodeNumber = 0,
+            DateTimeUpdated = now,
+            DateTimeCreated = now,
+            UpdatedAt = now,
+            SeriesNameOverride = string.Empty
+        };
+
+        if (provider == "tmdb" && mediaType == "show")
+            series.TMDB_ShowID = providerID;
+        else if (provider == "tmdb" && mediaType == "movie")
+            series.TMDB_MovieID = providerID;
+        else if (provider == "tvdb" && mediaType == "show")
+            series.TvdbShowExternalID = providerID;
+        else if (provider == "tvdb" && mediaType == "movie")
+            series.TvdbMovieExternalID = providerID;
+
+        var grp = _groupCreator.GetOrCreateSingleGroupForSeries(series);
+        series.MediaGroupID = grp.MediaGroupID;
+        RepoFactory.MediaSeries.Save(series, false, false);
+
+        _logger.LogInformation("Created MediaSeries {SeriesID} for {Provider} {MediaType} ID {ProviderID}", series.MediaSeriesID, provider, mediaType, providerID);
+        return series;
     }
 
     public async Task<(bool, Dictionary<MediaEpisode, UpdateReason>)> CreateAnimeEpisodes(MediaSeries series)
