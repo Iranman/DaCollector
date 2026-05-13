@@ -12,7 +12,8 @@ jobs:
     steps:
       - uses: actions/delete-package-versions@v5
         with:
-          package-name: 'server'
+          package-name: 'dacollector'
           package-type: 'container'
           min-versions-to-keep: 50
           delete-only-untagged-versions: 'true'
+          token: ${{ secrets.GITHUB_TOKEN }}
