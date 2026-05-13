@@ -132,28 +132,6 @@ public class WebSettings
     public bool EnableAuthAPI { get; set; } = true;
 
     /// <summary>
-    /// Enable the deprecated API v1 endpoints.
-    /// </summary>
-    [Badge("Deprecated", Theme = DisplayColorTheme.Warning)]
-    [Visibility(Advanced = true)]
-    [Display(Name = "Enable API v1")]
-    [RequiresRestart]
-    [EnvironmentVariable("DACOLLECTOR_API_V1_ENABLED")]
-    [DefaultValue(false)]
-    public bool EnableAPIv1 { get; set; } = false;
-
-    /// <summary>
-    /// Enable the API v2 endpoints.
-    /// </summary>
-    [Badge("Deprecated", Theme = DisplayColorTheme.Warning)]
-    [Visibility(Advanced = true)]
-    [Display(Name = "Enable API v2")]
-    [RequiresRestart]
-    [EnvironmentVariable("DACOLLECTOR_API_V2_ENABLED")]
-    [DefaultValue(true)]
-    public bool EnableAPIv2 { get; set; } = true;
-
-    /// <summary>
     /// Enable the API v3 endpoints.
     /// </summary>
     [Display(Name = "Enable API v3")]

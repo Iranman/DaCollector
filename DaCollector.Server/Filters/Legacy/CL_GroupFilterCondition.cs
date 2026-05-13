@@ -1,4 +1,4 @@
-namespace DaCollector.Server.API.v1.Models;
+namespace DaCollector.Server.Filters.Legacy;
 
 public class CL_GroupFilterCondition
 {

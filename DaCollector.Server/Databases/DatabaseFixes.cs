@@ -26,7 +26,6 @@ using DaCollector.Abstractions.User.Services;
 using DaCollector.Abstractions.Video.Enums;
 using DaCollector.Abstractions.Video.Hashing;
 using DaCollector.Abstractions.Video.Services;
-using DaCollector.Server.API.v1.Models;
 using DaCollector.Server.Extensions;
 using DaCollector.Server.Filters.Legacy;
 using DaCollector.Server.Models.AniDB;

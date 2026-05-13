@@ -8,8 +8,6 @@ using DaCollector.Abstractions.Metadata.Enums;
 using DaCollector.Abstractions.Extensions;
 using DaCollector.Abstractions.User.Enums;
 using DaCollector.Abstractions.User.Services;
-using DaCollector.Server.API.v1.Models;
-using DaCollector.Server.Extensions;
 using DaCollector.Server.Models.DaCollector;
 using DaCollector.Server.Repositories;
 using DaCollector.Server.Repositories.Cached;

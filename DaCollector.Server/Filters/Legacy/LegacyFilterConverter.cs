@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using DaCollector.Abstractions.Filtering.Services;
-using DaCollector.Server.API.v1.Models;
 using DaCollector.Server.Models.DaCollector;
 using DaCollector.Server.Repositories;
 using DaCollector.Server.Server;

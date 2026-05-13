@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using DaCollector.Server.API.v1.Models;
 using DaCollector.Abstractions.Metadata.Enums;
 using DaCollector.Server.Filters.Info;
 using DaCollector.Server.Filters.Legacy;

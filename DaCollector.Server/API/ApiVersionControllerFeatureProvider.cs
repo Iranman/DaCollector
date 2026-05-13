@@ -27,10 +27,6 @@ public class ApiVersionControllerFeatureProvider(WebSettings webSettings) : Cont
             return true;
 
         var ns = typeInfo.Namespace;
-        if (ns?.Contains(".API.v1.") == true && !webSettings.EnableAPIv1)
-            return false;
-        if (ns?.Contains(".API.v2.") == true && !webSettings.EnableAPIv2)
-            return false;
         if (ns?.Contains(".API.v3.") == true && !webSettings.EnableAPIv3)
             return false;
         if (typeInfo == typeof(IndexRedirectController) && !webSettings.EnableIndexRedirect)

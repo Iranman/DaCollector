@@ -28,7 +28,6 @@ using DaCollector.Server.API.FileProviders;
 using DaCollector.Server.API.SignalR;
 using DaCollector.Server.API.SignalR.Aggregate;
 using DaCollector.Server.API.Swagger;
-using DaCollector.Server.API.v1.Services;
 using DaCollector.Server.API.v3.Helpers;
 using DaCollector.Server.Server;
 using DaCollector.Server.Services;
@@ -55,7 +54,6 @@ public static partial class APIExtensions
         services.AddSingleton<IEventEmitter, ReleaseEventEmitter>();
         services.AddSingleton<IEventEmitter, UserDataEventEmitter>();
         services.AddSingleton<IEventEmitter, UserEventEmitter>();
-        services.AddSingleton<DaCollectorServiceImplementationService>();
         services.AddScoped<GeneratedPlaylistService>();
         services.AddScoped<FilterFactory>();
         services.AddScoped<WebUIFactory>();
@@ -86,13 +84,9 @@ public static partial class APIExtensions
                 // Add a swagger document for each discovered API version (server-only).
                 foreach (var description in provider.ApiVersionDescriptions.OrderByDescending(a => a.ApiVersion))
                 {
-                    if (description.GroupName is "v1" && !webSettings.EnableAPIv1)
-                        continue;
-                    if (description.GroupName is "v2" or "v2.1" && !webSettings.EnableAPIv2)
-                        continue;
                     if (description.GroupName is "v3" && !webSettings.EnableAPIv3)
                         continue;
-                    if (description.GroupName is not ("v1" or "v2" or "v2.1" or "v3"))
+                    if (description.GroupName is not "v3")
                         continue;
                     options.SwaggerDoc(description.GroupName, CreateInfoForApiVersion(description, "DaCollector"));
                 }
@@ -501,11 +495,9 @@ public static partial class APIExtensions
                     // Server API bundles (listed first)
                     foreach (var description in provider.ApiVersionDescriptions.OrderByDescending(a => a.ApiVersion))
                     {
-                        if (description.GroupName is "v1" && !webSettings.EnableAPIv1)
+                        if (description.GroupName is not "v3")
                             continue;
-                        if (description.GroupName is "v2" or "v2.1" && !webSettings.EnableAPIv2)
-                            continue;
-                        if (description.GroupName is "v3" && !webSettings.EnableAPIv3)
+                        if (!webSettings.EnableAPIv3)
                             continue;
 
                         options.SwaggerEndpoint(
