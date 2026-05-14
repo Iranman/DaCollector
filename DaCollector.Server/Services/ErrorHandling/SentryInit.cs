@@ -33,6 +33,12 @@ public static class SentryInit
         if (settings.SentryOptOut || !Constants.SentryDsn.StartsWith("https://"))
             return services;
 
+        // Mirror the channel guard in UseSentryConfig: skip debug/benchmarks builds.
+        var versionInfo = PluginManager.GetVersionInformation();
+        if (versionInfo.Channel is not ReleaseChannel.Stable and not ReleaseChannel.Dev)
+            return services;
+
+        services.Configure<SentryOptions>(o => o.Dsn = Constants.SentryDsn);
         services.AddSentry();
 
         return services;
