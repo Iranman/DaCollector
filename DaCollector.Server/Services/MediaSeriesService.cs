@@ -7,6 +7,7 @@ using Force.DeepCloner;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Quartz;
+using DaCollector.Abstractions.Metadata;
 using DaCollector.Abstractions.Metadata.Enums;
 using DaCollector.Abstractions.Extensions;
 using DaCollector.Abstractions.User.Services;
@@ -242,7 +243,7 @@ public class MediaSeriesService
     {
         if (series == null) return;
         var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob<RefreshAnimeStatsJob>(c => c.AnimeID = series.AniDB_ID ?? 0);
+        await scheduler.StartJob<RefreshSeriesStatsJob>(c => c.MediaSeriesID = series.MediaSeriesID);
     }
 
     public void UpdateStats(MediaSeries? series, bool watchedStats, bool missingEpsStats)
@@ -262,10 +263,11 @@ public class MediaSeriesService
             _logger.LogTrace("Got episodes for SERIES {Name} in {Elapsed}ms", name, tsEps.TotalMilliseconds);
 
             // Ensure the episode added date is accurate.
-            series.EpisodeAddedDate = RepoFactory.StoredReleaseInfo.GetByAnidbAnimeID(series.AniDB_ID ?? 0)
-                .Select(a => a.LastUpdatedAt)
-                .DefaultIfEmpty()
-                .Max();
+            if (series.AniDB_ID is not null and not 0)
+                series.EpisodeAddedDate = RepoFactory.StoredReleaseInfo.GetByAnidbAnimeID(series.AniDB_ID.Value)
+                    .Select(a => a.LastUpdatedAt)
+                    .DefaultIfEmpty()
+                    .Max();
 
             if (watchedStats) UpdateWatchedStats(series, eps, name, ref start);
             if (missingEpsStats) UpdateMissingEpisodeStats(series, eps, name, ref start);
@@ -288,17 +290,62 @@ public class MediaSeriesService
         start = DateTime.Now;
     }
 
+    private void UpdateMissingEpisodeStatsTmdbNative(MediaSeries series, IReadOnlyList<MediaEpisode> eps)
+    {
+        var latestLocalEpNumber = 0;
+        DateTime? lastEpAirDate = null;
+
+        foreach (var ep in eps.Where(e => e.EpisodeType == EpisodeType.Episode))
+        {
+            var airDate = ((IEpisode)ep).AirDate;
+            // Skip episodes that haven't aired yet.
+            if (airDate is null || airDate.Value > DateOnly.FromDateTime(DateTime.Today))
+                continue;
+
+            var vids = ep.VideoLocals;
+            var hasFile = vids.Count > 0;
+            var epNum = ((IEpisode)ep).EpisodeNumber;
+
+            if (hasFile && epNum > latestLocalEpNumber)
+                latestLocalEpNumber = epNum;
+
+            var airDateTime = airDate.Value.ToDateTime(TimeOnly.MinValue);
+            if (lastEpAirDate is null || airDateTime > lastEpAirDate)
+                lastEpAirDate = airDateTime;
+
+            if (!hasFile)
+            {
+                if (ep.IsHidden)
+                    series.HiddenMissingEpisodeCount++;
+                else
+                    series.MissingEpisodeCount++;
+            }
+        }
+
+        series.LatestLocalEpisodeNumber = latestLocalEpNumber;
+        series.LatestEpisodeAirDate = lastEpAirDate ?? series.AirDate;
+    }
+
     private void UpdateMissingEpisodeStats(MediaSeries series, IReadOnlyList<MediaEpisode> eps, string name, ref DateTime start)
     {
-        var mediaType = series.AniDB_Anime?.MediaType ?? MediaType.TVSeries;
-
         series.MissingEpisodeCount = 0;
         series.MissingEpisodeCountGroups = 0;
         series.HiddenMissingEpisodeCount = 0;
         series.HiddenMissingEpisodeCountGroups = 0;
 
+        if (series.AniDB_ID is null or 0)
+        {
+            UpdateMissingEpisodeStatsTmdbNative(series, eps);
+            var ts0 = DateTime.Now - start;
+            _logger.LogTrace("Updated MISSING EPS stats for SERIES {Name} in {Elapsed}ms", name, ts0.TotalMilliseconds);
+            start = DateTime.Now;
+            return;
+        }
+
+        var mediaType = series.AniDB_Anime?.MediaType ?? MediaType.TVSeries;
+
         // get all the group status records
-        var grpStatuses = RepoFactory.AniDB_GroupStatus.GetByAnimeID(series.AniDB_ID ?? 0);
+        var grpStatuses = RepoFactory.AniDB_GroupStatus.GetByAnimeID(series.AniDB_ID.Value);
 
         // find all the episodes for which the user has a file
         // from this we can determine what their latest episode number is

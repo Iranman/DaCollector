@@ -865,8 +865,7 @@ public class VideoService : IVideoService
 
         var scheduler = await _schedulerFactory.GetScheduler();
         await Task.WhenAll(affectedSeries
-            .Where(a => a.AniDB_ID.HasValue)
-            .Select(a => scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID!.Value)));
+            .Select(a => scheduler.StartJob<RefreshSeriesStatsJob>(b => b.MediaSeriesID = a.MediaSeriesID)));
     }
 
     public async Task ScanManagedFolder(IManagedFolder folder, string? relativePath = null, bool onlyNewFiles = false, bool skipMylist = false, bool? cleanUpStructure = null, bool? checkFileSize = null)
