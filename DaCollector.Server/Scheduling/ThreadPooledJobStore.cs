@@ -133,11 +133,12 @@ public class ThreadPooledJobStore : JobStoreTX
         }
 
         // Extract and remove ProcessFileJob concurrency limit for now.
-        _processFileConcurrencyLimit = _typeConcurrencyCache[typeof(ProcessFileJob)];
+        _processFileConcurrencyLimit = _typeConcurrencyCache.GetValueOrDefault(typeof(ProcessFileJob));
         _typeConcurrencyCache.Remove(typeof(ProcessFileJob));
 
-        // Cache AniDB UDP types with and without ProcessFileJob for now.
-        _anidbUdpTypesWithProcessFileJob = _concurrencyGroupCache[ConcurrencyGroups.AniDB_UDP];
+        // Cache AniDB UDP types with and without ProcessFileJob for now. New DaCollector-only
+        // builds may not register any AniDB UDP jobs, so the group must be optional.
+        _anidbUdpTypesWithProcessFileJob = _concurrencyGroupCache.GetValueOrDefault(ConcurrencyGroups.AniDB_UDP, []);
         _anidbUdpTypesWithoutProcessFileJob = _anidbUdpTypesWithProcessFileJob
             .Except([typeof(ProcessFileJob)])
             .ToArray();
