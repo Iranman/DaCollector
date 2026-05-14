@@ -53,7 +53,7 @@ public class DatabaseFixes
     public static void UpdateAllStats()
     {
         var scheduler = Utils.ServiceContainer.GetRequiredService<ISchedulerFactory>().GetScheduler().ConfigureAwait(false).GetAwaiter().GetResult();
-        Task.WhenAll(RepoFactory.MediaSeries.GetAll().Where(a => a.AniDB_ID is not null and not 0).Select(a => scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID!.Value))).GetAwaiter()
+        Task.WhenAll(RepoFactory.MediaSeries.GetAll().Select(a => scheduler.StartJob<RefreshSeriesStatsJob>(b => b.MediaSeriesID = a.MediaSeriesID))).GetAwaiter()
             .GetResult();
     }
 

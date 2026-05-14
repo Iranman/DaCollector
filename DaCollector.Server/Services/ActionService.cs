@@ -517,7 +517,7 @@ public class ActionService
         // NOTE: use 'purge unused releases' if you want to remove the cross-references too.
 
         // update everything we modified
-        await Task.WhenAll(seriesToUpdate.Select(a => scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID ?? 0)));
+        await Task.WhenAll(seriesToUpdate.Select(a => scheduler.StartJob<RefreshSeriesStatsJob>(b => b.MediaSeriesID = a.MediaSeriesID)));
 
         _logger.LogInformation("Remove Missing Files: Finished");
     }
@@ -525,7 +525,7 @@ public class ActionService
     public async Task UpdateAllStats()
     {
         var scheduler = await _schedulerFactory.GetScheduler().ConfigureAwait(false);
-        await Task.WhenAll(RepoFactory.MediaSeries.GetAll().Select(a => scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID ?? 0)));
+        await Task.WhenAll(RepoFactory.MediaSeries.GetAll().Select(a => scheduler.StartJob<RefreshSeriesStatsJob>(b => b.MediaSeriesID = a.MediaSeriesID)));
     }
 
     public void CheckForPreviouslyIgnored()

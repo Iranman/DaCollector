@@ -204,7 +204,7 @@ public class UserService(
             if (updateStats)
             {
                 var scheduler = await _schedulerFactory.GetScheduler();
-                await Task.WhenAll(_seriesRepository.GetAll().Select(ser => scheduler.StartJob<RefreshAnimeStatsJob>(a => a.AnimeID = ser.AniDB_ID ?? 0)));
+                await Task.WhenAll(_seriesRepository.GetAll().Select(ser => scheduler.StartJob<RefreshSeriesStatsJob>(a => a.MediaSeriesID = ser.MediaSeriesID)));
             }
         }
 

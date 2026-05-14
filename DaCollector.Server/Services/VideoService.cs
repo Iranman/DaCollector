@@ -701,7 +701,7 @@ public class VideoService : IVideoService
             }
         }
 
-        await Task.WhenAll(seriesToUpdate.Select(a => scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID ?? 0)));
+        await Task.WhenAll(seriesToUpdate.Select(a => scheduler.StartJob<RefreshSeriesStatsJob>(b => b.MediaSeriesID = a.MediaSeriesID)));
     }
 
     public async Task RemoveRecordWithOpenTransaction(ISession session, VideoLocal_Place place, ICollection<MediaSeries> seriesToUpdate,
