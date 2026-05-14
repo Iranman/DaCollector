@@ -69,7 +69,7 @@ public class ReleaseManagementMissingEpisodesController(ISettingsProvider settin
     {
         var enumerable = RepoFactory.MediaSeries.GetWithMissingEpisodes(collecting);
         if (onlyFinishedSeries)
-            enumerable = enumerable.Where(a => a.AniDB_Anime.GetFinishedAiring());
+            enumerable = enumerable.Where(a => a.AniDB_Anime?.GetFinishedAiring() ?? false);
 
         return enumerable
             .OrderBy(series => series.Title)

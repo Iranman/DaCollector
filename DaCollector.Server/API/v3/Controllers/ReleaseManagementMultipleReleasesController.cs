@@ -97,7 +97,7 @@ public class ReleaseManagementMultipleReleasesController(ISettingsProvider setti
     {
         var enumerable = RepoFactory.MediaSeries.GetWithMultipleReleases(ignoreVariations);
         if (onlyFinishedSeries)
-            enumerable = enumerable.Where(a => a.AniDB_Anime.GetFinishedAiring());
+            enumerable = enumerable.Where(a => a.AniDB_Anime?.GetFinishedAiring() ?? false);
 
         return enumerable
             .OrderBy(series => series.Title)

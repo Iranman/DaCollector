@@ -95,12 +95,12 @@ public class ReleaseManagementDuplicateFilesController(ISettingsProvider setting
     {
         var enumerable = RepoFactory.MediaSeries.GetWithDuplicateFiles();
         if (onlyFinishedSeries)
-            enumerable = enumerable.Where(a => a.AniDB_Anime.GetFinishedAiring());
+            enumerable = enumerable.Where(a => a.AniDB_Anime?.GetFinishedAiring() ?? false);
 
         return enumerable
             .OrderBy(series => series.Title)
             .ThenBy(series => series.AniDB_ID ?? 0)
-            .ToListResult(series => new Series.WithEpisodeCount(RepoFactory.MediaEpisode.GetWithDuplicateFiles(series.AniDB_ID ?? 0).Count(), series, User.JMMUserID, includeDataFrom), page, pageSize);
+            .ToListResult(series => new Series.WithEpisodeCount(RepoFactory.MediaEpisode.GetWithDuplicateFiles(series.AniDB_ID).Count(), series, User.JMMUserID, includeDataFrom), page, pageSize);
     }
 
     /// <summary>
@@ -131,7 +131,8 @@ public class ReleaseManagementDuplicateFilesController(ISettingsProvider setting
         if (!User.AllowedSeries(series))
             return new ListResult<Episode>();
 
-        var enumerable = RepoFactory.MediaEpisode.GetWithDuplicateFiles(series.AniDB_ID ?? 0);
+        var enumerable = RepoFactory.MediaEpisode.GetWithDuplicateFiles(series.AniDB_ID)
+            .Where(ep => ep.MediaSeriesID == series.MediaSeriesID);
 
         return enumerable
             .ToListResult(episode =>
