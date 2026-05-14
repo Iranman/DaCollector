@@ -81,6 +81,7 @@
 // State
 // ──────────────────────────────────────────────────────────
 let currentStep = 0;
+let reConfigMode = false;
 
 const state = {
     username: '', password: '',
@@ -124,6 +125,21 @@ async function api(method, path, body) {
 // ──────────────────────────────────────────────────────────
 function renderNav() {
     const nav = document.getElementById('step-nav');
+    if (reConfigMode) {
+        nav.innerHTML = `<div style="padding:8px 10px">
+            <div style="font-size:11px;font-weight:700;color:#4B5563;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:12px">Settings</div>
+            <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;background:#C9A22712">
+                <div style="width:26px;height:26px;border-radius:50%;background:#C9A22722;border:2px solid #C9A227;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#C9A227" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                    </svg>
+                </div>
+                <span style="font-size:13px;color:#FFFFFF;font-weight:600">Import Folders</span>
+            </div>
+        </div>`;
+        document.getElementById('btn-back').style.display = 'none';
+        return;
+    }
     nav.innerHTML = STEPS.map((s, i) => {
         const done = i < currentStep, active = i === currentStep;
         const circleBg   = done ? '#C9A227' : active ? '#C9A22722' : 'transparent';
@@ -495,17 +511,19 @@ async function saveTelemetry() {
 // Step: Import Folders
 // ──────────────────────────────────────────────────────────
 function renderFolders(el) {
-    // Server is now running — this is the last step
-    document.getElementById('btn-next').textContent = 'Finish Setup';
-    document.getElementById('btn-next').onclick = finishSetup;
+    document.getElementById('btn-next').textContent = reConfigMode ? 'Go to Dashboard' : 'Finish Setup';
+    document.getElementById('btn-next').onclick = reConfigMode
+        ? () => window.location.replace('/webui/dashboard.html')
+        : finishSetup;
     document.getElementById('btn-back').style.display = 'none';
 
     el.innerHTML = `
         <div style="max-width:620px">
             <h1 style="font-size:26px;font-weight:700;color:#FFFFFF;margin:0 0 8px">Import Folders</h1>
             <p style="color:#6B7280;font-size:14px;margin:0 0 24px">
-                Import folders are the physical locations where your media files are stored.
-                You can skip this step and add folders in settings after setup.
+                ${reConfigMode
+                    ? 'Add, remove, or scan the folders DaCollector monitors for media files.'
+                    : 'Import folders are the physical locations where your media files are stored. You can skip this step and add folders in settings after setup.'}
             </p>
 
             <!-- Warning card -->
@@ -691,7 +709,7 @@ function rerenderFolderList() {
     if (el) el.innerHTML = renderFolderItems();
 }
 
-function addFolder() {
+async function addFolder() {
     const path = (val('inp-folder-path') || '').trim();
     const name = (val('inp-folder-name') || '').trim();
     const errEl = document.getElementById('folder-err');
@@ -703,12 +721,28 @@ function addFolder() {
     }
     if (errEl) errEl.style.display = 'none';
 
-    state.importFolders.push({
-        name,
-        path,
-        watchForNewFiles: folderForm.watchForNewFiles,
-        dropFolderType:   folderForm.dropFolderType,
-    });
+    if (reConfigMode) {
+        // Live API call
+        try {
+            const r = await fetch('/api/v3/ManagedFolder', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'apikey': state.apiKey },
+                body: JSON.stringify({ Name: name || path, Path: path, WatchForNewFiles: folderForm.watchForNewFiles, DropFolderType: folderForm.dropFolderType }),
+            });
+            if (!r.ok) { const msg = await r.text(); throw new Error(msg || r.statusText); }
+        } catch (e) {
+            if (errEl) { errEl.textContent = e.message; errEl.style.display = 'inline'; }
+            return;
+        }
+        await loadExistingFolders();
+    } else {
+        state.importFolders.push({
+            name,
+            path,
+            watchForNewFiles: folderForm.watchForNewFiles,
+            dropFolderType:   folderForm.dropFolderType,
+        });
+    }
 
     // Reset path/name inputs; leave toggle/drop state as-is for convenience
     const pathEl = document.getElementById('inp-folder-path');
@@ -719,7 +753,20 @@ function addFolder() {
     rerenderFolderList();
 }
 
-function removeFolderAt(index) {
+async function removeFolderAt(index) {
+    const folder = state.importFolders[index];
+    if (reConfigMode && folder?.id) {
+        try {
+            const r = await fetch(`/api/v3/ManagedFolder/${folder.id}?removeRecords=false`, {
+                method: 'DELETE',
+                headers: { 'apikey': state.apiKey },
+            });
+            if (!r.ok) throw new Error(await r.text() || r.statusText);
+        } catch (e) { alert('Failed to remove folder: ' + e.message); return; }
+        await loadExistingFolders();
+        rerenderFolderList();
+        return;
+    }
     state.importFolders.splice(index, 1);
     rerenderFolderList();
 }
@@ -1001,23 +1048,107 @@ document.addEventListener('focusout', e => {
 });
 
 // ──────────────────────────────────────────────────────────
+// Re-configuration mode (server already running)
+// ──────────────────────────────────────────────────────────
+async function enterReConfigMode() {
+    try {
+        const v = await api('GET', 'Init/Version');
+        document.getElementById('version-text').textContent = 'v' + (v?.server?.version || '');
+    } catch (_) {}
+
+    const savedKey = localStorage.getItem('apiKey') || '';
+    if (savedKey) {
+        state.apiKey = savedKey;
+        await loadExistingFolders();
+        currentStep = STEPS.length - 1;
+        showStep();
+    } else {
+        showReConfigLogin();
+    }
+}
+
+function showReConfigLogin() {
+    renderNav();
+    const el = document.getElementById('step-content');
+    el.classList.remove('fade-in'); void el.offsetWidth; el.classList.add('fade-in');
+    el.innerHTML = `
+        <div style="max-width:380px">
+            <h1 style="font-size:26px;font-weight:700;color:#FFFFFF;margin:0 0 8px">Server Already Running</h1>
+            <p style="color:#6B7280;font-size:14px;margin:0 0 24px">Log in with your DaCollector account to manage import folders.</p>
+            <div style="display:flex;flex-direction:column;gap:18px">
+                ${field('rc-username','Username','text','','')}
+                ${field('rc-password','Password','password','','')}
+                <div id="rc-err" style="color:#EF4444;font-size:13px;display:none"></div>
+            </div>
+        </div>`;
+    document.getElementById('btn-back').style.display = 'none';
+    document.getElementById('btn-next').textContent = 'Log In';
+    document.getElementById('btn-next').onclick = doReConfigLogin;
+    document.getElementById('btn-next').disabled = false;
+}
+
+async function doReConfigLogin() {
+    const btn = document.getElementById('btn-next');
+    const u = val('rc-username'), p = val('rc-password');
+    const err = document.getElementById('rc-err');
+    if (!u) { err.textContent = 'Username is required.'; err.style.display = 'block'; return; }
+    btn.disabled = true; btn.textContent = 'Logging in…';
+    try {
+        const r = await fetch('/api/auth', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user: u, pass: p || '', device: 'WebSetup' }),
+        });
+        if (!r.ok) throw new Error('Invalid username or password');
+        const data = await r.json();
+        state.apiKey = data.apikey || '';
+        if (!state.apiKey) throw new Error('No API key returned');
+        localStorage.setItem('apiKey', state.apiKey);
+        await loadExistingFolders();
+        currentStep = STEPS.length - 1;
+        showStep();
+    } catch (e) {
+        err.textContent = e.message; err.style.display = 'block';
+        btn.disabled = false; btn.textContent = 'Log In';
+    }
+}
+
+async function loadExistingFolders() {
+    try {
+        const r = await fetch('/api/v3/ManagedFolder', { headers: { 'apikey': state.apiKey } });
+        if (!r.ok) return;
+        const folders = await r.json();
+        state.importFolders = (folders || []).map(f => ({
+            id: f.id,
+            name: f.name || '',
+            path: f.path || '',
+            watchForNewFiles: !!f.watchForNewFiles,
+            dropFolderType: f.dropFolderType || 'None',
+        }));
+    } catch (_) {}
+}
+
+// ──────────────────────────────────────────────────────────
 // Init
 // ──────────────────────────────────────────────────────────
 (async function init() {
-    // If server already started (setup not needed), go to dashboard
+    // Check if server is already started
     try {
         const s = await api('GET', 'Init/Status');
-        if (s.state === 'Started') { window.location.replace('/webui/'); return; }
+        if (s.state === 'Started') {
+            reConfigMode = true;
+            await enterReConfigMode();
+            return;
+        }
     } catch (_) {}
 
-    // Load version
+    // Normal first-run flow
     try {
         const v = await api('GET', 'Init/Version');
         const ver = v?.server?.version;
         document.getElementById('version-text').textContent = ver ? 'v' + ver : '';
     } catch (_) {}
 
-    // Load saved provider and telemetry state
     try {
         const [tmdb, tvdb, imdb, telemetry] = await Promise.all([
             api('GET', 'Init/Provider/TMDB'),
