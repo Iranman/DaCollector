@@ -907,6 +907,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         new(154,  1, "CREATE TABLE CrossRef_File_TvdbEpisode ( CrossRef_File_TvdbEpisodeID INTEGER PRIMARY KEY AUTOINCREMENT, VideoLocalID INTEGER NOT NULL, TvdbEpisodeID INTEGER NOT NULL, Percentage INTEGER NOT NULL DEFAULT 100, EpisodeOrder INTEGER NOT NULL DEFAULT 1, IsManuallyLinked INTEGER NOT NULL DEFAULT 0, CreatedAt DATETIME NOT NULL, UpdatedAt DATETIME NOT NULL );"),
         new(154,  2, "CREATE INDEX IX_CrossRef_File_TvdbEpisode_VideoLocalID ON CrossRef_File_TvdbEpisode(VideoLocalID);"),
         new(154,  3, "CREATE INDEX IX_CrossRef_File_TvdbEpisode_TvdbEpisodeID ON CrossRef_File_TvdbEpisode(TvdbEpisodeID);"),
+        new(155,  1, "ALTER TABLE MediaGroup ADD COLUMN TmdbCollectionID INTEGER NULL;"),
     ];
 
     #endregion

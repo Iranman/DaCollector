@@ -10,8 +10,6 @@ using DaCollector.Abstractions.Config;
 using DaCollector.Abstractions.Config.Services;
 using DaCollector.Abstractions.Video.Events;
 using DaCollector.Abstractions.Extensions;
-using DaCollector.Abstractions.Metadata.Anidb.Enums;
-using DaCollector.Abstractions.Metadata.Anidb.Services;
 using DaCollector.Abstractions.Plugin;
 using DaCollector.Abstractions.Plugin.Models;
 using DaCollector.Abstractions.Video.Release;
@@ -23,15 +21,11 @@ using DaCollector.Server.Models.CrossReference;
 using DaCollector.Server.Models.Release;
 using DaCollector.Server.Models.DaCollector;
 using DaCollector.Server.Plugin;
-using DaCollector.Server.Providers.AniDB.Interfaces;
-using DaCollector.Server.Providers.AniDB.Release;
-using DaCollector.Server.Providers.AniDB.UDP.Info;
 using DaCollector.Server.Repositories.Cached;
 using DaCollector.Server.Repositories.Cached.AniDB;
 using DaCollector.Server.Repositories.Direct;
 using DaCollector.Server.Scheduling;
 using DaCollector.Server.Scheduling.Jobs.Actions;
-using DaCollector.Server.Scheduling.Jobs.AniDB;
 using DaCollector.Server.Scheduling.Jobs.DaCollector;
 using DaCollector.Server.Scheduling.Jobs.TMDB;
 using DaCollector.Server.Settings;
@@ -42,11 +36,9 @@ namespace DaCollector.Server.Services;
 public class VideoReleaseService(
     ILogger<VideoReleaseService> logger,
     IConfigurationService configurationService,
-    IUDPConnectionHandler udpConnection,
     ISettingsProvider settingsProvider,
     ConfigurationProvider<VideoReleaseServiceSettings> configurationProvider,
     ISchedulerFactory schedulerFactory,
-    IRequestFactory requestFactory,
     IUserService userService,
     IServiceProvider serviceProvider,
     IPluginManager pluginManager,
@@ -55,8 +47,6 @@ public class VideoReleaseService(
     StoredReleaseInfoRepository releaseInfoRepository,
     StoredReleaseInfo_MatchAttemptRepository releaseInfoMatchAttemptRepository,
     AniDB_EpisodeRepository anidbEpisodeRepository,
-    AniDB_AnimeRepository anidbAnimeRepository,
-    AniDB_AnimeUpdateRepository anidbAnimeUpdateRepository,
     MediaSeriesRepository dacollectorSeriesRepository,
     CrossRef_AniDB_TMDB_ShowRepository crossRefAnidbTmdbRepository,
     CrossRef_File_EpisodeRepository xrefRepository
@@ -67,9 +57,6 @@ public class VideoReleaseService(
     // the anime series service (which in turn depend on this service). So we
     // lazy init the user data service to break the circle.
     private IUserDataService? _userDataService = null;
-
-    // Lazy init. to prevent circular dependency.
-    private IAnidbService? _anidbService = null;
 
     private IServerSettings _settings => settingsProvider.GetSettings();
 
@@ -603,7 +590,7 @@ public class VideoReleaseService(
         if (!CheckCrossReferences(video, releaseInfo, out var legacyXrefs))
             throw new InvalidOperationException($"Release have {release.CrossReferences.Count - legacyXrefs.Count} invalid cross reference(s).");
 
-        var missingGroupId = CheckReleaseGroup(releaseInfo);
+        CheckReleaseGroup(releaseInfo);
 
         // Ensure we don't have an empty list of hashes.
         if (releaseInfo.Hashes is { } hashes)
@@ -647,21 +634,10 @@ public class VideoReleaseService(
             videoRepository.Save(videoLocal);
         }
 
-        // Schedule the release group to be fetched if needed.
-        if (missingGroupId is not null)
-            await scheduler.StartJob<GetAniDBReleaseGroupJob>(c => c.GroupID = missingGroupId.Value);
-
         await ScheduleAnimeForRelease(legacyXrefs);
 
         SetWatchedStateIfNeeded(video, releaseInfo);
 
-        // Sync to mylist if needed.
-        if (addToMylist && !releaseUriMatches && _settings.AniDb.MyList_AddFiles)
-            await scheduler.StartJob<AddFileToMyListJob>(c =>
-            {
-                c.Hash = video.ED2K;
-                c.ReadStates = true;
-            }).ConfigureAwait(false);
         // Rename and/or move the physical file(s) if needed.
         if (_settings.Plugins.Renamer.RelocateOnImport)
             await scheduler.StartJob<RenameMoveFileJob>(job => job.VideoLocalID = video.ID).ConfigureAwait(false);
@@ -716,34 +692,7 @@ public class VideoReleaseService(
             if (animeID is null)
             {
                 if (anidbEpisodeRepository.GetByEpisodeID(firstXref.AnidbEpisodeID) is { } episode)
-                {
                     animeID = episode.AnimeID;
-                }
-                else if (udpConnection.IsBanned)
-                {
-                    logger.LogInformation("Could not get AnimeID for episode {EpisodeID}, but we're UDP banned, so deferring fetch to later!", firstXref.AnidbEpisodeID);
-                }
-                else
-                {
-                    logger.LogInformation("Could not get AnimeID for episode {EpisodeID}, downloading more info…", firstXref.AnidbEpisodeID);
-                    try
-                    {
-                        var episodeResponse = requestFactory
-                            .Create<RequestGetEpisode>(r => r.EpisodeID = firstXref.AnidbEpisodeID)
-                            .Send();
-                        animeID = episodeResponse.Response?.AnimeID;
-                        if (episodeResponse.Code is Providers.AniDB.UDPReturnCode.NO_SUCH_EPISODE)
-                        {
-                            logger.LogError("Unknown episode with id {EpisodeID}!", firstXref.AnidbEpisodeID);
-                            _unknownEpisodeIDs.Add(firstXref.AnidbEpisodeID);
-                            continue;
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        logger.LogError(e, "Could not get Episode Info for {EpisodeID}!", firstXref.AnidbEpisodeID);
-                    }
-                }
             }
 
             var xrefList = new List<EmbeddedCrossReference>();
@@ -808,7 +757,7 @@ public class VideoReleaseService(
         return true;
     }
 
-    private int? CheckReleaseGroup(StoredReleaseInfo releaseInfo)
+    private void CheckReleaseGroup(StoredReleaseInfo releaseInfo)
     {
         if (string.IsNullOrEmpty(releaseInfo.GroupID) || string.IsNullOrEmpty(releaseInfo.GroupSource))
         {
@@ -816,16 +765,11 @@ public class VideoReleaseService(
             releaseInfo.GroupSource = null;
             releaseInfo.GroupName = null;
             releaseInfo.GroupShortName = null;
-            return null;
+            return;
         }
 
-        if (
-            !GetAniDBReleaseGroupJob.InvalidReleaseGroupNames.Contains(releaseInfo.GroupName) &&
-            !GetAniDBReleaseGroupJob.InvalidReleaseGroupNames.Contains(releaseInfo.GroupShortName) &&
-            !string.IsNullOrEmpty(releaseInfo.GroupName) &&
-            !string.IsNullOrEmpty(releaseInfo.GroupShortName)
-        )
-            return null;
+        if (!string.IsNullOrEmpty(releaseInfo.GroupName) && !string.IsNullOrEmpty(releaseInfo.GroupShortName))
+            return;
 
         // If we have an existing release from the group with valid names, use that.
         var existingReleasesForGroup = releaseInfoRepository.GetByGroupAndProviderIDs(releaseInfo.GroupID, releaseInfo.GroupSource)
@@ -836,64 +780,14 @@ public class VideoReleaseService(
         {
             releaseInfo.GroupName = existingReleasesForGroup[0].GroupName;
             releaseInfo.GroupShortName = existingReleasesForGroup[0].GroupShortName;
-            return null;
+            return;
         }
 
-        // Remove the group info if it's not from AniDB and doesn't have a valid name/short name.
-        if (releaseInfo.GroupSource is not "AniDB" || !int.TryParse(releaseInfo.GroupID, out var groupID) || groupID <= 0)
-        {
-            releaseInfo.GroupID = null;
-            releaseInfo.GroupSource = null;
-            releaseInfo.GroupName = null;
-            releaseInfo.GroupShortName = null;
-            return null;
-        }
-
-        // Otherwise try to fetch group info from AniDB.
-        try
-        {
-            var response = requestFactory
-                .Create<RequestReleaseGroup>(r => r.ReleaseGroupID = groupID)
-                .Send();
-            if (response.Response is not null)
-            {
-                if (
-                    !string.IsNullOrEmpty(response.Response.Name) &&
-                    !string.IsNullOrEmpty(response.Response.ShortName) &&
-                    !GetAniDBReleaseGroupJob.InvalidReleaseGroupNames.Contains(response.Response.Name) &&
-                    !GetAniDBReleaseGroupJob.InvalidReleaseGroupNames.Contains(response.Response.ShortName)
-                )
-                {
-                    releaseInfo.GroupName = response.Response.Name;
-                    releaseInfo.GroupShortName = response.Response.ShortName;
-                    return null;
-                }
-                else
-                {
-                    releaseInfo.GroupID = null;
-                    releaseInfo.GroupSource = null;
-                    releaseInfo.GroupName = null;
-                    releaseInfo.GroupShortName = null;
-                }
-            }
-            else
-            {
-                releaseInfo.GroupID = null;
-                releaseInfo.GroupSource = null;
-                releaseInfo.GroupName = null;
-                releaseInfo.GroupShortName = null;
-            }
-            return null;
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Could not get IReleaseGroup info from AniDB for {GroupID}!", groupID);
-
-            releaseInfo.GroupName = null;
-            releaseInfo.GroupShortName = null;
-
-            return groupID;
-        }
+        // Clear group info if names can't be resolved.
+        releaseInfo.GroupID = null;
+        releaseInfo.GroupSource = null;
+        releaseInfo.GroupName = null;
+        releaseInfo.GroupShortName = null;
     }
 
     private async Task ScheduleAnimeForRelease(IReadOnlyList<IVideoCrossReference> xrefs)
@@ -901,46 +795,15 @@ public class VideoReleaseService(
         var animeIDs = xrefs
             .GroupBy(xref => xref.AnidbAnimeID)
             .ExceptBy([0], groupBy => groupBy.Key)
-            .ToDictionary(
-                groupBy => groupBy.Key,
-                groupBy =>
-                    anidbAnimeRepository.GetByAnimeID(groupBy.Key) is null ||
-                    dacollectorSeriesRepository.GetByAnimeID(groupBy.Key) is null ||
-                    anidbAnimeUpdateRepository.GetByAnimeID(groupBy.Key) is null ||
-                    groupBy.Any(xref => xref.MetadataEpisode is null || xref.DaCollectorEpisode is null)
-            );
+            .Select(groupBy => groupBy.Key)
+            .ToList();
         if (animeIDs.Count == 0)
             return;
 
         var scheduler = await schedulerFactory.GetScheduler().ConfigureAwait(false);
-        var refreshMethod = AnidbRefreshMethod.Default | AnidbRefreshMethod.CreateDaCollectorSeries;
-        if (_settings.AutoGroupSeries || _settings.AniDb.DownloadRelatedAnime)
-            refreshMethod |= AnidbRefreshMethod.DownloadRelations;
-        foreach (var (animeID, missingEpisodes) in animeIDs)
+        foreach (var animeID in animeIDs)
         {
-            var animeRecentlyUpdated = false;
-            var update = anidbAnimeUpdateRepository.GetByAnimeID(animeID)!;
-            if (!missingEpisodes && (DateTime.Now - update.UpdatedAt).TotalHours < _settings.AniDb.MinimumHoursToRedownloadAnimeInfo)
-                animeRecentlyUpdated = true;
-
-            // even if we are missing episode info, don't get data  more than once every `x` hours
-            // this is to prevent banning
-            if (missingEpisodes)
-            {
-                logger.LogInformation("Queuing immediate GET for AniDB_Anime: {AnimeID}", animeID);
-                _anidbService ??= serviceProvider.GetRequiredService<IAnidbService>();
-                await _anidbService.ScheduleRefreshOfAnimeByID(animeID, refreshMethod, prioritize: true);
-            }
-            else if (!animeRecentlyUpdated)
-            {
-                logger.LogInformation("Queuing GET for AniDB_Anime: {AnimeID}", animeID);
-                _anidbService ??= serviceProvider.GetRequiredService<IAnidbService>();
-                await _anidbService.ScheduleRefreshOfAnimeByID(animeID, refreshMethod);
-            }
-            else
-            {
-                await scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = animeID);
-            }
+            await scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = animeID);
 
             var tmdbShowXrefs = crossRefAnidbTmdbRepository.GetByAnidbAnimeID(animeID);
             foreach (var xref in tmdbShowXrefs)
@@ -1037,9 +900,6 @@ public class VideoReleaseService(
 
         releaseInfoRepository.Delete(releaseInfo);
 
-        if (removeFromMylist)
-            await RemoveFromMyList(releaseInfo);
-
         await ScheduleAnimeForRelease(xrefs);
 
         try
@@ -1053,46 +913,6 @@ public class VideoReleaseService(
     }
 
     #region Clear Release | Internals
-
-    private async Task RemoveFromMyList(StoredReleaseInfo releaseInfo)
-    {
-        if (_settings.AniDb.MyList_DeleteType is Providers.AniDB.AniDBFileDeleteType.DeleteLocalOnly)
-        {
-            logger.LogInformation("Keeping physical file and AniDB MyList entry, deleting from local DB: Hash: {Hash}", releaseInfo.ED2K);
-            return;
-        }
-
-        var scheduler = await schedulerFactory.GetScheduler();
-        if (releaseInfo is { ReleaseURI: not null } && releaseInfo.ReleaseURI.StartsWith(AnidbReleaseProvider.ReleasePrefix))
-        {
-            await scheduler.StartJob<DeleteFileFromMyListJob>(c =>
-                {
-                    c.Hash = releaseInfo.ED2K;
-                    c.FileSize = releaseInfo.FileSize;
-                }
-            );
-        }
-        else
-        {
-            foreach (var xref in releaseInfo.CrossReferences)
-            {
-                if (xref.AnidbAnimeID is null or 0)
-                    continue;
-
-                var MetadataEpisode = anidbEpisodeRepository.GetByEpisodeID(xref.AnidbEpisodeID);
-                if (MetadataEpisode is null)
-                    continue;
-
-                await scheduler.StartJob<DeleteFileFromMyListJob>(c =>
-                    {
-                        c.AnimeID = xref.AnidbAnimeID.Value;
-                        c.EpisodeType = MetadataEpisode.EpisodeType;
-                        c.EpisodeNumber = MetadataEpisode.EpisodeNumber;
-                    }
-                );
-            }
-        }
-    }
 
     #endregion Clear Release | Internals
 

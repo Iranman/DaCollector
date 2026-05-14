@@ -29,7 +29,6 @@ using DaCollector.Server.Models.DaCollector;
 using DaCollector.Server.Providers.AniDB.Release;
 using DaCollector.Server.Repositories;
 using DaCollector.Server.Scheduling;
-using DaCollector.Server.Scheduling.Jobs.AniDB;
 using DaCollector.Server.Scheduling.Jobs.DaCollector;
 using DaCollector.Server.Settings;
 using DaCollector.Server.Utilities;
@@ -932,43 +931,6 @@ public class FileController(
         return Ok();
     }
 
-    /// <summary>
-    /// Run a file through AVDump and return the result.
-    /// </summary>
-    /// <param name="fileID">VideoLocal ID</param>
-    /// <param name="priority">Increase the priority to the max for the queued command.</param>
-    /// <param name="immediate">Immediately run the AVDump, without adding the command to the queue.</param>
-    /// <returns></returns>
-    [HttpPost("{fileID}/AVDump")]
-    public async Task<ActionResult> AvDumpFile([FromRoute, Range(1, int.MaxValue)] int fileID, [FromQuery] bool priority = false,
-        [FromQuery] bool immediate = true)
-    {
-        var file = RepoFactory.VideoLocal.GetByID(fileID);
-        if (file == null)
-            return NotFound(FileNotFoundWithFileID);
-
-        var settings = SettingsProvider.GetSettings();
-        if (string.IsNullOrWhiteSpace(settings.AniDb.AVDumpKey))
-            ModelState.AddModelError("Settings", "Missing AVDump API key");
-
-        var filePath = file.FirstResolvedPlace?.Path;
-        if (string.IsNullOrEmpty(filePath))
-            ModelState.AddModelError("File", FileNoPath);
-
-        if (!ModelState.IsValid)
-            return ValidationProblem(ModelState);
-
-        var files = new Dictionary<int, string> { { file.VideoLocalID, filePath! } };
-        if (immediate)
-            AVDumpHelper.DumpFiles(files, true);
-        else
-        {
-            var scheduler = await _schedulerFactory.GetScheduler();
-            await scheduler.StartJob<AVDumpFilesJob>(a => a.Videos = files, prioritize: priority).ConfigureAwait(false);
-        }
-
-        return Ok();
-    }
 
     /// <summary>
     /// Rescan a file on AniDB.
@@ -1016,24 +978,6 @@ public class FileController(
             c => (c.FilePath, c.ForceHash) = (filePath, true),
             prioritize: priority
         ).ConfigureAwait(false);
-
-        return Ok();
-    }
-
-    /// <summary>
-    /// Force add a file to AniDB MyList
-    /// </summary>
-    /// <param name="fileID">The file id.</param>
-    /// <returns></returns>
-    [HttpPost("{fileID}/AddToMyList")]
-    public async Task<ActionResult> AddFileToMyList([FromRoute, Range(1, int.MaxValue)] int fileID)
-    {
-        var file = RepoFactory.VideoLocal.GetByID(fileID);
-        if (file == null)
-            return NotFound(FileNotFoundWithFileID);
-
-        var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob<AddFileToMyListJob>(c => c.Hash = file.Hash, prioritize: true).ConfigureAwait(false);
 
         return Ok();
     }

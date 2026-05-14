@@ -44,4 +44,14 @@ public class TVDBSettings
     [Range(1, 365)]
     [EnvironmentVariable("TVDB_CACHE_EXPIRATION_DAYS")]
     public int CacheExpirationDays { get; set; } = 7;
+
+    /// <summary>
+    /// Override the TVDB API base URL, e.g. for regional mirrors or self-hosted proxies.
+    /// Leave null/empty to use the default <c>https://api4.thetvdb.com/v4/</c>.
+    /// </summary>
+    [Badge("Advanced", Theme = DisplayColorTheme.Primary)]
+    [Visibility(Advanced = true)]
+    [EnvironmentVariable("TVDB_BASE_URL")]
+    [RequiresRestart]
+    public string? BaseUrl { get; set; } = null;
 }

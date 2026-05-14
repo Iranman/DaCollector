@@ -47,6 +47,8 @@ public class MediaGroup : IDaCollectorGroup
 
     public int? MainAniDBAnimeID { get; set; }
 
+    public int? TmdbCollectionID { get; set; }
+
     #endregion
 
     private static readonly Logger _logger = LogManager.GetCurrentClassLogger();

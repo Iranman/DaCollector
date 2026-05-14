@@ -11,6 +11,8 @@ namespace DaCollector.Server.Utilities;
 
 public static partial class Utils
 {
+    // Legacy static accessors — intentional for database initialization, NHibernate type converters,
+    // and OS-level file-watcher callbacks where constructor DI is unavailable. Do not add new usages.
     public static IServiceProvider ServiceContainer { get; set; }
 
     public static ISettingsProvider SettingsProvider { get; set; }

@@ -11,12 +11,14 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using DaCollector.Abstractions.Extensions;
+using DaCollector.Abstractions.Theme;
+using DaCollector.Abstractions.Theme.Services;
 using DaCollector.Server.Utilities;
 
 #nullable enable
 namespace DaCollector.Server.Services;
 
-public partial class CssThemeService
+public partial class CssThemeService : IThemeService
 {
     [GeneratedRegex(@"^\s*(?<major>\d+)(?:\.(?<minor>\d+)(?:\.(?<build>\d+)(?:\.(?<revision>\d+))?)?)?\s*$", RegexOptions.ECMAScript | RegexOptions.Compiled)]
     private static partial Regex VersionRegex();
@@ -299,6 +301,49 @@ public partial class CssThemeService
 
         return theme;
     }
+
+    // --- IThemeService bridge ---
+
+    IEnumerable<ThemeInfo> IThemeService.GetThemes(bool forceRefresh)
+        => GetThemes(forceRefresh).Select(ToThemeInfo);
+
+    ThemeInfo? IThemeService.GetTheme(string themeId, bool forceRefresh)
+        => GetTheme(themeId, forceRefresh) is { } t ? ToThemeInfo(t) : null;
+
+    bool IThemeService.RemoveTheme(ThemeInfo theme)
+    {
+        var t = GetTheme(theme.ID, false);
+        return t is not null && RemoveTheme(t);
+    }
+
+    async Task<ThemeInfo> IThemeService.UpdateThemeOnline(ThemeInfo theme, bool preview)
+    {
+        var t = GetTheme(theme.ID, false) ?? new ThemeDefinition(theme.ID, preview);
+        return ToThemeInfo(await UpdateThemeOnline(t, preview));
+    }
+
+    async Task<ThemeInfo> IThemeService.InstallThemeFromUrl(string url, bool preview)
+        => ToThemeInfo(await InstallThemeFromUrl(url, preview));
+
+    async Task<ThemeInfo> IThemeService.InstallOrUpdateThemeFromJson(string? content, string fileName, bool preview)
+        => ToThemeInfo(await InstallOrUpdateThemeFromJson(content, fileName, preview));
+
+    async Task<ThemeInfo> IThemeService.CreateOrUpdateThemeFromCss(string content, string fileName, bool preview)
+        => ToThemeInfo(await CreateOrUpdateThemeFromCss(content, fileName, preview));
+
+    private static ThemeInfo ToThemeInfo(ThemeDefinition t) => new()
+    {
+        ID = t.ID,
+        Name = t.Name,
+        Description = t.Description,
+        Author = t.Author,
+        Tags = t.Tags,
+        Version = t.Version,
+        UpdateUrl = t.UpdateUrl,
+        CssUrl = t.CssUrl,
+        IsInstalled = t.IsInstalled,
+        IsPreview = t.IsPreview,
+    };
 
     private async Task SaveTheme(ThemeDefinition theme)
     {

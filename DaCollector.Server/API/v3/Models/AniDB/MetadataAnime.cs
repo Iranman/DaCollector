@@ -12,7 +12,6 @@ using DaCollector.Server.API.v3.Models.Common;
 using DaCollector.Server.Extensions;
 using DaCollector.Server.Models.AniDB;
 using DaCollector.Server.Models.DaCollector;
-using DaCollector.Server.Providers.AniDB.Titles;
 using DaCollector.Server.Repositories;
 using DaCollector.Server.Utilities;
 
@@ -24,10 +23,6 @@ namespace DaCollector.Server.API.v3.Models.AniDB;
 /// </summary>
 public class MetadataAnime
 {
-    private static AniDBTitleHelper? _titleHelper = null;
-
-    private static AniDBTitleHelper TitleHelper
-        => _titleHelper ??= Utils.ServiceContainer.GetService<AniDBTitleHelper>()!;
 
     /// <summary>
     /// AniDB ID
@@ -108,7 +103,7 @@ public class MetadataAnime
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public RelationType? Relation { get; set; }
 
-    private MetadataAnime(int animeId, bool includeTitles, MediaSeries? series = null, AniDB_Anime? anime = null, ResponseAniDBTitles.Anime? result = null)
+    private MetadataAnime(int animeId, bool includeTitles, MediaSeries? series = null, AniDB_Anime? anime = null)
     {
         ID = animeId;
         if ((anime ??= (series is not null ? series.AniDB_Anime : RepoFactory.AniDB_Anime.GetByAnimeID(animeId))) is not null)
@@ -137,25 +132,6 @@ public class MetadataAnime
             AirDate = anime.AirDate?.ToDateOnly();
             EndDate = anime.EndDate?.ToDateOnly();
         }
-        else if ((result ??= TitleHelper.SearchAnimeID(animeId)) is not null)
-        {
-            Type = MediaType.Unknown;
-            Title = result.Title;
-            Titles = includeTitles
-                ? result.Titles.Select(
-                    title => new Title(title, result.DefaultTitle.Value, Title)
-                    {
-                        Language = title.LanguageCode,
-                        Name = title.Title,
-                        Type = title.TitleType,
-                        Default = string.Equals(title.Title, Title),
-                        Source = "AniDB"
-                    }
-                ).ToList()
-                : null;
-            Description = null;
-            Poster = new Image(animeId, ImageEntityType.Poster, DataSource.AniDB);
-        }
         else
         {
             Type = MediaType.Unknown;
@@ -168,16 +144,10 @@ public class MetadataAnime
     public MetadataAnime(AniDB_Anime anime, MediaSeries? series = null, bool includeTitles = true)
         : this(anime.AnimeID, includeTitles, series, anime) { }
 
-    public MetadataAnime(ResponseAniDBTitles.Anime result, MediaSeries? series = null, bool includeTitles = true)
-        : this(result.AnimeID, includeTitles, series) { }
-
     public MetadataAnime(IRelatedMetadata relation, MediaSeries? series = null, bool includeTitles = true)
         : this(relation.RelatedID, includeTitles, series)
     {
         Relation = relation.RelationType;
-        // If the other anime is present we assume they're of the same kind. Be it restricted or unrestricted.
-        if (Type == MediaType.Unknown && TitleHelper.SearchAnimeID(relation.RelatedID) is not null)
-            Restricted = RepoFactory.AniDB_Anime.GetByAnimeID(relation.BaseID) is { IsRestricted: true };
     }
 
     public MetadataAnime(AniDB_Anime_Similar similar, MediaSeries? series = null, bool includeTitles = true)

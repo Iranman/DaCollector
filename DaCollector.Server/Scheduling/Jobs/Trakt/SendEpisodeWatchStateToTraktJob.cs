@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using DaCollector.Abstractions.Metadata.Enums;
 using DaCollector.Server.Models.AniDB;
-using DaCollector.Server.Providers.AniDB;
 using DaCollector.Server.Providers.TraktTV;
 using DaCollector.Server.Repositories;
 using DaCollector.Server.Scheduling.Acquisition.Attributes;

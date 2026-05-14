@@ -147,15 +147,6 @@ public static partial class AVDumpHelper
         if (!PrepareAVDump())
             return new("Failed to install or update the AVDump component.");
 
-        var settings = Utils.SettingsProvider.GetSettings();
-        if (string.IsNullOrWhiteSpace(settings.AniDb.AVDumpKey) || string.IsNullOrWhiteSpace(settings.AniDb.Username))
-        {
-            var message = "Missing AVDump API Key in the settings.";
-            DaCollectorEventHandler.Instance.OnAVDumpMessage(AnidbAvdumpEventType.MissingApiKey);
-            logger.Warn(message);
-            return new(message);
-        }
-
         AVDumpSession session;
         int preExistingSessions;
         lock (_startLock)
@@ -192,16 +183,14 @@ public static partial class AVDumpHelper
                 var stdOutBuilder = new StringBuilder();
                 var stdErrBuilder = new StringBuilder();
                 using var subProcess = GetSubProcessForOS([
-                    $"--Timeout={settings.AniDb.AVDump.CreqTimeout}:{settings.AniDb.AVDump.CreqMaxRetries}",
-                    $"--Concurrent={settings.AniDb.AVDump.MaxConcurrency}",
+                    "--Timeout=10:5",
+                    "--Concurrent=1",
                     "--HideBuffers=true",
                     "--HideFileProgress=true",
                     "--DisableFileMove=true",
                     "--DisableFileRename=true",
                     "--Consumers=ED2K",
-                    $"--Auth={settings.AniDb.Username.Trim()}:{settings.AniDb.AVDumpKey.Trim()}",
-                    // Workaround for when we try to start multiple dump sessions.
-                    $"--LPort={(preExistingSessions == 0 ? settings.AniDb.AVDumpClientPort : 0)}", "--PrintEd2kLink=true",
+                    "--PrintEd2kLink=true",
                     ..videoDict.Values,
                 ]);
                 subProcess.OutputDataReceived += (_, eventArgs) => OnStdOutMessage(eventArgs, session, stdOutBuilder);

@@ -9,22 +9,15 @@ using Microsoft.Extensions.Logging;
 using Quartz;
 using DaCollector.Abstractions.Metadata.Enums;
 using DaCollector.Abstractions.Extensions;
-using DaCollector.Abstractions.Metadata.Anidb.Enums;
-using DaCollector.Abstractions.Metadata.Anidb.Services;
 using DaCollector.Abstractions.Plugin;
 using DaCollector.Abstractions.Video.Services;
 using DaCollector.Server.Databases;
 using DaCollector.Server.Extensions;
-using DaCollector.Server.Models.AniDB;
 using DaCollector.Server.Models.DaCollector;
-using DaCollector.Server.Providers.AniDB;
-using DaCollector.Server.Providers.AniDB.Interfaces;
-using DaCollector.Server.Providers.AniDB.UDP.Info;
 using DaCollector.Server.Providers.TMDB;
 using DaCollector.Server.Repositories;
 using DaCollector.Server.Scheduling;
 using DaCollector.Server.Scheduling.Jobs.Actions;
-using DaCollector.Server.Scheduling.Jobs.AniDB;
 using DaCollector.Server.Scheduling.Jobs.DaCollector;
 using DaCollector.Server.Scheduling.Jobs.TMDB;
 using DaCollector.Server.Server;
@@ -40,21 +33,15 @@ public class ActionService
 
     private readonly ISchedulerFactory _schedulerFactory;
 
-    private readonly IRequestFactory _requestFactory;
-
     private readonly ISettingsProvider _settingsProvider;
 
     private readonly IVideoReleaseService _videoReleaseService;
-
-    private readonly IAnidbService _anidbService;
 
     private readonly IVideoService _videoService;
 
     private readonly TmdbMetadataService _tmdbService;
 
     private readonly DatabaseFactory _databaseFactory;
-
-    private readonly HttpXmlUtils _xmlUtils;
 
     private readonly IPluginPackageManager _pluginPackageManager;
 
@@ -63,27 +50,21 @@ public class ActionService
     public ActionService(
         ILogger<ActionService> logger,
         ISchedulerFactory schedulerFactory,
-        IRequestFactory requestFactory,
         ISettingsProvider settingsProvider,
         IVideoReleaseService videoReleaseService,
-        IAnidbService anidbService,
         IVideoService videoService,
         TmdbMetadataService tmdbService,
         DatabaseFactory databaseFactory,
-        HttpXmlUtils xmlUtils,
         IPluginPackageManager pluginPackageManager
     )
     {
         _logger = logger;
         _schedulerFactory = schedulerFactory;
-        _requestFactory = requestFactory;
         _settingsProvider = settingsProvider;
         _videoReleaseService = videoReleaseService;
-        _anidbService = anidbService;
         _videoService = videoService;
         _tmdbService = tmdbService;
         _databaseFactory = databaseFactory;
-        _xmlUtils = xmlUtils;
         _pluginPackageManager = pluginPackageManager;
         _downloadImagesWorker = new();
         _downloadImagesWorker.DoWork += DownloadImagesWorker_DoWork;
@@ -155,32 +136,6 @@ public class ActionService
     private async Task RunImport_GetImagesInternal()
     {
         var settings = _settingsProvider.GetSettings();
-        var scheduler = await _schedulerFactory.GetScheduler();
-        // AniDB images
-        foreach (var anime in RepoFactory.AniDB_Anime.GetAll())
-        {
-            var updateImages = false;
-            // poster
-            if (!string.IsNullOrEmpty(anime.PosterPath)) updateImages |= !File.Exists(anime.PosterPath);
-
-            var seriesExists = RepoFactory.MediaSeries.GetByAnimeID(anime.AnimeID) != null;
-            if (seriesExists)
-            {
-                // characters
-                updateImages |= ShouldUpdateAniDBCharacterImages(settings, anime);
-
-                // creators
-                updateImages |= ShouldUpdateAniDBCreatorImages(settings, anime);
-            }
-
-            if (!updateImages) continue;
-            await scheduler.StartJob<GetAniDBImagesJob>(c =>
-            {
-                c.AnimeID = anime.AnimeID;
-                c.OnlyPosters = !seriesExists;
-            });
-        }
-
         // TMDB Images
         if (settings.TMDB.AutoDownloadPosters)
             await RunImport_DownloadTmdbImagesForType(_schedulerFactory, ImageEntityType.Poster, settings.TMDB.MaxAutoPosters);
@@ -387,38 +342,6 @@ public class ActionService
         }
     }
 
-    private static bool ShouldUpdateAniDBCreatorImages(IServerSettings settings, AniDB_Anime anime)
-    {
-        if (!settings.AniDb.DownloadCreators) return false;
-
-        foreach (var creator in RepoFactory.AniDB_Anime_Character_Creator.GetByAnimeID(anime.AnimeID).Select(a => a.Creator).WhereNotNull())
-        {
-            if (string.IsNullOrEmpty(creator.ImagePath)) continue;
-            if (!ImageExtensions.IsImageValid(creator.GetFullImagePath())) return true;
-        }
-
-        foreach (var creator in RepoFactory.AniDB_Anime_Staff.GetByAnimeID(anime.AnimeID).Select(a => RepoFactory.AniDB_Creator.GetByCreatorID(a.CreatorID)).WhereNotNull())
-        {
-            if (string.IsNullOrEmpty(creator.ImagePath)) continue;
-            if (!ImageExtensions.IsImageValid(creator.GetFullImagePath())) return true;
-        }
-
-        return false;
-    }
-
-    private static bool ShouldUpdateAniDBCharacterImages(IServerSettings settings, AniDB_Anime anime)
-    {
-        if (!settings.AniDb.DownloadCharacters) return false;
-
-        foreach (var chr in RepoFactory.AniDB_Character.GetCharactersForAnime(anime.AnimeID))
-        {
-            if (string.IsNullOrEmpty(chr.ImagePath)) continue;
-            if (!ImageExtensions.IsImageValid(chr.GetFullImagePath())) return true;
-        }
-
-        return false;
-    }
-
     public Task RunImport_ScanTMDB()
         => _tmdbService.ScanForMatches();
 
@@ -427,13 +350,6 @@ public class ActionService
 
     public Task RunImport_PurgeUnlinkedTmdbShowNetworks()
         => _tmdbService.PurgeUnlinkedShowNetworks();
-
-    public async Task RunImport_UpdateAllAniDB()
-    {
-        var refreshMethod = AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful | AnidbRefreshMethod.SkipTmdbUpdate;
-        foreach (var anime in RepoFactory.AniDB_Anime.GetAll())
-            await _anidbService.ScheduleRefreshOfAnime(anime, refreshMethod).ConfigureAwait(false);
-    }
 
     public async Task RemoveRecordsWithoutPhysicalFiles(bool removeMyList = true)
     {
@@ -559,9 +475,6 @@ public class ActionService
             seriesToUpdate.UnionWith(v.AnimeEpisodes.Select(a => a.MediaSeries)
                 .DistinctBy(a => a.MediaSeriesID));
 
-            if (removeMyList)
-                await ((VideoService)_videoService).ScheduleRemovalFromMyList(v);
-
             BaseRepository.Lock(session, v, (s, vl) =>
             {
                 using var transaction = s.BeginTransaction();
@@ -615,205 +528,6 @@ public class ActionService
         await Task.WhenAll(RepoFactory.MediaSeries.GetAll().Select(a => scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID ?? 0)));
     }
 
-    public async Task<int> UpdateAnidbReleaseInfo(bool countOnly = false)
-    {
-        _logger.LogInformation("Updating Missing AniDB_File Info");
-        var missingFiles = !_videoReleaseService.AutoMatchEnabled ? [] : RepoFactory.StoredReleaseInfo.GetAll()
-            .Where(r => r.ProviderName is "AniDB" && (string.IsNullOrEmpty(r.GroupID) || r.GroupSource is not "AniDB"))
-            .Select(a => RepoFactory.VideoLocal.GetByEd2kAndSize(a.ED2K, a.FileSize))
-            .WhereNotNull()
-            .Select(a => a)
-            .ToList();
-        if (!countOnly)
-        {
-            _logger.LogInformation("Queuing {Count} GetFile commands", missingFiles.Count);
-            foreach (var id in missingFiles)
-                await _videoReleaseService.ScheduleFindReleaseForVideo(id, force: true);
-
-            var incorrectGroups = RepoFactory.StoredReleaseInfo.GetAll()
-                .Where(r =>
-                    !string.IsNullOrEmpty(r.GroupID) &&
-                    r.GroupSource is "AniDB" &&
-                    int.TryParse(r.GroupID, out var groupID) && (
-                        string.IsNullOrEmpty(r.GroupName) ||
-                        string.IsNullOrEmpty(r.GroupShortName)
-                    )
-                )
-                .DistinctBy(a => a.GroupID)
-                .Select(a => int.Parse(a.GroupID))
-                .ToHashSet();
-            _logger.LogInformation("Queuing {Count} GetReleaseGroup commands", incorrectGroups.Count);
-            var scheduler = await _schedulerFactory.GetScheduler();
-            foreach (var a in incorrectGroups)
-                await scheduler.StartJob<GetAniDBReleaseGroupJob>(c => c.GroupID = a);
-        }
-
-        return missingFiles.Count;
-    }
-
-    public async Task CheckForUnreadNotifications(bool ignoreSchedule)
-    {
-        var settings = _settingsProvider.GetSettings();
-        if (!ignoreSchedule && settings.AniDb.Notification_UpdateFrequency == ScheduledUpdateFrequency.Never) return;
-
-        var schedule = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.AniDBNotify);
-        if (schedule == null)
-        {
-            schedule = new()
-            {
-                UpdateType = (int)ScheduledUpdateType.AniDBNotify,
-                UpdateDetails = string.Empty
-            };
-        }
-        else
-        {
-            var freqHours = Utils.GetScheduledHours(settings.AniDb.Notification_UpdateFrequency);
-            var tsLastRun = DateTime.Now - schedule.LastUpdate;
-
-            // The NOTIFY command must not be issued more than once every 20 minutes according to the AniDB UDP API documentation:
-            // https://wiki.anidb.net/UDP_API_Definition#NOTIFY:_Notifications
-            // We will use 30 minutes as a safe interval.
-            if (tsLastRun.TotalMinutes < 30) return;
-
-            // if we have run this in the last freqHours and are not forcing it, then exit
-            if (!ignoreSchedule && tsLastRun.TotalHours < freqHours) return;
-        }
-
-        schedule.LastUpdate = DateTime.Now;
-        RepoFactory.ScheduledUpdate.Save(schedule);
-
-        var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob<GetAniDBNotifyJob>();
-
-        // process any unhandled moved file messages
-        await RefreshAniDBMovedFiles(false);
-    }
-
-    public async Task RefreshAniDBMovedFiles(bool force)
-    {
-        var settings = _settingsProvider.GetSettings();
-        if (force || settings.AniDb.Notification_HandleMovedFiles)
-        {
-            var messages = RepoFactory.AniDB_Message.GetUnhandledFileMoveMessages();
-            if (messages.Count > 0)
-            {
-                var scheduler = await _schedulerFactory.GetScheduler();
-                foreach (var msg in messages)
-                {
-                    await scheduler.StartJob<ProcessFileMovedMessageJob>(c => c.MessageID = msg.MessageID);
-                }
-            }
-        }
-    }
-
-    public async Task CheckForCalendarUpdate(bool forceRefresh)
-    {
-        var settings = _settingsProvider.GetSettings();
-        if (settings.AniDb.Calendar_UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh) return;
-        var scheduler = await _schedulerFactory.GetScheduler();
-
-        var freqHours = Utils.GetScheduledHours(settings.AniDb.Calendar_UpdateFrequency);
-
-        // update the calendar every 12 hours
-        // we will always assume that an anime was downloaded via http first
-
-        var schedule = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.AniDBCalendar);
-        if (schedule != null)
-        {
-            // if we have run this in the last 12 hours and are not forcing it, then exit
-            var tsLastRun = DateTime.Now - schedule.LastUpdate;
-            if (tsLastRun.TotalHours < freqHours && !forceRefresh) return;
-        }
-
-        await scheduler.StartJob<GetAniDBCalendarJob>(c => c.ForceRefresh = forceRefresh);
-    }
-
-    public async Task CheckForAnimeUpdate()
-    {
-        var settings = _settingsProvider.GetSettings();
-        if (settings.AniDb.Anime_UpdateFrequency == ScheduledUpdateFrequency.Never) return;
-        var scheduler = await _schedulerFactory.GetScheduler();
-
-        var freqHours = Utils.GetScheduledHours(settings.AniDb.Anime_UpdateFrequency);
-
-        // check for any updated anime info every 12 hours
-
-        var schedule = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.AniDBUpdates);
-        if (schedule != null)
-        {
-            // if we have run this in the last 12 hours and are not forcing it, then exit
-            var tsLastRun = DateTime.Now - schedule.LastUpdate;
-            if (tsLastRun.TotalHours < freqHours) return;
-        }
-
-        await scheduler.StartJob<GetUpdatedAniDBAnimeJob>(c => c.ForceRefresh = true);
-    }
-
-    public async Task CheckForMyListSyncUpdate(bool forceRefresh)
-    {
-        var settings = _settingsProvider.GetSettings();
-        if (settings.AniDb.MyList_UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh) return;
-
-        var scheduler = await _schedulerFactory.GetScheduler();
-        var freqHours = Utils.GetScheduledHours(settings.AniDb.MyList_UpdateFrequency);
-
-        // update the calendar every 24 hours
-
-        var schedule = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.AniDBMyListSync);
-        if (schedule != null)
-        {
-            // if we have run this in the last 24 hours and are not forcing it, then exit
-            var tsLastRun = DateTime.Now - schedule.LastUpdate;
-            _logger.LogTrace("Last AniDB MyList Sync: {Time} minutes ago", tsLastRun.TotalMinutes);
-            if (tsLastRun.TotalHours < freqHours && !forceRefresh) return;
-        }
-
-        await scheduler.StartJob<SyncAniDBMyListJob>(c => c.ForceRefresh = forceRefresh);
-    }
-
-    public async Task CheckForAniDBFileUpdate(bool forceRefresh)
-    {
-        var settings = _settingsProvider.GetSettings();
-        if (settings.AniDb.File_UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh)
-            return;
-
-        // check for any updated anime info every 12 hours
-        var freqHours = Utils.GetScheduledHours(settings.AniDb.File_UpdateFrequency);
-        var schedule = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.AniDBFileUpdates);
-        if (schedule != null)
-        {
-            // if we have run this in the last 12 hours and are not forcing it, then exit
-            var tsLastRun = DateTime.Now - schedule.LastUpdate;
-            if (tsLastRun.TotalHours < freqHours && !forceRefresh) return;
-        }
-
-        // files which have been hashed, but don't have an associated episode
-        if (_videoReleaseService.AutoMatchEnabled)
-        {
-            var filesWithoutEpisode = RepoFactory.VideoLocal.GetVideosWithoutEpisode();
-            foreach (var vl in filesWithoutEpisode)
-            {
-                if (settings.Import.MaxAutoScanAttemptsPerFile != 0)
-                {
-                    var matchAttempts = RepoFactory.StoredReleaseInfo_MatchAttempt.GetByEd2kAndFileSize(vl.Hash, vl.FileSize).Count;
-                    if (matchAttempts > settings.Import.MaxAutoScanAttemptsPerFile)
-                        continue;
-                }
-
-                await _videoReleaseService.ScheduleFindReleaseForVideo(vl);
-            }
-        }
-
-        schedule ??= new()
-        {
-            UpdateType = (int)ScheduledUpdateType.AniDBFileUpdates,
-            UpdateDetails = string.Empty
-        };
-
-        schedule.LastUpdate = DateTime.Now;
-        RepoFactory.ScheduledUpdate.Save(schedule);
-    }
-
     public void CheckForPreviouslyIgnored()
     {
         try
@@ -841,184 +555,6 @@ public class ActionService
         {
             _logger.LogError(ex, "Error in CheckForPreviouslyIgnored: {Ex}", ex);
         }
-    }
-
-    public async Task DownloadMissingAnidbAnimeXmls()
-    {
-        // Check existing anime.
-        var index = 0;
-        var queuedAnimeSet = new HashSet<int>();
-        var localAnimeSet = RepoFactory.AniDB_Anime.GetAll()
-            .Select(a => a.AnimeID)
-            .OrderBy(a => a)
-            .ToHashSet();
-        _logger.LogInformation("Checking {AllAnimeCount} anime for missing XML files…", localAnimeSet.Count);
-        foreach (var animeID in localAnimeSet)
-        {
-            if (++index % 10 == 1 || index == localAnimeSet.Count)
-                _logger.LogInformation("Checking {AllAnimeCount} anime for missing XML files — {CurrentCount}/{AllAnimeCount}", localAnimeSet.Count, index + 1, localAnimeSet.Count);
-
-            var rawXml = await _xmlUtils.LoadAnimeHTTPFromFile(animeID);
-            if (rawXml != null)
-                continue;
-
-            _logger.LogDebug("Found anime {AnimeID} with missing XML", animeID);
-            await QueueAniDBRefresh(animeID, true, false, false, skipTmdbUpdate: true);
-            queuedAnimeSet.Add(animeID);
-        }
-    }
-
-    public async Task<bool> QueueAniDBRefresh(int animeID, bool force, bool downloadRelations, bool createSeriesEntry, bool immediate = false,
-        bool cacheOnly = false, bool skipTmdbUpdate = false)
-    {
-        if (animeID == 0)
-            return false;
-
-        var refreshMethod = AnidbRefreshMethod.None;
-        if (!cacheOnly)
-            refreshMethod |= AnidbRefreshMethod.Remote;
-        if (!force)
-            refreshMethod |= AnidbRefreshMethod.Cache;
-        if (downloadRelations)
-            refreshMethod |= AnidbRefreshMethod.DownloadRelations;
-        if (createSeriesEntry)
-            refreshMethod |= AnidbRefreshMethod.CreateDaCollectorSeries;
-        if (force || !cacheOnly)
-            refreshMethod |= AnidbRefreshMethod.DeferToRemoteIfUnsuccessful;
-        if (skipTmdbUpdate)
-            refreshMethod |= AnidbRefreshMethod.SkipTmdbUpdate;
-        if (immediate)
-        {
-            try
-            {
-                return await _anidbService.RefreshAnimeByID(animeID, refreshMethod).ConfigureAwait(false) is not null;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        await _anidbService.ScheduleRefreshOfAnimeByID(animeID, refreshMethod).ConfigureAwait(false);
-        return false;
-    }
-
-    public async Task ScheduleMissingAnidbAnimeForFiles()
-    {
-        // Attempt to fix cross-references with incomplete data.
-        var index = 0;
-        var videos = RepoFactory.VideoLocal.GetVideosWithMissingCrossReferenceData();
-        var unknownEpisodeDict = videos
-            .SelectMany(file => file.EpisodeCrossReferences)
-            .Where(xref => xref.AnimeID is 0)
-            .GroupBy(xref => xref.EpisodeID)
-            .ToDictionary(groupBy => groupBy.Key, groupBy => groupBy.ToList());
-        _logger.LogInformation("Attempting to fix {MissingAnimeCount} cross-references with unknown anime…", unknownEpisodeDict.Count);
-        foreach (var (episodeId, xrefs) in unknownEpisodeDict)
-        {
-            if (++index % 10 == 1)
-                _logger.LogInformation("Attempting to fix {MissingAnimeCount} cross-references with unknown anime — {CurrentCount}/{MissingAnimeCount}", unknownEpisodeDict.Count, index + 1, unknownEpisodeDict.Count);
-
-            var episode = RepoFactory.AniDB_Episode.GetByEpisodeID(episodeId);
-            if (episode is not null)
-            {
-                foreach (var xref in xrefs)
-                    xref.AnimeID = episode.AnimeID;
-                RepoFactory.CrossRef_File_Episode.Save(xrefs);
-                continue;
-            }
-
-            int? epAnimeID = null;
-            var epRequest = _requestFactory.Create<RequestGetEpisode>(r => r.EpisodeID = episodeId);
-            try
-            {
-                var epResponse = epRequest.Send();
-                epAnimeID = epResponse.Response?.AnimeID;
-            }
-            catch (Exception e)
-            {
-                _logger.LogError(e, "Could not get Episode Info for {EpisodeID}", episode.EpisodeID);
-            }
-
-            if (epAnimeID is not null)
-            {
-                foreach (var xref in xrefs)
-                    xref.AnimeID = epAnimeID.Value;
-                RepoFactory.CrossRef_File_Episode.Save(xrefs);
-            }
-        }
-
-        // Queue missing anime needed by existing files.
-        index = 0;
-        var localAnimeSet = RepoFactory.MediaSeries.GetAll()
-            .Where(a => a.AniDB_ID.HasValue)
-            .Select(a => a.AniDB_ID!.Value)
-            .ToHashSet();
-        var localEpisodeSet = RepoFactory.MediaEpisode.GetAll()
-            .Select(episode => episode.AniDB_EpisodeID)
-            .ToHashSet();
-        var missingAnimeSet = videos
-            .SelectMany(file => file.EpisodeCrossReferences)
-            .Where(xref => xref.AnimeID > 0 && (!localAnimeSet.Contains(xref.AnimeID) || !localEpisodeSet.Contains(xref.EpisodeID)))
-            .Select(xref => xref.AnimeID)
-            .ToHashSet();
-        var settings = _settingsProvider.GetSettings();
-        _logger.LogInformation("Queueing {MissingAnimeCount} anime that needs an update…", missingAnimeSet.Count);
-        var refreshMethod = AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful | AnidbRefreshMethod.SkipTmdbUpdate | AnidbRefreshMethod.CreateDaCollectorSeries;
-        if (settings.AutoGroupSeries || settings.AniDb.DownloadRelatedAnime)
-            refreshMethod |= AnidbRefreshMethod.DownloadRelations;
-        foreach (var animeID in missingAnimeSet)
-        {
-            if (++index % 10 == 1 || index == missingAnimeSet.Count)
-                _logger.LogInformation("Queueing {MissingAnimeCount} anime that needs an update — {CurrentCount}/{MissingAnimeCount}", missingAnimeSet.Count, index + 1, missingAnimeSet.Count);
-
-            await _anidbService.ScheduleRefreshOfAnimeByID(animeID, refreshMethod);
-        }
-    }
-
-    public async Task ScheduleMissingAnidbCreators()
-    {
-        if (!_settingsProvider.GetSettings().AniDb.DownloadCreators) return;
-
-        var allCreators = RepoFactory.AniDB_Creator.GetAll();
-        var allMissingCreators = allCreators
-                .Where(creator => creator.Type is Providers.AniDB.CreatorType.Unknown)
-                .Select(creator => creator.CreatorID)
-                .Distinct()
-                .ToList();
-
-        var startedAt = DateTime.Now;
-        _logger.LogInformation("Scheduling {Count} AniDB Creators for a refresh.", allMissingCreators.Count);
-        var scheduler = await _schedulerFactory.GetScheduler().ConfigureAwait(false);
-        var progressCount = 0;
-        foreach (var creatorID in allMissingCreators)
-        {
-            await scheduler.StartJob<GetAniDBCreatorJob>(c => c.CreatorID = creatorID).ConfigureAwait(false);
-
-            if (++progressCount % 10 == 0)
-                _logger.LogInformation("Scheduling {Count} AniDB Creators for a refresh. (Progress={Count}/{Total})", allMissingCreators.Count, progressCount, allMissingCreators.Count);
-        }
-
-        _logger.LogInformation("Scheduled {Count} AniDB Creators in {TimeSpan}", allMissingCreators.Count, DateTime.Now - startedAt);
-    }
-
-    public async Task CreateMissingSeries()
-    {
-        var scheduler = await _schedulerFactory.GetScheduler().ConfigureAwait(false);
-        var missingSeries = RepoFactory.VideoLocal.GetAll().SelectMany(vid =>
-        {
-            var xrefs = RepoFactory.CrossRef_File_Episode.GetByEd2k(vid.Hash);
-            var MetadataAnime = xrefs.Select(a => RepoFactory.AniDB_Anime.GetByAnimeID(a.AnimeID)).WhereNotNull();
-            return MetadataAnime.Where(a => RepoFactory.MediaSeries.GetByAnimeID(a.AnimeID) == null);
-        }).ToList();
-
-        _logger.LogInformation("Creating {Count} Series that are missing.", missingSeries.Count);
-
-        var methods = AnidbRefreshMethod.Cache | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful | AnidbRefreshMethod.CreateDaCollectorSeries;
-        foreach (var MetadataAnime in missingSeries)
-            await _anidbService.ScheduleRefreshOfAnime(MetadataAnime, methods, prioritize: false);
-
-        _logger.LogInformation("Queued Creation of {Count} Series that were missing.", missingSeries.Count);
     }
 
     /// <summary>

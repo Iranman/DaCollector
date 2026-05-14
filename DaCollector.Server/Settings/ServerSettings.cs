@@ -81,12 +81,6 @@ public class ServerSettings : IServerSettings, INewtonsoftJsonConfiguration, IHi
     public bool AutoGroupSeries { get; set; }
 
     /// <inheritdoc />
-    public List<string> AutoGroupSeriesRelationExclusions { get; set; } = ["same setting", "character", "other"];
-
-    /// <inheritdoc />
-    public bool AutoGroupSeriesUseScoreAlgorithm { get; set; }
-
-    /// <inheritdoc />
     [Badge("Advanced", Theme = DisplayColorTheme.Primary)]
     [Visibility(Advanced = true)]
     public bool LoadImageMetadata { get; set; } = false;
@@ -103,14 +97,6 @@ public class ServerSettings : IServerSettings, INewtonsoftJsonConfiguration, IHi
 
     /// <inheritdoc />
     public ImportSettings Import { get; set; } = new();
-
-    /// <summary>
-    /// Configure the information DaCollector retrieves from AniDB for the series in
-    /// your collection, and set your preferences for MyList options and the
-    /// general updating of AniDB data.
-    /// </summary>
-    [Display(Name = "AniDB")]
-    public AniDbSettings AniDb { get; set; } = new();
 
     /// <summary>
     /// Configure the information DaCollector retrieves from TMDB for the series in

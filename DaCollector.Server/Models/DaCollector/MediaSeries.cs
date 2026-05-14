@@ -21,7 +21,6 @@ using DaCollector.Server.Models.CrossReference;
 using DaCollector.Server.Models.DaCollector.Embedded;
 using DaCollector.Server.Models.TMDB;
 using DaCollector.Server.Models.TVDB;
-using DaCollector.Server.Providers.AniDB.Titles;
 using DaCollector.Server.Providers.TMDB;
 using DaCollector.Server.Repositories;
 using DaCollector.Server.Server;
@@ -202,13 +201,6 @@ public class MediaSeries : IDaCollectorSeries
 
                 if (TMDB_MovieID.HasValue && RepoFactory.TMDB_Movie.GetByTmdbMovieID(TMDB_MovieID.Value) is { } tmdbMovie && !string.IsNullOrEmpty(tmdbMovie.EnglishTitle))
                     return _defaultTitle = new TitleStub { Language = TitleLanguage.English, LanguageCode = "en", Value = tmdbMovie.EnglishTitle, Source = DataSource.TMDB };
-
-                if (AniDB_ID is not null and not 0)
-                {
-                    var titleHelper = Utils.ServiceContainer.GetRequiredService<AniDBTitleHelper>();
-                    if (titleHelper.SearchAnimeID(AniDB_ID.Value) is { } titleResponse && titleResponse.Titles.FirstOrDefault(title => title.TitleType == TitleType.Main) is { } defaultTitle)
-                        return _defaultTitle = defaultTitle;
-                }
 
                 return _defaultTitle = new TitleStub()
                 {

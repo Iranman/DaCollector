@@ -5,10 +5,10 @@ using DaCollector.Abstractions.Extensions;
 using DaCollector.Abstractions.Metadata;
 using DaCollector.Abstractions.Metadata.Containers;
 using DaCollector.Server.Extensions;
-using DaCollector.Server.Providers.AniDB;
 using DaCollector.Server.Repositories;
 
 using AbstractCreatorType = DaCollector.Abstractions.Metadata.Enums.CreatorType;
+using CreatorType = DaCollector.Abstractions.Metadata.Enums.CreatorType;
 using DataSource = DaCollector.Abstractions.Metadata.Enums.DataSource;
 
 #nullable enable
@@ -75,14 +75,7 @@ public class AniDB_Creator : ICreator
 
     #endregion
 
-    public AbstractCreatorType AbstractType => Type switch
-    {
-        CreatorType.Person => AbstractCreatorType.Person,
-        CreatorType.Company => AbstractCreatorType.Company,
-        CreatorType.Collaboration => AbstractCreatorType.Collaboration,
-        CreatorType.Other => AbstractCreatorType.Other,
-        _ => AbstractCreatorType.Unknown,
-    };
+    public AbstractCreatorType AbstractType => Type;
 
     public IReadOnlyList<AniDB_Anime_Character_Creator> Characters
         => RepoFactory.AniDB_Anime_Character_Creator.GetByCreatorID(CreatorID);

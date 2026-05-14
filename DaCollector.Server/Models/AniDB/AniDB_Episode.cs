@@ -104,9 +104,19 @@ public class AniDB_Episode : IEpisode, IAnidbEpisode
         return useFallback ? DefaultTitle : null;
     }
 
-    public DateTime? GetAirDateAsDate() => Providers.AniDB.AniDBExtensions.GetAniDBDateAsDate(AirDate);
+    public DateTime? GetAirDateAsDate()
+    {
+        if (AirDate <= 0) return null;
+        return DateTime.TryParseExact(AirDate.ToString("00000000"), "yyyyMMdd",
+            System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var dt) ? dt : null;
+    }
 
-    public DateOnly? GetAirDateAsDateOnly() => Providers.AniDB.AniDBExtensions.GetAniDBDateAsDateOnly(AirDate);
+    public DateOnly? GetAirDateAsDateOnly()
+    {
+        if (AirDate <= 0) return null;
+        return DateOnly.TryParseExact(AirDate.ToString("00000000"), "yyyyMMdd",
+            System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var d) ? d : null;
+    }
 
     public bool HasAired
     {

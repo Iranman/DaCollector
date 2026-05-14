@@ -18,8 +18,6 @@ namespace DaCollector.Server.Scheduling.Jobs.DaCollector;
 
 [DatabaseRequired]
 [LimitConcurrency(4)]
-[AniDBUdpRateLimited]
-[DisallowConcurrencyGroup(ConcurrencyGroups.AniDB_UDP)]
 [JobKeyGroup(JobKeyGroup.Import)]
 public class ProcessFileJob : BaseJob
 {

@@ -72,7 +72,9 @@ public class SettingsProvider : ISettingsProvider, IDisposable
             _seriesTitleLanguageOrder = eventArgs.Configuration.Language.SeriesTitleLanguageOrder.ToArray();
             Languages.PreferredNamingLanguages = [];
 
-            // Reset all preferred titles when the language setting has been updated.
+            // Resolved from the static container to break a circular dependency:
+            // SettingsProvider → MediaSeriesRepository → DatabaseFactory → SettingsProvider.
+            // Constructor injection would create a cycle; deferred runtime resolution is intentional.
             var MediaSeriesRepository = Utils.ServiceContainer.GetRequiredService<MediaSeriesRepository>();
             var anidbAnimeRepository = Utils.ServiceContainer.GetRequiredService<AniDB_AnimeRepository>();
             Parallel.ForEach(MediaSeriesRepository.GetAll(), new() { MaxDegreeOfParallelism = 10 }, series => series.ResetPreferredTitle());

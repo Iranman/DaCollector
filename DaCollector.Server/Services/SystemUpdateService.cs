@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Net.Http;
@@ -445,7 +446,7 @@ public partial class SystemUpdateService : ISystemUpdateService
         public string Version { get; set; } = "1.0.0";
 
         [JsonIgnore]
-        public Version VersionAsVersion => new(Version.Replace("-dev", ""));
+        public Version VersionAsVersion => ParseVersionSafe(Version) ?? new(0, 0, 0);
 
         /// <summary>
         /// Minimum DaCollector version compatible with the Web UI.
@@ -459,9 +460,7 @@ public partial class SystemUpdateService : ISystemUpdateService
         [JsonIgnore]
         public Version? MinimumServerVersion
         {
-            get => MinimumServerVersionAsString is { Length: > 0 }
-                ? new(MinimumServerVersionAsString.Replace("-dev", ""))
-                : null;
+            get => ParseVersionSafe(MinimumServerVersionAsString);
             set
             {
                 if (value is null)
@@ -488,8 +487,47 @@ public partial class SystemUpdateService : ISystemUpdateService
         /// <summary>
         /// Release date for web ui release.
         /// </summary>
-        [JsonProperty("date", NullValueHandling = NullValueHandling.Ignore)]
+        [JsonIgnore]
         public DateTime? Date { get; set; } = null;
+
+        [JsonProperty("date", NullValueHandling = NullValueHandling.Ignore)]
+        private string? DateAsString
+        {
+            get => Date?.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture);
+            set => Date = DateTime.TryParse(
+                value,
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal,
+                out var parsed)
+                ? parsed
+                : null;
+        }
+
+        private static Version? ParseVersionSafe(string? raw)
+        {
+            if (string.IsNullOrWhiteSpace(raw))
+                return null;
+
+            var version = raw.Trim().TrimStart('v', 'V');
+            var suffixIndex = version.IndexOfAny(['-', '+']);
+            if (suffixIndex >= 0)
+                version = version[..suffixIndex];
+
+            var parts = version.Split('.');
+            if (parts.Length is < 1 or > 4)
+                return new(0, 0, 0);
+
+            var numbers = new int[4];
+            for (var i = 0; i < parts.Length; i++)
+            {
+                if (!int.TryParse(parts[i], NumberStyles.None, CultureInfo.InvariantCulture, out numbers[i]) || numbers[i] < 0)
+                    return new(0, 0, 0);
+            }
+
+            return parts.Length == 4
+                ? new Version(numbers[0], numbers[1], numbers[2], numbers[3])
+                : new Version(numbers[0], parts.Length > 1 ? numbers[1] : 0, parts.Length > 2 ? numbers[2] : 0);
+        }
 
         [JsonIgnore]
         private ReleaseChannel? _channel = null;

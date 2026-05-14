@@ -14,7 +14,6 @@ using DaCollector.Abstractions.Video.Services;
 using DaCollector.Server.Extensions;
 using DaCollector.Server.Models.AniDB;
 using DaCollector.Server.Models.DaCollector;
-using DaCollector.Server.Providers.AniDB;
 using DaCollector.Server.Repositories;
 using DaCollector.Server.Repositories.Cached;
 using DaCollector.Server.Scheduling;
@@ -355,7 +354,7 @@ public class MediaSeriesService
                 // Get all groups which have their status set to complete or finished or have released this episode
                 var filteredGroups = grpStatuses
                     .Where(
-                        a => a.CompletionState is (int)Group_CompletionStatus.Complete or (int)Group_CompletionStatus.Finished
+                        a => a.CompletionState is 3 or 5 // Complete or Finished
                              || a.HasGroupReleasedEpisode(thisEpNum))
                     .ToList();
                 // Episode is released if any of the groups have released it

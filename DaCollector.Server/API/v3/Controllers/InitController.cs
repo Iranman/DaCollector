@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -9,14 +10,15 @@ using DaCollector.Abstractions.Core;
 using DaCollector.Abstractions.Core.Services;
 using DaCollector.Abstractions.Extensions;
 using DaCollector.Abstractions.User.Services;
+using DaCollector.Abstractions.Utilities;
 using DaCollector.Abstractions.Web.Attributes;
 using DaCollector.Server.API.Annotations;
 using DaCollector.Server.API.v3.Models.Common;
 using DaCollector.Server.Databases;
 using DaCollector.Server.MediaInfo;
-using DaCollector.Server.Providers.AniDB.Interfaces;
 using DaCollector.Server.Providers.TMDB;
 using DaCollector.Server.Providers.TVDB;
+using DaCollector.Server.Repositories;
 using DaCollector.Server.Services;
 using DaCollector.Server.Settings;
 
@@ -38,8 +40,6 @@ public class InitController : BaseController
     private readonly ILogger<InitController> _logger;
     private readonly SystemService _systemService;
     private readonly IConnectivityService _connectivityService;
-    private readonly IUDPConnectionHandler _udpHandler;
-    private readonly IHttpConnectionHandler _httpHandler;
     private readonly ISystemUpdateService _webUIUpdateService;
     private readonly TmdbMetadataService _tmdbService;
     private readonly TvdbMetadataService _tvdbService;
@@ -50,8 +50,6 @@ public class InitController : BaseController
         SystemService systemService,
         ISettingsProvider settingsProvider,
         IConnectivityService connectivityService,
-        IUDPConnectionHandler udpHandler,
-        IHttpConnectionHandler httpHandler,
         ISystemUpdateService webUIUpdateService,
         TmdbMetadataService tmdbService,
         TvdbMetadataService tvdbService,
@@ -61,8 +59,6 @@ public class InitController : BaseController
         _logger = logger;
         _systemService = systemService;
         _connectivityService = connectivityService;
-        _udpHandler = udpHandler;
-        _httpHandler = httpHandler;
         _webUIUpdateService = webUIUpdateService;
         _tmdbService = tmdbService;
         _tvdbService = tvdbService;
@@ -178,9 +174,6 @@ public class InitController : BaseController
         {
             NetworkAvailability = _connectivityService.NetworkAvailability,
             LastChangedAt = _connectivityService.LastChangedAt,
-            IsAniDBUdpReachable = _udpHandler.IsAlive && _udpHandler.IsNetworkAvailable,
-            IsAniDBUdpBanned = _udpHandler.IsBanned,
-            IsAniDBHttpBanned = _httpHandler.IsBanned
         };
     }
 
@@ -464,6 +457,83 @@ public class InitController : BaseController
         return Ok(new LoginVerificationResult(true, apiKey, null));
     }
 
+    #region Repair
+
+    /// <summary>
+    /// Returns a diagnostic snapshot of DB health, folder count, Plex/TMDB config, and WebUI version.
+    /// </summary>
+    [Authorize("admin")]
+    [HttpGet("Repair/Status")]
+    public ActionResult<RepairStatusResult> GetRepairStatus()
+    {
+        var settings = SettingsProvider.GetSettings();
+
+        var dbOk = settings.Database.Type switch
+        {
+            Constants.DatabaseType.MySQL => new MySQL(_systemService).TestConnection(),
+            Constants.DatabaseType.SQLServer => new SQLServer(_systemService).TestConnection(),
+            _ => new SQLite(_systemService).TestConnection(),
+        };
+
+        var folderCount = RepoFactory.DaCollectorManagedFolder.GetAll().Count;
+        var plexConfigured = !string.IsNullOrWhiteSpace(settings.Plex.TargetToken)
+            && !string.IsNullOrWhiteSpace(settings.Plex.TargetBaseUrl);
+        var tmdbConfigured = !string.IsNullOrWhiteSpace(settings.TMDB.UserApiKey);
+
+        var currentVer = _webUIUpdateService.LoadWebComponentVersionInformation();
+        var includedVer = _webUIUpdateService.LoadIncludedWebComponentVersionInformation();
+        var webUIUpToDate = includedVer is null
+            || (currentVer is not null && new SemverVersionComparer().Compare(includedVer.Version, currentVer.Version) <= 0);
+
+        return Ok(new RepairStatusResult
+        {
+            DatabaseOk = dbOk,
+            ManagedFolderCount = folderCount,
+            PlexConfigured = plexConfigured,
+            TmdbConfigured = tmdbConfigured,
+            WebUIVersion = currentVer?.Version.ToSemanticVersioningString(),
+            WebUIBundledVersion = includedVer?.Version.ToSemanticVersioningString(),
+            WebUIUpToDate = webUIUpToDate,
+        });
+    }
+
+    /// <summary>
+    /// Force-copies the bundled WebUI files to the data directory, replacing the current installation.
+    /// Takes effect immediately — no restart required.
+    /// </summary>
+    [Authorize("admin")]
+    [HttpPost("Repair/WebUI")]
+    public ActionResult RepairWebUI()
+    {
+        var webUIDir = new DirectoryInfo(ApplicationPaths.Instance.WebPath);
+        var backupDir = new DirectoryInfo(Path.Combine(ApplicationPaths.Instance.ApplicationPath, "webui"));
+
+        if (!backupDir.Exists)
+            return BadRequest("No bundled WebUI files found to restore from.");
+
+        try
+        {
+            CopyWebUIFilesRecursively(backupDir, webUIDir);
+            return Ok();
+        }
+        catch (Exception e)
+        {
+            return StatusCode(500, e.Message);
+        }
+    }
+
+    private static void CopyWebUIFilesRecursively(DirectoryInfo source, DirectoryInfo target)
+    {
+        if (target.Exists) target.Delete(recursive: true);
+        target.Create();
+        foreach (var dir in source.GetDirectories())
+            CopyWebUIFilesRecursively(dir, target.CreateSubdirectory(dir.Name));
+        foreach (var file in source.GetFiles())
+            file.CopyTo(Path.Combine(target.FullName, file.Name));
+    }
+
+    #endregion
+
     #region Setup Input/Output Models
 
     public record TmdbProviderInput(string? ApiKey);
@@ -500,6 +570,17 @@ public class InitController : BaseController
     public record TelemetryInfo
     {
         public bool OptOut { get; init; }
+    }
+
+    public record RepairStatusResult
+    {
+        public bool DatabaseOk { get; init; }
+        public int ManagedFolderCount { get; init; }
+        public bool PlexConfigured { get; init; }
+        public bool TmdbConfigured { get; init; }
+        public string? WebUIVersion { get; init; }
+        public string? WebUIBundledVersion { get; init; }
+        public bool WebUIUpToDate { get; init; }
     }
 
     #endregion

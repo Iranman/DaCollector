@@ -990,6 +990,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(167,  1, "CREATE TABLE CrossRef_File_TvdbEpisode ( CrossRef_File_TvdbEpisodeID INT IDENTITY(1,1) PRIMARY KEY, VideoLocalID INT NOT NULL, TvdbEpisodeID INT NOT NULL, Percentage INT NOT NULL DEFAULT 100, EpisodeOrder INT NOT NULL DEFAULT 1, IsManuallyLinked BIT NOT NULL DEFAULT 0, CreatedAt DATETIME NOT NULL, UpdatedAt DATETIME NOT NULL );"),
         new(167,  2, "CREATE INDEX IX_CrossRef_File_TvdbEpisode_VideoLocalID ON CrossRef_File_TvdbEpisode(VideoLocalID);"),
         new(167,  3, "CREATE INDEX IX_CrossRef_File_TvdbEpisode_TvdbEpisodeID ON CrossRef_File_TvdbEpisode(TvdbEpisodeID);"),
+        new(168,  1, "ALTER TABLE MediaGroup ADD TmdbCollectionID INT NULL;"),
     ];
 
     #endregion

@@ -29,16 +29,6 @@ public interface IServerSettings
     bool AutoGroupSeries { get; set; }
 
     /// <summary>
-    /// The list of relation types to exclude from auto grouping.
-    /// </summary>
-    List<string> AutoGroupSeriesRelationExclusions { get; set; }
-
-    /// <summary>
-    /// Use the score algorithm for auto grouping.
-    /// </summary>
-    bool AutoGroupSeriesUseScoreAlgorithm { get; set; }
-
-    /// <summary>
     /// Load image metadata from the file system and send to the clients.
     /// </summary>
     bool LoadImageMetadata { get; set; }
@@ -67,11 +57,6 @@ public interface IServerSettings
     /// The language settings.
     /// </summary>
     LanguageSettings Language { get; set; }
-
-    /// <summary>
-    /// The AniDB settings.
-    /// </summary>
-    AniDbSettings AniDb { get; set; }
 
     /// <summary>
     /// The TMDB settings.

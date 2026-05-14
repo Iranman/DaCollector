@@ -9,7 +9,6 @@ using DaCollector.Server.Repositories;
 using DaCollector.Server.Scheduling.Acquisition.Attributes;
 using DaCollector.Server.Scheduling.Attributes;
 using DaCollector.Server.Scheduling.Concurrency;
-using DaCollector.Server.Scheduling.Jobs.AniDB;
 using DaCollector.Server.Scheduling.Jobs.TMDB;
 using DaCollector.Server.Settings;
 
@@ -74,62 +73,6 @@ public class ValidateAllImagesJob : BaseJob
             }
         }
 
-        count = 0;
-        UpdateProgress(" - AniDB Posters");
-        _logger.LogInformation(ScanForType, "AniDB posters");
-        var animeList = RepoFactory.AniDB_Anime.GetAll()
-            .Where(anime => !string.IsNullOrEmpty(anime.Picname) && !anime.GetImageMetadata().IsLocalAvailable)
-            .ToList();
-
-        _logger.LogInformation(FoundCorruptedOfType, animeList.Count, animeList.Count == 1 ? "AniDB poster" : "AniDB posters");
-        foreach (var anime in animeList)
-        {
-            _logger.LogTrace(CorruptImageFound, anime.PosterPath);
-            await RemoveImageAndQueueDownload<DownloadAniDBImageJob>(ImageEntityType.Poster, anime.AnimeID, anime.MainTitle);
-            if (++count % 10 != 0) continue;
-            _logger.LogInformation(ReQueueingForDownload, count, animeList.Count);
-            UpdateProgress($" - AniDB Posters - {count}/{animeList.Count}");
-        }
-
-        if (_settings.AniDb.DownloadCharacters)
-        {
-            count = 0;
-            UpdateProgress(" - AniDB Characters");
-            _logger.LogInformation(ScanForType, "AniDB characters");
-            var characters = RepoFactory.AniDB_Character.GetAll()
-                .Where(character => !(character.GetImageMetadata()?.IsLocalAvailable ?? true))
-                .ToList();
-
-            _logger.LogInformation(FoundCorruptedOfType, characters.Count, characters.Count == 1 ? "AniDB Character" : "AniDB Characters");
-            foreach (var character in characters)
-            {
-                _logger.LogTrace(CorruptImageFound, character.GetFullImagePath());
-                await RemoveImageAndQueueDownload<DownloadAniDBImageJob>(ImageEntityType.Character, character.CharacterID);
-                if (++count % 10 != 0) continue;
-                _logger.LogInformation(ReQueueingForDownload, count, characters.Count);
-                UpdateProgress($" - AniDB Characters - {count}/{characters.Count}");
-            }
-        }
-
-        if (_settings.AniDb.DownloadCreators)
-        {
-            count = 0;
-            UpdateProgress(" - AniDB Creators");
-            _logger.LogInformation(ScanForType, "AniDB Creator");
-            var creators = RepoFactory.AniDB_Creator.GetAll()
-                .Where(creator => !(creator.GetImageMetadata()?.IsLocalAvailable ?? true))
-                .ToList();
-
-            _logger.LogInformation(FoundCorruptedOfType, creators.Count, "AniDB Creator");
-            foreach (var creator in creators)
-            {
-                _logger.LogTrace(CorruptImageFound, creator.GetFullImagePath());
-                await RemoveImageAndQueueDownload<DownloadAniDBImageJob>(ImageEntityType.Creator, creator.CreatorID);
-                if (++count % 10 != 0) continue;
-                _logger.LogInformation(ReQueueingForDownload, count, creators.Count);
-                UpdateProgress($" - AniDB Creators - {count}/{creators.Count}");
-            }
-        }
     }
 
     private async Task RemoveImageAndQueueDownload<T>(ImageEntityType entityTypeEnum, int entityID, string? parentName = null) where T : class, IImageDownloadJob

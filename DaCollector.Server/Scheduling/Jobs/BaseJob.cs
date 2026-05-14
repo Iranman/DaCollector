@@ -6,8 +6,6 @@ using JetBrains.Annotations;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Quartz;
-using DaCollector.Server.Providers.AniDB;
-using DaCollector.Server.Providers.AniDB.UDP.Exceptions;
 
 namespace DaCollector.Server.Scheduling.Jobs;
 
@@ -31,18 +29,6 @@ public abstract class BaseJob : IJob
         try
         {
             await Process();
-        }
-        catch (NotLoggedInException)
-        {
-            await context.RescheduleJob();
-        }
-        catch (LoginFailedException)
-        {
-            await context.RescheduleJob();
-        }
-        catch (AniDBBannedException)
-        {
-            await context.RescheduleJob();
         }
         catch (Exception ex)
         {

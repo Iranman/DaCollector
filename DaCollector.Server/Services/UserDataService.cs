@@ -18,7 +18,6 @@ using DaCollector.Server.Models.DaCollector;
 using DaCollector.Server.Providers.TraktTV;
 using DaCollector.Server.Repositories.Cached;
 using DaCollector.Server.Scheduling;
-using DaCollector.Server.Scheduling.Jobs.AniDB;
 using DaCollector.Server.Scheduling.Jobs.Trakt;
 using DaCollector.Server.Settings;
 
@@ -271,21 +270,6 @@ public class UserDataService(
                 }
             }
 
-            var settings = settingsProvider.GetSettings();
-            var syncAnidb = user.IsAnidbUser &&
-                !(reason is VideoUserDataSaveReason.Import && importSource is "AniDB") &&
-                ((userDataUpdate.LastPlayedAt.HasValue && settings.AniDb.MyList_SetWatched) || (!userDataUpdate.LastPlayedAt.HasValue && settings.AniDb.MyList_SetUnwatched));
-            if (syncAnidb)
-            {
-                var scheduler = await schedulerFactory.GetScheduler();
-                await scheduler.StartJob<UpdateMyListFileStatusJob>(c =>
-                {
-                    c.Hash = video.ED2K;
-                    c.Watched = userDataUpdate.LastPlayedAt.HasValue;
-                    c.UpdateSeriesStats = false;
-                    c.WatchedDate = userDataUpdate.LastPlayedAt?.ToUniversalTime();
-                });
-            }
         }
 
         // We run these events _after_ invoking the above event(s) so the series event(s) are fired after the episode and video event(s).
@@ -479,16 +463,6 @@ public class UserDataService(
             userData.LastUpdated = userDataUpdate.LastUpdatedAt ?? DateTime.Now;
             episodeUserDataRepository.Save(userData);
 
-            if (user.IsAnidbUser && reason.HasFlag(EpisodeUserDataSaveReason.UserRating))
-            {
-                // Schedule the AniDB vote job
-                var scheduler = await schedulerFactory.GetScheduler();
-                await scheduler.StartJob<VoteAniDBEpisodeJob>(c =>
-                {
-                    c.EpisodeID = episode.AnidbEpisodeID;
-                    c.VoteValue = userData.UserRating ?? -1;
-                });
-            }
 
             SendEvent(episode, user, userData, reason, importSource, videoReason);
         }
@@ -778,16 +752,12 @@ public class UserDataService(
             }
         }
 
-        var providerVoteType = Providers.AniDB.VoteType.AnimeTemporary;
         if (userDataUpdate.HasSetUserRating)
         {
             if (!userDataUpdate.HasUserRating)
             {
                 if (userData.HasUserRating)
                 {
-                    providerVoteType = userData.UserRatingVoteType is SeriesVoteType.Permanent
-                        ? Providers.AniDB.VoteType.AnimePermanent
-                        : Providers.AniDB.VoteType.AnimeTemporary;
                     userData.UserRating = null;
                     userData.UserRatingVoteType = null;
                     shouldSave = true;
@@ -796,9 +766,6 @@ public class UserDataService(
             }
             else
             {
-                providerVoteType = userDataUpdate.UserRatingVoteType is SeriesVoteType.Permanent
-                    ? Providers.AniDB.VoteType.AnimePermanent
-                    : Providers.AniDB.VoteType.AnimeTemporary;
                 if (userData.UserRating != userDataUpdate.UserRating || userData.UserRatingVoteType != userDataUpdate.UserRatingVoteType)
                 {
                     userData.UserRating = userDataUpdate.UserRating;
@@ -813,18 +780,6 @@ public class UserDataService(
         {
             userData.LastUpdated = DateTime.Now;
             seriesUserDataRepository.Save(userData);
-
-            if (user.IsAnidbUser && reason.HasFlag(SeriesUserDataSaveReason.UserRating))
-            {
-                // Schedule the AniDB vote job
-                var scheduler = await schedulerFactory.GetScheduler();
-                await scheduler.StartJob<VoteAniDBAnimeJob>(c =>
-                {
-                    c.AnimeID = series.AnidbAnimeID;
-                    c.VoteType = providerVoteType;
-                    c.VoteValue = userData.UserRating ?? -1;
-                });
-            }
 
             SendEvent(series, user, userData, reason, importSource, videoReason);
         }

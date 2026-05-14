@@ -1089,6 +1089,7 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(172,  1, "CREATE TABLE `CrossRef_File_TvdbEpisode` ( `CrossRef_File_TvdbEpisodeID` INT NOT NULL AUTO_INCREMENT, `VideoLocalID` INT NOT NULL, `TvdbEpisodeID` INT NOT NULL, `Percentage` INT NOT NULL DEFAULT 100, `EpisodeOrder` INT NOT NULL DEFAULT 1, `IsManuallyLinked` TINYINT(1) NOT NULL DEFAULT 0, `CreatedAt` DATETIME NOT NULL, `UpdatedAt` DATETIME NOT NULL, PRIMARY KEY (`CrossRef_File_TvdbEpisodeID`) );"),
         new(172,  2, "CREATE INDEX IX_CrossRef_File_TvdbEpisode_VideoLocalID ON CrossRef_File_TvdbEpisode(VideoLocalID);"),
         new(172,  3, "CREATE INDEX IX_CrossRef_File_TvdbEpisode_TvdbEpisodeID ON CrossRef_File_TvdbEpisode(TvdbEpisodeID);"),
+        new(173,  1, "ALTER TABLE `MediaGroup` ADD COLUMN `TmdbCollectionID` INT NULL;"),
     ];
 
     #endregion

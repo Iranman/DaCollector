@@ -117,9 +117,7 @@ public static class QuartzStartup
             (ThreadPooledJobStore)s.GetServices<IJobStore>().FirstOrDefault(a => a.GetType() == typeof(ThreadPooledJobStore)));
         services.AddSingleton<QueueHandler>();
         services.AddSingleton<QueueStateEventHandler>();
-        services.AddSingleton<IAcquisitionFilter, AniDBHttpRateLimitedAcquisitionFilter>();
-        services.AddSingleton<IAcquisitionFilter, AniDBUdpRateLimitedAcquisitionFilter>();
-        services.AddSingleton<IAcquisitionFilter, DatabaseRequiredAcquisitionFilter>();
+services.AddSingleton<IAcquisitionFilter, DatabaseRequiredAcquisitionFilter>();
         services.AddSingleton<IAcquisitionFilter, NetworkRequiredAcquisitionFilter>();
         services.AddJobs();
         services.AddQuartz(q =>

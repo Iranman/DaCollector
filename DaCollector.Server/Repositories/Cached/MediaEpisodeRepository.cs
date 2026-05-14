@@ -255,7 +255,7 @@ GROUP BY
 
                 var filteredGroups = animeGroupStatuses
                     .Where(status =>
-                        status.CompletionState is (int)Providers.AniDB.Group_CompletionStatus.Complete or (int)Providers.AniDB.Group_CompletionStatus.Finished ||
+                        status.CompletionState is 3 or 5 || // Complete or Finished
                         status.HasGroupReleasedEpisode(MetadataEpisode.EpisodeNumber)
                     )
                     .ToList();

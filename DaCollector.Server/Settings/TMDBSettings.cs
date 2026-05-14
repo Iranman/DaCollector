@@ -228,4 +228,14 @@ public class TMDBSettings
     [RequiresRestart]
     [PasswordPropertyText]
     public string? UserApiKey { get; set; } = null;
+
+    /// <summary>
+    /// Reserved for future use when direct HTTP calls replace TMDbLib.
+    /// Override the TMDB API base URL, e.g. for regional mirrors or self-hosted proxies.
+    /// </summary>
+    [Badge("Advanced", Theme = DisplayColorTheme.Primary)]
+    [Visibility(Advanced = true)]
+    [EnvironmentVariable("TMDB_BASE_URL")]
+    [RequiresRestart]
+    public string? BaseUrl { get; set; } = null;
 }

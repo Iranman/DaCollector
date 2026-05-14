@@ -1,0 +1,788 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>DaCollector Integrity Check</title>
+    <style>
+        :root {
+            color-scheme: dark;
+            --bg: #0A0A0A;
+            --side: #0D0D0D;
+            --panel: #1C1C1C;
+            --panel-2: #141414;
+            --line: #2A2A2A;
+            --text: #D4C5A9;
+            --muted: #9CA3AF;
+            --accent: #C9A227;
+            --accent-2: #62b6ff;
+            --danger: #f16b6b;
+            --ok: #6bd59a;
+            --warn: #f4d47a;
+        }
+
+        [data-theme="light"] {
+            color-scheme: light;
+            --bg: #F5F5F5;
+            --side: #EAEAEA;
+            --panel: #FFFFFF;
+            --panel-2: #F0F0F0;
+            --line: #E0E0E0;
+            --text: #111111;
+            --muted: #555555;
+            --accent: #B8860B;
+            --accent-2: #1a7fd4;
+            --danger: #c0392b;
+            --ok: #2d8a5e;
+            --warn: #7a6520;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: var(--bg);
+            color: var(--text);
+            font-family: Segoe UI, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        button, input, select { font: inherit; }
+
+        button {
+            border: 1px solid transparent;
+            border-radius: 6px;
+            padding: 0.62rem 0.82rem;
+            background: var(--accent);
+            color: #17140c;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        button.secondary {
+            background: var(--panel-2);
+            border-color: var(--line);
+            color: var(--text);
+        }
+
+        button.danger {
+            background: #5b2024;
+            border-color: #91343b;
+            color: #ffe8e8;
+        }
+
+        button.icon-btn {
+            background: transparent;
+            border: 1px solid var(--line);
+            color: var(--muted);
+            padding: 0.3rem 0.5rem;
+            line-height: 1;
+        }
+
+        button:disabled { cursor: wait; opacity: 0.65; }
+
+        input, select {
+            width: 100%;
+            min-width: 0;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            padding: 0.62rem 0.72rem;
+            background: var(--panel-2);
+            color: var(--text);
+        }
+
+        select[multiple] { height: 7rem; }
+
+        label {
+            display: grid;
+            gap: 0.38rem;
+            color: var(--muted);
+            font-size: 0.82rem;
+            font-weight: 700;
+        }
+
+        .shell {
+            display: grid;
+            grid-template-columns: 16rem minmax(0, 1fr);
+            min-height: 100vh;
+        }
+
+        .side {
+            border-right: 1px solid var(--line);
+            background: var(--side);
+            padding: 1.25rem;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.4rem;
+        }
+
+        .mark {
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: 9px;
+            object-fit: cover;
+            flex-shrink: 0;
+            border: 1px solid #C9A22740;
+        }
+
+        .brand h1 { margin: 0; font-size: 1rem; }
+
+        .nav { display: grid; gap: 0.45rem; }
+
+        .nav a {
+            display: block;
+            color: var(--muted);
+            text-decoration: none;
+            border-radius: 6px;
+            padding: 0.68rem 0.75rem;
+        }
+
+        .nav a.active { background: var(--panel); color: var(--text); }
+
+        .main {
+            padding: 1.5rem;
+            display: grid;
+            gap: 1rem;
+            align-content: start;
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .topbar h2 { margin: 0 0 0.25rem; font-size: 1.45rem; }
+        .topbar p { margin: 0; color: var(--muted); }
+
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 1rem;
+        }
+
+        .login-grid { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 0.8rem; align-items: end; }
+
+        .run-grid { display: grid; grid-template-columns: 1fr auto; gap: 1rem; align-items: end; }
+
+        .run-options { display: flex; flex-direction: column; gap: 0.75rem; }
+
+        .check-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.88rem;
+            color: var(--muted);
+            cursor: pointer;
+        }
+
+        .check-row input[type=checkbox] { width: auto; cursor: pointer; }
+
+        .scans-list { display: grid; gap: 0.75rem; }
+
+        .scan-card {
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: border-color 0.15s;
+        }
+
+        .scan-card:hover { border-color: var(--accent); }
+        .scan-card.selected { border-color: var(--accent); }
+
+        .scan-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 0.9rem;
+            background: var(--panel-2);
+        }
+
+        .scan-header-left { display: flex; flex-direction: column; gap: 0.2rem; }
+        .scan-header-right { display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0; }
+
+        .scan-title { font-weight: 600; font-size: 0.9rem; }
+        .scan-sub { font-size: 0.78rem; color: var(--muted); }
+
+        .scan-body { padding: 0.6rem 0.9rem; display: flex; gap: 1rem; flex-wrap: wrap; }
+
+        .stat { font-size: 0.82rem; color: var(--muted); }
+        .stat strong { color: var(--text); }
+
+        .progress-bar {
+            height: 3px;
+            background: var(--line);
+            border-radius: 2px;
+            overflow: hidden;
+            margin: 0 0.9rem 0.6rem;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--accent);
+            transition: width 0.4s;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            border-radius: 999px;
+            padding: 0.18rem 0.5rem;
+            font-size: 0.74rem;
+            font-weight: 700;
+        }
+
+        .badge-standby { background: var(--panel); border: 1px solid var(--line); color: var(--muted); }
+        .badge-running { background: #162b12; border: 1px solid #3a6b28; color: #6bd59a; }
+        .badge-finished { background: #111a28; border: 1px solid #2a4a6b; color: #62b6ff; }
+
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            border-bottom: 1px solid var(--line);
+            padding-bottom: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .tab {
+            padding: 0.4rem 0.9rem;
+            border-radius: 6px 6px 0 0;
+            border: 1px solid transparent;
+            background: none;
+            color: var(--muted);
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .tab.active {
+            background: var(--panel);
+            border-color: var(--line);
+            color: var(--text);
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+        }
+
+        table { width: 100%; border-collapse: collapse; min-width: 44rem; }
+
+        th, td {
+            padding: 0.65rem 0.75rem;
+            border-bottom: 1px solid var(--line);
+            text-align: left;
+            vertical-align: top;
+            font-size: 0.85rem;
+        }
+
+        th { color: var(--muted); font-size: 0.76rem; background: var(--panel-2); }
+        tr:last-child td { border-bottom: 0; }
+
+        .path-cell { max-width: 28rem; overflow-wrap: anywhere; }
+        .sub { color: var(--muted); font-size: 0.78rem; margin-top: 0.2rem; }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            border-radius: 999px;
+            padding: 0.15rem 0.45rem;
+            font-size: 0.74rem;
+            font-weight: 700;
+            border: 1px solid var(--line);
+            background: var(--panel-2);
+        }
+
+        .pill-ok      { color: var(--ok);     border-color: #2d6b4a; background: #112b1e; }
+        .pill-error   { color: var(--danger);  border-color: #6b2d2d; background: #2b1111; }
+        .pill-waiting { color: var(--muted);   }
+        .pill-warn    { color: var(--warn);    border-color: #7a6120; background: #1e1707; }
+
+        .actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+        .actions.right { justify-content: flex-end; }
+
+        .status-line { min-height: 1.4rem; color: var(--muted); font-size: 0.85rem; }
+        .status-line.error { color: var(--danger); }
+
+        .empty { color: var(--muted); text-align: center; padding: 2rem 1rem; font-size: 0.88rem; }
+
+        @media (max-width: 920px) {
+            .shell { grid-template-columns: 1fr; }
+            .side { border-right: 0; border-bottom: 1px solid var(--line); }
+            .login-grid, .run-grid { grid-template-columns: 1fr; }
+            .topbar { display: grid; }
+        }
+    </style>
+    <script src="theme.js"></script>
+</head>
+<body>
+<div class="shell">
+    <aside class="side">
+        <div class="brand">
+            <img class="mark" src="icon.png" alt="DaCollector">
+            <h1>DaCollector</h1>
+        </div>
+        <nav class="nav" aria-label="DaCollector admin">
+            <a href="/webui">Dashboard</a>
+            <a href="/webui/dacollector-collections.html">Collections</a>
+            <a href="/webui/dacollector-duplicates.html">Duplicates</a>
+            <a class="active" href="/webui/dacollector-integrity.html">Integrity</a>
+            <a href="/webui/setup.html">Settings</a>
+        </nav>
+        <button onclick="toggleTheme()" title="Toggle light/dark mode"
+            style="display:flex;align-items:center;justify-content:center;gap:0.4rem;width:100%;margin-top:0.75rem;padding:0.5rem;background:transparent;border:1px solid var(--line);border-radius:6px;color:var(--accent);cursor:pointer;font-size:0.8rem;font-weight:600">
+            <svg class="theme-sun" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+            <svg class="theme-moon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+    </aside>
+
+    <main class="main">
+        <div class="topbar">
+            <div>
+                <h2>Integrity Check</h2>
+                <p id="sessionLabel">Not signed in</p>
+            </div>
+            <div class="actions right">
+                <button class="secondary" id="clearTokenButton" type="button">Sign Out</button>
+            </div>
+        </div>
+
+        <!-- Login panel -->
+        <section class="panel" id="loginPanel">
+            <form class="login-grid" id="loginForm">
+                <label>Username
+                    <input id="username" autocomplete="username" value="Default">
+                </label>
+                <label>Password
+                    <input id="password" type="password" autocomplete="current-password">
+                </label>
+                <label>Device
+                    <input id="device" value="integrity-check">
+                </label>
+                <button type="submit">Sign In</button>
+            </form>
+            <div class="status-line error" id="loginError" style="margin-top:0.5rem"></div>
+        </section>
+
+        <!-- Run new check -->
+        <section class="panel" id="runPanel" style="display:none">
+            <div style="font-weight:700;margin-bottom:0.75rem">Run New Check</div>
+            <div class="run-grid">
+                <div class="run-options">
+                    <label>Managed Folders (Ctrl+click to select multiple)
+                        <select id="folderSelect" multiple></select>
+                    </label>
+                    <label class="check-row" style="display:flex;flex-direction:row;align-items:center;gap:0.5rem">
+                        <input type="checkbox" id="checkHash">
+                        <span>Verify file hashes (slower — detects corruption)</span>
+                    </label>
+                </div>
+                <button id="runBtn" type="button" style="align-self:end">Run Integrity Check</button>
+            </div>
+            <div class="status-line" id="runStatus" style="margin-top:0.6rem"></div>
+        </section>
+
+        <!-- Scans list -->
+        <section class="panel" id="scansPanel" style="display:none">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem">
+                <span style="font-weight:700">Scan History</span>
+                <button class="secondary" id="refreshScansBtn" type="button" style="padding:0.35rem 0.7rem;font-size:0.82rem">Refresh</button>
+            </div>
+            <div id="scansList" class="scans-list"></div>
+        </section>
+
+        <!-- Results view -->
+        <section class="panel" id="resultsPanel" style="display:none">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem">
+                <span style="font-weight:700" id="resultsTitle">Scan Results</span>
+                <button class="secondary icon-btn" id="closeResultsBtn" type="button" title="Close">✕</button>
+            </div>
+            <div class="tabs">
+                <button class="tab active" data-filter="all" type="button">All</button>
+                <button class="tab" data-filter="errors" type="button">Errors</button>
+                <button class="tab" data-filter="ok" type="button">OK</button>
+                <button class="tab" data-filter="waiting" type="button">Waiting</button>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Path</th>
+                            <th>Size</th>
+                            <th>Status</th>
+                            <th>Check Date</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultsBody"></tbody>
+                </table>
+            </div>
+            <div class="empty" id="resultsEmpty" style="display:none">No files match the current filter.</div>
+        </section>
+    </main>
+</div>
+
+<script>
+    const tokenKey = 'daccollector.apikey';
+
+    // --- auth ---
+
+    function getToken() {
+        return sessionStorage.getItem(tokenKey) || localStorage.getItem(tokenKey) || '';
+    }
+
+    function setToken(t) {
+        sessionStorage.setItem(tokenKey, t);
+        localStorage.setItem(tokenKey, t);
+        updateSession();
+    }
+
+    function clearToken() {
+        sessionStorage.removeItem(tokenKey);
+        localStorage.removeItem(tokenKey);
+        updateSession();
+    }
+
+    function apiHeaders() {
+        const t = getToken();
+        return t ? { apikey: t } : {};
+    }
+
+    async function apiFetch(path, options = {}) {
+        const r = await fetch(path, { ...options, headers: { ...(options.headers || {}), ...apiHeaders() } });
+        if (r.status === 401) { clearToken(); return r; }
+        return r;
+    }
+
+    function updateSession() {
+        const t = getToken();
+        document.getElementById('sessionLabel').textContent = t ? 'Signed in' : 'Not signed in';
+        document.getElementById('loginPanel').style.display = t ? 'none' : '';
+        document.getElementById('runPanel').style.display = t ? '' : 'none';
+        document.getElementById('scansPanel').style.display = t ? '' : 'none';
+        if (t) {
+            loadFolders();
+            loadScans();
+        }
+    }
+
+    // --- login ---
+
+    document.getElementById('loginForm').addEventListener('submit', async e => {
+        e.preventDefault();
+        const btn = e.submitter || e.target.querySelector('button[type=submit]');
+        btn.disabled = true;
+        document.getElementById('loginError').textContent = '';
+        try {
+            const r = await fetch('/api/auth', {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({
+                    user: document.getElementById('username').value,
+                    pass: document.getElementById('password').value,
+                    device: document.getElementById('device').value,
+                }),
+            });
+            if (!r.ok) throw new Error('Unable to sign in.');
+            const body = await r.json();
+            if (!body.apikey) throw new Error('Sign in did not return an API key.');
+            setToken(body.apikey);
+            document.getElementById('password').value = '';
+        } catch (err) {
+            document.getElementById('loginError').textContent = err.message;
+        } finally {
+            btn.disabled = false;
+        }
+    });
+
+    document.getElementById('clearTokenButton').addEventListener('click', () => {
+        clearToken();
+        document.getElementById('resultsPanel').style.display = 'none';
+    });
+
+    // --- folders ---
+
+    let folders = [];
+
+    async function loadFolders() {
+        try {
+            const r = await apiFetch('/api/v3/ManagedFolder');
+            if (!r.ok) return;
+            folders = await r.json();
+            const sel = document.getElementById('folderSelect');
+            sel.innerHTML = '';
+            for (const f of folders) {
+                const opt = document.createElement('option');
+                opt.value = f.id;
+                opt.textContent = f.path || ('Folder ' + f.id);
+                sel.appendChild(opt);
+            }
+        } catch { /* ignore */ }
+    }
+
+    function folderName(id) {
+        const f = folders.find(x => x.id === id);
+        return f ? (f.path || ('Folder ' + id)) : ('Folder ' + id);
+    }
+
+    // --- run new check ---
+
+    document.getElementById('runBtn').addEventListener('click', async () => {
+        const sel = document.getElementById('folderSelect');
+        const ids = Array.from(sel.selectedOptions).map(o => parseInt(o.value));
+        if (ids.length === 0) { setRunStatus('Select at least one folder.', true); return; }
+        const checkHash = document.getElementById('checkHash').checked;
+        const btn = document.getElementById('runBtn');
+        btn.disabled = true;
+        setRunStatus('Creating scan…');
+        try {
+            const r = await apiFetch('/api/v3/IntegrityCheck', {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({ id: 0, managedFolderIDs: ids, status: 'Standby', createdAt: new Date().toISOString() }),
+            });
+            if (!r.ok) throw new Error(await r.text() || r.statusText);
+            const scan = await r.json();
+            setRunStatus('Starting scan…');
+            const r2 = await apiFetch(`/api/v3/IntegrityCheck/${scan.id}/Start?checkHash=${checkHash}`, { method: 'POST' });
+            if (!r2.ok) throw new Error(await r2.text() || r2.statusText);
+            setRunStatus(`Scan #${scan.id} started (${scan.totalFiles} files).`);
+            await loadScans();
+        } catch (err) {
+            setRunStatus(err.message, true);
+        } finally {
+            btn.disabled = false;
+        }
+    });
+
+    function setRunStatus(msg, isError) {
+        const el = document.getElementById('runStatus');
+        el.textContent = msg;
+        el.className = 'status-line' + (isError ? ' error' : '');
+    }
+
+    // --- scans list ---
+
+    let scans = [];
+    let selectedScanID = null;
+    let autoRefreshTimer = null;
+
+    async function loadScans() {
+        try {
+            const r = await apiFetch('/api/v3/IntegrityCheck');
+            if (!r.ok) return;
+            scans = await r.json();
+            renderScans();
+            scheduleAutoRefresh();
+        } catch { /* ignore */ }
+    }
+
+    function renderScans() {
+        const el = document.getElementById('scansList');
+        if (scans.length === 0) {
+            el.innerHTML = '<div class="empty">No integrity scans yet. Run a check above.</div>';
+            return;
+        }
+        // newest first
+        const sorted = [...scans].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        el.innerHTML = '';
+        for (const scan of sorted) {
+            el.appendChild(renderScanCard(scan));
+        }
+    }
+
+    function renderScanCard(scan) {
+        const card = document.createElement('div');
+        card.className = 'scan-card' + (scan.id === selectedScanID ? ' selected' : '');
+        card.dataset.scanId = scan.id;
+
+        const pct = scan.totalFiles > 0 ? Math.round((scan.totalFiles - scan.waitingFiles) / scan.totalFiles * 100) : 100;
+        const statusBadge = statusBadgeHtml(scan.status);
+        const folderNames = (scan.managedFolderIDs || []).map(folderName).join(', ') || '—';
+        const dateStr = scan.createdAt ? new Date(scan.createdAt).toLocaleString() : '—';
+
+        card.innerHTML = `
+            <div class="scan-header">
+                <div class="scan-header-left">
+                    <div class="scan-title">Scan #${esc(scan.id)} — ${esc(folderNames)}</div>
+                    <div class="scan-sub">${esc(dateStr)}</div>
+                </div>
+                <div class="scan-header-right">
+                    ${statusBadge}
+                    <button class="icon-btn" data-delete="${scan.id}" title="Delete scan" type="button">✕</button>
+                </div>
+            </div>
+            ${scan.status === 'Running' ? `<div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>` : ''}
+            <div class="scan-body">
+                <div class="stat">Total: <strong>${scan.totalFiles}</strong></div>
+                <div class="stat">OK: <strong style="color:var(--ok)">${scan.completedFiles}</strong></div>
+                <div class="stat">Errors: <strong style="color:var(--danger)">${scan.errorFiles}</strong></div>
+                <div class="stat">Waiting: <strong>${scan.waitingFiles}</strong></div>
+            </div>`;
+
+        card.addEventListener('click', e => {
+            if (e.target.closest('[data-delete]')) return;
+            selectedScanID = scan.id;
+            loadResults(scan.id);
+            renderScans();
+        });
+
+        card.querySelector('[data-delete]').addEventListener('click', async e => {
+            e.stopPropagation();
+            if (!confirm(`Delete scan #${scan.id}?`)) return;
+            const btn = e.currentTarget;
+            btn.disabled = true;
+            try {
+                const r = await apiFetch(`/api/v3/IntegrityCheck/${scan.id}`, { method: 'DELETE' });
+                if (!r.ok) throw new Error(await r.text() || r.statusText);
+                if (selectedScanID === scan.id) {
+                    selectedScanID = null;
+                    document.getElementById('resultsPanel').style.display = 'none';
+                }
+                await loadScans();
+            } catch (err) {
+                alert('Delete failed: ' + err.message);
+                btn.disabled = false;
+            }
+        });
+
+        return card;
+    }
+
+    function statusBadgeHtml(status) {
+        if (status === 'Running') return '<span class="status-badge badge-running">● Running</span>';
+        if (status === 'Finished') return '<span class="status-badge badge-finished">✓ Finished</span>';
+        return '<span class="status-badge badge-standby">Standby</span>';
+    }
+
+    function scheduleAutoRefresh() {
+        clearTimeout(autoRefreshTimer);
+        const hasRunning = scans.some(s => s.status === 'Running');
+        if (!hasRunning) return;
+        autoRefreshTimer = setTimeout(async () => {
+            await loadScans();
+            if (selectedScanID !== null) await loadResults(selectedScanID, true);
+        }, 3000);
+    }
+
+    document.getElementById('refreshScansBtn').addEventListener('click', loadScans);
+
+    // --- results ---
+
+    let currentFilter = 'all';
+    let allFiles = [];
+
+    async function loadResults(scanID, silent) {
+        if (!silent) {
+            document.getElementById('resultsPanel').style.display = '';
+            document.getElementById('resultsTitle').textContent = `Scan #${scanID} Results`;
+            document.getElementById('resultsBody').innerHTML = '<tr><td colspan="5" style="color:var(--muted);text-align:center">Loading…</td></tr>';
+        }
+        try {
+            const r = await apiFetch(`/api/v3/IntegrityCheck/${scanID}/File`);
+            if (!r.ok) throw new Error(await r.text() || r.statusText);
+            allFiles = await r.json();
+            renderResults();
+        } catch (err) {
+            if (!silent) document.getElementById('resultsBody').innerHTML = `<tr><td colspan="5" style="color:var(--danger)">${esc(err.message)}</td></tr>`;
+        }
+    }
+
+    function renderResults() {
+        const filtered = filterFiles(allFiles, currentFilter);
+        const tbody = document.getElementById('resultsBody');
+        const empty = document.getElementById('resultsEmpty');
+        if (filtered.length === 0) {
+            tbody.innerHTML = '';
+            empty.style.display = '';
+        } else {
+            empty.style.display = 'none';
+            tbody.innerHTML = filtered.map(fileRow).join('');
+        }
+    }
+
+    function filterFiles(files, filter) {
+        if (filter === 'errors') return files.filter(f => isError(f.status));
+        if (filter === 'ok') return files.filter(f => f.status === 'ProcessedOK');
+        if (filter === 'waiting') return files.filter(f => f.status === 'Waiting');
+        return files;
+    }
+
+    function isError(status) {
+        return ['ErrorFileNotFound', 'ErrorInvalidSize', 'ErrorInvalidHash', 'ErrorMissingHash', 'ErrorIOError'].includes(status);
+    }
+
+    function fileRow(f) {
+        const sizeStr = f.fileSize ? formatSize(f.fileSize) : '—';
+        const dateStr = f.checkDate ? new Date(f.checkDate).toLocaleString() : '—';
+        const pill = statusPill(f.status);
+        const detail = f.status === 'ErrorInvalidHash'
+            ? `<div class="sub">Expected: <code>${esc(f.hash || '')}</code><br>Got: <code>${esc(f.hashResult || '')}</code></div>`
+            : '';
+        return `<tr>
+            <td class="path-cell">${esc(f.fullName || '—')}${detail}</td>
+            <td style="white-space:nowrap">${esc(sizeStr)}</td>
+            <td>${pill}</td>
+            <td style="white-space:nowrap;color:var(--muted);font-size:0.8rem">${esc(dateStr)}</td>
+            <td style="white-space:nowrap"></td>
+        </tr>`;
+    }
+
+    function statusPill(status) {
+        const map = {
+            'Waiting':          ['pill pill-waiting', 'Waiting'],
+            'ProcessedOK':      ['pill pill-ok', 'OK'],
+            'ErrorFileNotFound':['pill pill-error', 'Not Found'],
+            'ErrorInvalidSize': ['pill pill-error', 'Wrong Size'],
+            'ErrorInvalidHash': ['pill pill-error', 'Bad Hash'],
+            'ErrorMissingHash': ['pill pill-warn', 'No Hash'],
+            'ErrorIOError':     ['pill pill-error', 'IO Error'],
+        };
+        const [cls, label] = map[status] || ['pill', status];
+        return `<span class="${cls}">${label}</span>`;
+    }
+
+    document.querySelectorAll('.tab[data-filter]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.tab[data-filter]').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentFilter = btn.dataset.filter;
+            renderResults();
+        });
+    });
+
+    document.getElementById('closeResultsBtn').addEventListener('click', () => {
+        selectedScanID = null;
+        document.getElementById('resultsPanel').style.display = 'none';
+        renderScans();
+    });
+
+    // --- utils ---
+
+    function esc(s) {
+        return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function formatSize(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+        if (bytes < 1073741824) return (bytes / 1048576).toFixed(1) + ' MB';
+        return (bytes / 1073741824).toFixed(2) + ' GB';
+    }
+
+    // --- init ---
+
+    updateSession();
+</script>
+</body>
+</html>

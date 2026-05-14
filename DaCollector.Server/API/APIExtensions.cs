@@ -31,7 +31,9 @@ using DaCollector.Server.API.Swagger;
 using DaCollector.Server.API.v3.Helpers;
 using DaCollector.Server.Server;
 using DaCollector.Server.Services;
+using DaCollector.Server.Settings;
 using DaCollector.Server.Utilities;
+using Microsoft.Extensions.Options;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
 using File = System.IO.File;
@@ -40,11 +42,10 @@ namespace DaCollector.Server.API;
 
 public static partial class APIExtensions
 {
-    public static IServiceCollection AddAPI(this IServiceCollection services, IPluginManager pluginManager)
+    public static IServiceCollection AddAPI(this IServiceCollection services, IPluginManager pluginManager, ISettingsProvider settingsProvider)
     {
         services.AddSingleton<LoggingEmitter>();
-        services.AddSingleton<IEventEmitter, AniDBConnectionEventEmitter>();
-        services.AddSingleton<IEventEmitter, AvdumpEventEmitter>();
+services.AddSingleton<IEventEmitter, AvdumpEventEmitter>();
         services.AddSingleton<IEventEmitter, ConfigurationEventEmitter>();
         services.AddSingleton<IEventEmitter, FileEventEmitter>();
         services.AddSingleton<IEventEmitter, ManagedFolderEventEmitter>();
@@ -73,46 +74,18 @@ public static partial class APIExtensions
                     user.JMMUserID == 0 && user.Username == "init")));
         });
 
+        // Per-API-version and per-plugin Swagger document configuration is handled via
+        // IConfigureOptions<SwaggerGenOptions> so it can inject IApiVersionDescriptionProvider
+        // through DI rather than relying on the static Utils.ServiceContainer.
+        services.AddSingleton<Microsoft.Extensions.Options.IConfigureOptions<SwaggerGenOptions>>(sp =>
+            new SwaggerDocConfiguration(
+                sp.GetRequiredService<IApiVersionDescriptionProvider>(),
+                settingsProvider,
+                pluginManager));
+
         services.AddSwaggerGen(
             options =>
             {
-                // Resolve the services we'll need from the static service provider
-                // since the app is running at this point.
-                var provider = Utils.ServiceContainer.GetRequiredService<IApiVersionDescriptionProvider>();
-                var webSettings = Utils.SettingsProvider.GetSettings().Web;
-
-                // Add a swagger document for each discovered API version (server-only).
-                foreach (var description in provider.ApiVersionDescriptions.OrderByDescending(a => a.ApiVersion))
-                {
-                    if (description.GroupName is "v3" && !webSettings.EnableAPIv3)
-                        continue;
-                    if (description.GroupName is not "v3")
-                        continue;
-                    options.SwaggerDoc(description.GroupName, CreateInfoForApiVersion(description, "DaCollector"));
-                }
-
-                // Add a swagger document for each plugin's API versions, but only if the plugin
-                // actually has controllers targeting that version.
-                foreach (var pluginInfo in pluginManager.GetPluginInfos().Where(p => p.IsEnabled))
-                {
-                    var assembly = pluginInfo.PluginType!.Assembly;
-                    if (assembly == typeof(APIExtensions).Assembly)
-                        continue; //Skip the current assembly, as these are added above.
-
-                    var pluginVersions = GetPluginApiVersions(assembly);
-                    var dllName = Path.GetFileNameWithoutExtension(pluginInfo.DLLs[0]);
-
-                    foreach (var description in provider.ApiVersionDescriptions
-                                 .Where(d => pluginVersions.Contains(d.GroupName))
-                                 .OrderByDescending(a => a.ApiVersion))
-                    {
-                        var docName = $"{dllName}-{description.GroupName}";
-                        options.SwaggerDoc(docName, CreateInfoForApiVersion(description, pluginInfo.Name));
-                    }
-                }
-
-                // Use document inclusion predicate to separate server and plugin controllers.
-                options.DocInclusionPredicate(new PluginDocumentInclusionPredicate(pluginManager).Include);
 
                 options.AddSecurityDefinition("ApiKey",
                     new OpenApiSecurityScheme()
@@ -216,7 +189,7 @@ public static partial class APIExtensions
                 if (defaultProvider is not null)
                     manager.FeatureProviders.Remove(defaultProvider);
 
-                var webSettings = Utils.SettingsProvider.GetSettings().Web;
+                var webSettings = settingsProvider.GetSettings().Web;
                 manager.FeatureProviders.Add(new ApiVersionControllerFeatureProvider(webSettings));
             })
             .AddPluginControllers(pluginManager)
@@ -678,4 +651,53 @@ public static partial class APIExtensions
 
     [GeneratedRegex(@"(?:[^ ]+\.)?API\.(?:v(?<version>\d+(?:\.\d+)?)\.(?:Models\.|DTOs\.)?)?", RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.ECMAScript)]
     private static partial Regex PluginApiVersionRegex();
+
+    /// <summary>
+    /// Configures per-version and per-plugin Swagger documents via DI so that
+    /// <see cref="IApiVersionDescriptionProvider"/> can be injected rather than
+    /// resolved from the static <c>Utils.ServiceContainer</c>.
+    /// </summary>
+    private sealed class SwaggerDocConfiguration(
+        IApiVersionDescriptionProvider provider,
+        ISettingsProvider settingsProvider,
+        IPluginManager pluginManager
+    ) : Microsoft.Extensions.Options.IConfigureOptions<SwaggerGenOptions>
+    {
+        public void Configure(SwaggerGenOptions options)
+        {
+            var webSettings = settingsProvider.GetSettings().Web;
+
+            // Server API documents (one per enabled version).
+            foreach (var description in provider.ApiVersionDescriptions.OrderByDescending(a => a.ApiVersion))
+            {
+                if (description.GroupName is "v3" && !webSettings.EnableAPIv3)
+                    continue;
+                if (description.GroupName is not "v3")
+                    continue;
+                options.SwaggerDoc(description.GroupName, CreateInfoForApiVersion(description, "DaCollector"));
+            }
+
+            // Plugin API documents (one per plugin per API version it exposes).
+            foreach (var pluginInfo in pluginManager.GetPluginInfos().Where(p => p.IsEnabled))
+            {
+                var assembly = pluginInfo.PluginType!.Assembly;
+                if (assembly == typeof(APIExtensions).Assembly)
+                    continue;
+
+                var pluginVersions = GetPluginApiVersions(assembly);
+                var dllName = Path.GetFileNameWithoutExtension(pluginInfo.DLLs[0]);
+
+                foreach (var description in provider.ApiVersionDescriptions
+                             .Where(d => pluginVersions.Contains(d.GroupName))
+                             .OrderByDescending(a => a.ApiVersion))
+                {
+                    var docName = $"{dllName}-{description.GroupName}";
+                    options.SwaggerDoc(docName, CreateInfoForApiVersion(description, pluginInfo.Name));
+                }
+            }
+
+            // Separate server controllers from plugin controllers by document.
+            options.DocInclusionPredicate(new PluginDocumentInclusionPredicate(pluginManager).Include);
+        }
+    }
 }

@@ -19,8 +19,6 @@ using DaCollector.Abstractions.Config;
 using DaCollector.Abstractions.Config.Services;
 using DaCollector.Abstractions.Metadata.Enums;
 using DaCollector.Abstractions.Extensions;
-using DaCollector.Abstractions.Metadata.Anidb.Enums;
-using DaCollector.Abstractions.Metadata.Anidb.Services;
 using DaCollector.Abstractions.User.Enums;
 using DaCollector.Abstractions.User.Services;
 using DaCollector.Abstractions.Video.Enums;
@@ -32,8 +30,6 @@ using DaCollector.Server.Models.AniDB;
 using DaCollector.Server.Models.CrossReference;
 using DaCollector.Server.Models.Release;
 using DaCollector.Server.Models.DaCollector;
-using DaCollector.Server.Providers.AniDB;
-using DaCollector.Server.Providers.AniDB.HTTP;
 using DaCollector.Server.Providers.AniDB.Release;
 using DaCollector.Server.Providers.TMDB;
 using DaCollector.Server.Renamer;
@@ -151,30 +147,8 @@ public class DatabaseFixes
 
     public static void RefreshAniDBInfoFromXML()
     {
-        var systemService = Utils.ServiceContainer.GetRequiredService<SystemService>();
-        var i = 0;
-        var list = RepoFactory.AniDB_Episode.GetAll().Where(a => string.IsNullOrEmpty(a.Description))
-            .Select(a => a.AnimeID).Distinct().ToList();
-
-        var anidbService = Utils.ServiceContainer.GetRequiredService<IAnidbService>();
-        foreach (var animeID in list)
-        {
-            if (i % 10 == 0)
-            {
-                systemService.StartupMessage = $"Database - Validating - Populating AniDB Info from Cache {i}/{list.Count}...";
-            }
-
-            i++;
-            try
-            {
-                anidbService.RefreshAnimeByID(animeID, AnidbRefreshMethod.Cache | AnidbRefreshMethod.SkipTmdbUpdate).GetAwaiter().GetResult();
-            }
-            catch (Exception e)
-            {
-                _logger.Error(
-                    $"There was an error Populating AniDB Info for AniDB_Anime {animeID}, Update the Series' AniDB Info for a full stack: {e.Message}");
-            }
-        }
+        // AniDB provider removed; this migration is a no-op.
+        _logger.Info("RefreshAniDBInfoFromXML: AniDB provider not available, skipping.");
     }
 
     public static void RefreshAnimeSeriesUserStats()
@@ -339,48 +313,8 @@ public class DatabaseFixes
 
     public static void FixTagParentIDsAndNameOverrides()
     {
-        var xmlUtils = Utils.ServiceContainer.GetRequiredService<HttpXmlUtils>();
-        var animeParser = Utils.ServiceContainer.GetRequiredService<HttpAnimeParser>();
-        var animeList = RepoFactory.AniDB_Anime.GetAll();
-        _logger.Info($"Updating anidb tags for {animeList.Count} local anidb anime entries...");
-
-        var count = 0;
-        foreach (var anime in animeList)
-        {
-            if (++count % 10 == 0)
-                _logger.Info($"Updating tags for local anidb anime entries... ({count}/{animeList.Count})");
-
-            var xml = xmlUtils.LoadAnimeHTTPFromFile(anime.AnimeID).Result;
-            if (string.IsNullOrEmpty(xml))
-            {
-                _logger.Warn($"Unable to load cached Anime_HTTP xml dump for anime: {anime.AnimeID}/{anime.MainTitle}");
-                continue;
-            }
-
-            ResponseGetAnime response;
-            try
-            {
-                response = animeParser.Parse(anime.AnimeID, xml);
-                if (response == null) throw new NullReferenceException(nameof(response));
-            }
-            catch (Exception e)
-            {
-                _logger.Error(e, $"Unable to parse cached Anime_HTTP xml dump for anime: {anime.AnimeID}/{anime.MainTitle}");
-                continue;
-            }
-
-            AnimeCreator.CreateTags(response.Tags, anime);
-            RepoFactory.AniDB_Anime.Save(anime);
-        }
-
-        // One last time, clean up any unreferenced tags after we've processed
-        // all the tags and their cross-references.
-        var tagsToDelete = RepoFactory.AniDB_Tag.GetAll()
-            .Where(a => RepoFactory.AniDB_Anime_Tag.GetByTagID(a.TagID).Count is 0)
-            .ToList();
-        RepoFactory.AniDB_Tag.Delete(tagsToDelete);
-
-        _logger.Info($"Done updating anidb tags for {animeList.Count} anidb anime entries.");
+        // AniDB provider removed; this migration is a no-op.
+        _logger.Info("FixTagParentIDsAndNameOverrides: AniDB provider not available, skipping.");
     }
 
     public static void FixAnimeSourceLinks()
@@ -409,107 +343,8 @@ public class DatabaseFixes
 
     public static void FixEpisodeDateTimeUpdated()
     {
-        var xmlUtils = Utils.ServiceContainer.GetRequiredService<HttpXmlUtils>();
-        var animeParser = Utils.ServiceContainer.GetRequiredService<HttpAnimeParser>();
-        var anidbService = Utils.ServiceContainer.GetRequiredService<IAnidbService>();
-        var anidbAnimeDict = RepoFactory.AniDB_Anime.GetAll()
-            .ToDictionary(an => an.AnimeID);
-        var anidbEpisodeDict = RepoFactory.AniDB_Episode.GetAll()
-            .ToDictionary(ep => ep.EpisodeID);
-        var anidbAnimeIDs = anidbEpisodeDict.Values
-            .GroupBy(ep => ep.AnimeID)
-            .Where(list => anidbAnimeDict.ContainsKey(list.Key))
-            .ToDictionary(list => anidbAnimeDict[list.Key], list => list.ToList());
-        // This list will _hopefully_ initially be an empty…
-        var episodesToSave = anidbEpisodeDict.Values
-            .Where(ep => !anidbAnimeDict.ContainsKey(ep.AnimeID))
-            .ToList();
-        var animeToUpdateSet = anidbEpisodeDict.Values
-            .Where(ep => !anidbAnimeDict.ContainsKey(ep.AnimeID))
-            .Select(ep => ep.AnimeID)
-            .Distinct()
-            .ToHashSet();
-
-        _logger.Info($"Updating last updated episode timestamps for {anidbAnimeIDs.Count} local anidb anime entries...");
-
-        // …but if we do have any, then reset their timestamp now.
-        foreach (var faultyEpisode in episodesToSave)
-            faultyEpisode.DateTimeUpdated = DateTime.UnixEpoch;
-
-        var faultyCount = episodesToSave.Count;
-        var resetCount = 0;
-        var updatedCount = 0;
-        var progressCount = 0;
-        foreach (var (anime, episodeList) in anidbAnimeIDs)
-        {
-            if (++progressCount % 10 == 0)
-                _logger.Info($"Updating last updated episode timestamps for local anidb anime entries... ({progressCount}/{anidbAnimeIDs.Count})");
-
-            var xml = xmlUtils.LoadAnimeHTTPFromFile(anime.AnimeID).Result;
-            if (string.IsNullOrEmpty(xml))
-            {
-                _logger.Warn($"Unable to load cached Anime_HTTP xml dump for anime: {anime.AnimeID}/{anime.MainTitle}");
-                // We're unable to find the xml file, so the safest thing to do for future-proofing is to reset the dates.
-                foreach (var episode in episodeList)
-                {
-                    resetCount++;
-                    episode.DateTimeUpdated = DateTime.UnixEpoch;
-                    episodesToSave.Add(episode);
-                }
-                continue;
-            }
-
-            ResponseGetAnime response;
-            try
-            {
-                response = animeParser.Parse(anime.AnimeID, xml);
-                if (response == null) throw new NullReferenceException(nameof(response));
-            }
-            catch (Exception e)
-            {
-                _logger.Error(e, $"Unable to parse cached Anime_HTTP xml dump for anime: {anime.AnimeID}/{anime.MainTitle}");
-                // We're unable to parse the xml file, so the safest thing to do for future-proofing is to reset the dates.
-                foreach (var episode in episodeList)
-                {
-                    resetCount++;
-                    episode.DateTimeUpdated = DateTime.UnixEpoch;
-                    episodesToSave.Add(episode);
-                }
-                continue;
-            }
-
-            var responseEpisodeDict = response.Episodes.ToDictionary(ep => ep.EpisodeID);
-            foreach (var episode in episodeList)
-            {
-                // The episode was found in the XML file, so we can safely update the timestamp.
-                if (responseEpisodeDict.TryGetValue(episode.EpisodeID, out var responseEpisode))
-                {
-                    updatedCount++;
-                    episode.DateTimeUpdated = responseEpisode.LastUpdated;
-                    episodesToSave.Add(episode);
-                }
-                // The episode was deleted from the anime at some point, or the cache is outdated.
-                else
-                {
-                    episode.DateTimeUpdated = DateTime.UnixEpoch;
-                    faultyCount++;
-                    episodesToSave.Add(episode);
-                    animeToUpdateSet.Add(episode.AnimeID);
-                }
-            }
-        }
-
-        // Save the changes, if any.
-        RepoFactory.AniDB_Episode.Save(episodesToSave);
-
-        // Queue an update for the anime entries that needs it, hopefully fixing
-        // the faulty episodes after the update.
-        foreach (var animeID in animeToUpdateSet)
-            anidbService.ScheduleRefreshOfAnimeByID(animeID, AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful)
-                .GetAwaiter()
-                .GetResult();
-
-        _logger.Info($"Done updating last updated episode timestamps for {anidbAnimeIDs.Count} local anidb anime entries. Updated {updatedCount} episodes, reset {resetCount} episodes and queued anime {animeToUpdateSet.Count} updates for {faultyCount} faulty episodes.");
+        // AniDB provider removed; this migration is a no-op.
+        _logger.Info("FixEpisodeDateTimeUpdated: AniDB provider not available, skipping.");
     }
 
     public static void UpdateSeriesWithHiddenEpisodes()
@@ -695,59 +530,8 @@ public class DatabaseFixes
 
     public static void RecreateAnimeCharactersAndCreators()
     {
-        var systemService = Utils.ServiceContainer.GetRequiredService<SystemService>();
-        var xmlUtils = Utils.ServiceContainer.GetRequiredService<HttpXmlUtils>();
-        var animeParser = Utils.ServiceContainer.GetRequiredService<HttpAnimeParser>();
-        var animeCreator = Utils.ServiceContainer.GetRequiredService<AnimeCreator>();
-        var anidbService = Utils.ServiceContainer.GetRequiredService<IAnidbService>();
-        var animeList = RepoFactory.AniDB_Anime.GetAll();
-        var str = systemService.StartupMessage ?? "";
-        systemService.StartupMessage = $"{str} - 0 / {animeList.Count}";
-        _logger.Info($"Recreating characters and creator relations for {animeList.Count} anidb anime entries...");
-
-        var count = 0;
-        foreach (var anime in animeList)
-        {
-            if (++count % 10 == 0)
-            {
-                _logger.Info($"Recreating characters and creator relations for anidb anime entries... ({count}/{animeList.Count})");
-                systemService.StartupMessage = $"{str} - {count} / {animeList.Count}";
-            }
-
-            var xml = xmlUtils.LoadAnimeHTTPFromFile(anime.AnimeID).Result;
-            if (string.IsNullOrEmpty(xml))
-            {
-                _logger.Warn($"Unable to load cached Anime_HTTP xml dump for anime: {anime.AnimeID}/{anime.MainTitle}");
-                anidbService.ScheduleRefreshOfAnime(anime, AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful | AnidbRefreshMethod.SkipTmdbUpdate)
-                    .GetAwaiter()
-                    .GetResult();
-                continue;
-            }
-
-            ResponseGetAnime response;
-            try
-            {
-                response = animeParser.Parse(anime.AnimeID, xml);
-                if (response == null) throw new NullReferenceException(nameof(response));
-            }
-            catch (Exception e)
-            {
-                _logger.Error(e, $"Unable to parse cached Anime_HTTP xml dump for anime: {anime.AnimeID}/{anime.MainTitle}");
-                anidbService.ScheduleRefreshOfAnime(anime, AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful | AnidbRefreshMethod.SkipTmdbUpdate)
-                    .GetAwaiter()
-                    .GetResult();
-                continue;
-            }
-
-            animeCreator.CreateCharacters(response.Characters, anime, skipCreatorScheduling: true);
-
-            animeCreator.CreateStaff(response.Staff, anime, skipCreatorScheduling: true);
-
-            RepoFactory.AniDB_Anime.Save(anime);
-        }
-
-
-        _logger.Info($"Done recreating characters and creator relations for {animeList.Count} anidb anime entries.");
+        // AniDB provider removed; this migration is a no-op.
+        _logger.Info("RecreateAnimeCharactersAndCreators: AniDB provider not available, skipping.");
     }
 
     public static void ScheduleTmdbImageUpdates()
@@ -1094,7 +878,8 @@ public class DatabaseFixes
 
         // create the releases using the above info
         var systemService = Utils.ServiceContainer.GetRequiredService<SystemService>();
-        var anidbProvider = Utils.ServiceContainer.GetRequiredService<IVideoReleaseService>().GetProviderInfo<AnidbReleaseProvider>();
+        const string anidbProviderName = "AniDB";
+        Guid? anidbProviderID = null;
         var potentialReleases = RepoFactory.CrossRef_File_Episode.GetAll()
             .GroupBy(x => (x.Hash, x.FileSize, crossRefTypes[x.CrossRef_File_EpisodeID]))
             .ToList();
@@ -1104,7 +889,9 @@ public class DatabaseFixes
         var storedReleaseInfoAttempts = new List<StoredReleaseInfo_MatchAttempt>();
         var count = 0;
         var str = systemService.StartupMessage ?? string.Empty;
-        var creditlessRegex = AnidbReleaseProvider.CreditlessRegex;
+        var creditlessRegex = new System.Text.RegularExpressions.Regex(
+            @"\b(NC|Creditless)\s*(OP|ED|Opening|Ending)\b",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled);
         foreach (var groupBy in potentialReleases)
         {
             if (++count % 10000 == 0 || count == 1 || count == potentialReleases.Count)
@@ -1158,7 +945,7 @@ public class DatabaseFixes
                     : null;
 
                 storedReleaseInfo.ID = $"{AnidbReleaseProvider.IdPrefix}{ed2k}+{fileSize}";
-                storedReleaseInfo.ProviderName = anidbProvider.Name;
+                storedReleaseInfo.ProviderName = anidbProviderName;
                 storedReleaseInfo.ReleaseURI = $"{AnidbReleaseProvider.ReleasePrefix}{anidbFile.FileID}";
                 storedReleaseInfo.Version = anidbFile.FileVersion;
                 storedReleaseInfo.Comment = string.IsNullOrEmpty(anidbFile.File_Description) ? null : anidbFile.File_Description;
@@ -1169,24 +956,24 @@ public class DatabaseFixes
                     (!string.IsNullOrEmpty(anidbFile.FileName) && creditlessRegex.IsMatch(anidbFile.FileName)) ||
                     (video?.Places is { Count: > 0 } places && places.Any(x => creditlessRegex.IsMatch(x.FileName)));
                 storedReleaseInfo.IsCorrupted = anidbFile.IsDeprecated;
-                storedReleaseInfo.Source = Enum.Parse<GetFile_Source>(anidbFile.File_Source, ignoreCase: true) switch
+                storedReleaseInfo.Source = (anidbFile.File_Source ?? string.Empty).ToUpperInvariant() switch
                 {
-                    GetFile_Source.TV => ReleaseSource.TV,
-                    GetFile_Source.DTV => ReleaseSource.TV,
-                    GetFile_Source.HDTV => ReleaseSource.TV,
-                    GetFile_Source.DVD => ReleaseSource.DVD,
-                    GetFile_Source.HKDVD => ReleaseSource.DVD,
-                    GetFile_Source.HDDVD => ReleaseSource.DVD,
-                    GetFile_Source.VHS => ReleaseSource.VHS,
-                    GetFile_Source.Camcorder => ReleaseSource.Camera,
-                    GetFile_Source.VCD => ReleaseSource.VCD,
-                    GetFile_Source.SVCD => ReleaseSource.VCD,
-                    GetFile_Source.LaserDisc => ReleaseSource.LaserDisc,
-                    GetFile_Source.BluRay => ReleaseSource.BluRay,
-                    GetFile_Source.Web => ReleaseSource.Web,
-                    GetFile_Source.Film8mm => ReleaseSource.Film,
-                    GetFile_Source.Film16mm => ReleaseSource.Film,
-                    GetFile_Source.Film35mm => ReleaseSource.Film,
+                    "TV" => ReleaseSource.TV,
+                    "DTV" => ReleaseSource.TV,
+                    "HDTV" => ReleaseSource.TV,
+                    "DVD" => ReleaseSource.DVD,
+                    "HKDVD" => ReleaseSource.DVD,
+                    "HDDVD" => ReleaseSource.DVD,
+                    "VHS" => ReleaseSource.VHS,
+                    "CAMCORDER" => ReleaseSource.Camera,
+                    "VCD" => ReleaseSource.VCD,
+                    "SVCD" => ReleaseSource.VCD,
+                    "LASERDISC" => ReleaseSource.LaserDisc,
+                    "BLURAY" => ReleaseSource.BluRay,
+                    "WEB" => ReleaseSource.Web,
+                    "FILM8MM" or "8MM" => ReleaseSource.Film,
+                    "FILM16MM" or "16MM" => ReleaseSource.Film,
+                    "FILM35MM" or "35MM" => ReleaseSource.Film,
                     _ => ReleaseSource.Unknown,
                 };
                 storedReleaseInfo.ProvidedFileSize = fileSize;
@@ -1215,9 +1002,9 @@ public class DatabaseFixes
                 {
                     ED2K = ed2k,
                     FileSize = fileSize,
-                    AttemptedProviderNames = [anidbProvider.Name],
-                    ProviderName = anidbFileUpdate.HasResponse ? anidbProvider.Name : null,
-                    ProviderID = anidbFileUpdate.HasResponse ? anidbProvider.ID : null,
+                    AttemptedProviderNames = [anidbProviderName],
+                    ProviderName = anidbFileUpdate.HasResponse ? anidbProviderName : null,
+                    ProviderID = anidbFileUpdate.HasResponse ? anidbProviderID : null,
                     AttemptStartedAt = anidbFileUpdate.UpdatedAt,
                     AttemptEndedAt = anidbFileUpdate.UpdatedAt,
                 });
@@ -1493,7 +1280,7 @@ public class DatabaseFixes
             {
                 EntityID = (int)fields[0],
                 VoteValue = (int)fields[1],
-                VoteType = (VoteType)fields[2],
+                VoteType = (int)fields[2],
             };
 
             if (vote.VoteValue != -1 && vote.VoteValue is < 100 or > 1000)
@@ -1504,8 +1291,8 @@ public class DatabaseFixes
 
             switch (vote.VoteType)
             {
-                case VoteType.AnimePermanent:
-                case VoteType.AnimeTemporary:
+                case 1: // AnimePermanent
+                case 2: // AnimeTemporary
                 {
                     if (RepoFactory.MediaSeries.GetByAnimeID(vote.EntityID) is not { } series)
                     {
@@ -1516,14 +1303,14 @@ public class DatabaseFixes
                     var userData = RepoFactory.MediaSeries_User.GetByUserAndSeriesID(user.JMMUserID, series.MediaSeriesID)
                         ?? new() { JMMUserID = user.JMMUserID, MediaSeriesID = series.MediaSeriesID };
                     userData.AbsoluteUserRating = vote.VoteValue;
-                    userData.UserRatingVoteType = vote.VoteType is VoteType.AnimePermanent
+                    userData.UserRatingVoteType = vote.VoteType is 1
                         ? SeriesVoteType.Permanent
                         : SeriesVoteType.Temporary;
                     toSaveSeries.Add(userData);
                     break;
                 }
 
-                case VoteType.Episode:
+                case 3: // Episode
                 {
                     if (RepoFactory.MediaEpisode.GetByAniDBEpisodeID(vote.EntityID) is not { } series)
                     {
@@ -1621,6 +1408,6 @@ public class DatabaseFixes
 
         public int VoteValue { get; set; }
 
-        public VoteType VoteType { get; set; }
+        public int VoteType { get; set; }
     }
 }

@@ -69,10 +69,6 @@ public sealed record DaCollectorWebUISettings
 {
     public required bool AutoGroupSeries { get; init; }
 
-    public required List<string> AutoGroupSeriesRelationExclusions { get; init; }
-
-    public required bool AutoGroupSeriesUseScoreAlgorithm { get; init; }
-
     public required bool FileQualityFilterEnabled { get; init; }
 
     public required ImportSettings Import { get; init; }
@@ -94,8 +90,6 @@ public sealed record DaCollectorWebUISettings
     public static DaCollectorWebUISettings From(IServerSettings settings) => new()
     {
         AutoGroupSeries = settings.AutoGroupSeries,
-        AutoGroupSeriesRelationExclusions = settings.AutoGroupSeriesRelationExclusions,
-        AutoGroupSeriesUseScoreAlgorithm = settings.AutoGroupSeriesUseScoreAlgorithm,
         FileQualityFilterEnabled = settings.FileQualityFilterEnabled,
         Import = settings.Import,
         TMDB = settings.TMDB,

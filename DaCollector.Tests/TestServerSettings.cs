@@ -21,8 +21,6 @@ public class TestServerSettings
     public PlexSettings Plex { get; set; } = new();
     public PluginSettings Plugins { get; set; } = new();
     public bool AutoGroupSeries { get; set; }
-    public string AutoGroupSeriesRelationExclusions { get; set; } = "same setting|character";
-    public bool AutoGroupSeriesUseScoreAlgorithm { get; set; }
     public bool FileQualityFilterEnabled { get; set; }
     public FileQualityPreferences FileQualityPreferences { get; set; } = new();
     public List<string> LanguagePreference { get; set; } = new() { "x-jat", "en" };

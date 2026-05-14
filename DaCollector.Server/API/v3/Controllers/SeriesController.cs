@@ -29,7 +29,6 @@ using DaCollector.Server.API.v3.Models.TMDB.Input;
 using DaCollector.Server.Extensions;
 using DaCollector.Server.Models.AniDB;
 using DaCollector.Server.Models.DaCollector;
-using DaCollector.Server.Providers.AniDB.Titles;
 using DaCollector.Server.Providers.TMDB;
 using DaCollector.Server.Repositories;
 using DaCollector.Server.Scheduling;
@@ -59,8 +58,6 @@ public class SeriesController : BaseController
 
     private readonly MediaGroupService _groupService;
 
-    private readonly AniDBTitleHelper _titleHelper;
-
     private readonly ISchedulerFactory _schedulerFactory;
 
     private readonly TmdbLinkingService _tmdbLinkingService;
@@ -82,7 +79,6 @@ public class SeriesController : BaseController
         ActionService actionService,
         MediaSeriesService seriesService,
         MediaGroupService groupService,
-        AniDBTitleHelper titleHelper,
         ISchedulerFactory schedulerFactory,
         TmdbLinkingService tmdbLinkingService,
         TmdbMetadataService tmdbMetadataService,
@@ -96,7 +92,6 @@ public class SeriesController : BaseController
         _actionService = actionService;
         _seriesService = seriesService;
         _groupService = groupService;
-        _titleHelper = titleHelper;
         _schedulerFactory = schedulerFactory;
         _tmdbLinkingService = tmdbLinkingService;
         _tmdbMetadataService = tmdbMetadataService;
@@ -982,86 +977,6 @@ public class SeriesController : BaseController
         }
 
         return new Series(series, User.JMMUserID, randomImages, includeDataFrom);
-    }
-
-    /// <summary>
-    /// Queue a refresh of the AniDB Info for series with AniDB ID
-    /// </summary>
-    /// <param name="anidbID">AniDB ID</param>
-    /// <param name="force">Try to forcefully retrieve updated data from AniDB if
-    /// we're not banned and if the last update is outside the no-update
-    /// window (configured in the settings).</param>
-    /// <param name="downloadRelations">Download relations for the series</param>
-    /// <param name="createSeriesEntry">Also create the Series entries if
-    /// it/they do not exist</param>
-    /// <param name="immediate">Try to immediately refresh the data if we're
-    /// not HTTP banned.</param>
-    /// <param name="cacheOnly">Only used data from the cache when performing the refresh. <paramref name="force"/> takes precedence over this option.</param>
-    /// <param name="skipTmdbUpdate">Skip updating related TMDB entities after refresh.</param>
-    /// <returns>True if the refresh was performed at once, otherwise false if it was queued.</returns>
-    [HttpPost("AniDB/{anidbID}/Refresh")]
-    public async Task<ActionResult<bool>> RefreshAniDBByAniDBID([FromRoute] int anidbID, [FromQuery] bool force = false,
-        [FromQuery] bool downloadRelations = false, [FromQuery] bool? createSeriesEntry = null,
-        [FromQuery] bool immediate = false, [FromQuery] bool cacheOnly = false,
-        [FromQuery] bool skipTmdbUpdate = false)
-    {
-        if (!createSeriesEntry.HasValue)
-        {
-            var settings = SettingsProvider.GetSettings();
-            createSeriesEntry = settings.AniDb.AutomaticallyImportSeries;
-        }
-
-        // TODO No
-        return await _actionService.QueueAniDBRefresh(anidbID, force, downloadRelations,
-            createSeriesEntry.Value, immediate, cacheOnly, skipTmdbUpdate);
-    }
-
-    /// <summary>
-    /// Queue a refresh of the AniDB Info for series with ID
-    /// </summary>
-    /// <param name="seriesID">DaCollector ID</param>
-    /// <param name="force">Try to forcefully retrieve updated data from AniDB if
-    /// we're not banned and if the last update is outside the no-update
-    /// window (configured in the settings).</param>
-    /// <param name="downloadRelations">Download relations for the series</param>
-    /// <param name="createSeriesEntry">Also create the Series entries if
-    /// it/they do not exist</param>
-    /// <param name="immediate">Try to immediately refresh the data if we're
-    /// not HTTP banned.</param>
-    /// <param name="cacheOnly">Only used data from the cache when performing the refresh. <paramref name="force"/> takes precedence over this option.</param>
-    /// <param name="skipTmdbUpdate">Skip updating related TMDB entities after refresh.</param>
-    /// <returns>True if the refresh is done, otherwise false if it was queued.</returns>
-    [HttpPost("{seriesID}/AniDB/Refresh")]
-    public async Task<ActionResult<bool>> RefreshAniDBBySeriesID([FromRoute, Range(1, int.MaxValue)] int seriesID, [FromQuery] bool force = false,
-        [FromQuery] bool downloadRelations = false, [FromQuery] bool? createSeriesEntry = null,
-        [FromQuery] bool immediate = false, [FromQuery] bool cacheOnly = false, [FromQuery] bool skipTmdbUpdate = false)
-    {
-        if (!createSeriesEntry.HasValue)
-        {
-            var settings = SettingsProvider.GetSettings();
-            createSeriesEntry = settings.AniDb.AutomaticallyImportSeries;
-        }
-
-        var series = RepoFactory.MediaSeries.GetByID(seriesID);
-        if (series == null)
-        {
-            return NotFound(SeriesNotFoundWithSeriesID);
-        }
-
-        if (!User.AllowedSeries(series))
-        {
-            return Forbid(SeriesForbiddenForUser);
-        }
-
-        var anidb = series.AniDB_Anime;
-        if (anidb == null)
-        {
-            return InternalError(AnidbNotFoundForSeriesID);
-        }
-
-        // TODO No
-        return await _actionService.QueueAniDBRefresh(anidb.AnimeID, force, downloadRelations,
-            createSeriesEntry.Value, immediate, cacheOnly, skipTmdbUpdate);
     }
 
     #endregion
@@ -3047,49 +2962,23 @@ public class SeriesController : BaseController
         int page = 1
     )
     {
-        // We're searching using the anime ID, so first check the local db then the title cache for a match.
         if (searchById && int.TryParse(query, out var animeID))
         {
             var anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
             if (anime != null)
-            {
                 return new(1, [new(anime, includeTitles: includeTitles)]);
-            }
-
-            // Check the title cache for a match.
-            var result = _titleHelper.SearchAnimeID(animeID);
-            if (result != null)
-            {
-                return new(1, [new(result, includeTitles: includeTitles)]);
-            }
-
             return new();
         }
 
-        // Return all known entries on anidb if no query is given.
-        if (string.IsNullOrEmpty(query))
-            return _titleHelper.GetAll()
-                .OrderBy(anime => anime.AnimeID)
-                .Select(result =>
-                {
-                    var series = RepoFactory.MediaSeries.GetByAnimeID(result.AnimeID);
-                    if (local.HasValue && series is null == local.Value)
-                        return null;
-
-                    return new MetadataAnime(result, series, includeTitles);
-                })
-                .WhereNotNull()
-                .ToListResult(page, pageSize);
-
-        // Search the title cache for anime matching the query.
-        return _titleHelper.SearchTitle(query, fuzzy)
-            .Select(result =>
+        return RepoFactory.AniDB_Anime.GetAll()
+            .Where(a => string.IsNullOrEmpty(query) || a.AllTitles.Contains(query, StringComparison.OrdinalIgnoreCase) || a.MainTitle.Contains(query, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(a => a.AnimeID)
+            .Select(a =>
             {
-                var series = RepoFactory.MediaSeries.GetByAnimeID(result.Result.AnimeID);
+                var series = RepoFactory.MediaSeries.GetByAnimeID(a.AnimeID);
                 if (local.HasValue && series is null == local.Value)
                     return null;
-
-                return new MetadataAnime(result.Result, series, includeTitles);
+                return new MetadataAnime(a, series, includeTitles);
             })
             .WhereNotNull()
             .ToListResult(page, pageSize);

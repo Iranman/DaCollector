@@ -31,6 +31,7 @@ using DaCollector.Abstractions.Metadata.Anidb.Services;
 using DaCollector.Abstractions.Metadata.Tmdb.Services;
 using DaCollector.Abstractions.Metadata.Services;
 using DaCollector.Abstractions.Plugin;
+using DaCollector.Abstractions.Theme.Services;
 using DaCollector.Abstractions.User.Services;
 using DaCollector.Abstractions.Utilities;
 using DaCollector.Abstractions.Video.Services;
@@ -47,8 +48,6 @@ using DaCollector.Server.MediaInfo;
 using DaCollector.Server.Parsing;
 using DaCollector.Server.Plex;
 using DaCollector.Server.Plugin;
-using DaCollector.Server.Providers.AniDB;
-using DaCollector.Server.Providers.AniDB.Interfaces;
 using DaCollector.Server.Providers;
 using DaCollector.Server.Providers.TMDB;
 using DaCollector.Server.Providers.TVDB;
@@ -413,6 +412,7 @@ public class SystemService : ISystemService
             services.AddSingleton<MediaSeriesService>();
             services.AddSingleton<MediaGroupService>();
             services.AddSingleton<CssThemeService>();
+            services.AddSingleton<IThemeService>(sp => sp.GetRequiredService<CssThemeService>());
             services.AddSingleton<ISystemUpdateService, SystemUpdateService>();
             services.AddSingleton<IMetadataService, AbstractMetadataService>();
             services.AddSingleton<IVideoService, VideoService>();
@@ -480,7 +480,10 @@ public class SystemService : ISystemService
                 });
             services.AddHttpClient("TVDB", client =>
                 {
-                    client.BaseAddress = new Uri("https://api4.thetvdb.com/v4/");
+                    var tvdbBase = settingsProvider.GetSettings().TVDB.BaseUrl;
+                    client.BaseAddress = new Uri(string.IsNullOrWhiteSpace(tvdbBase)
+                        ? "https://api4.thetvdb.com/v4/"
+                        : tvdbBase.TrimEnd('/') + '/');
                     client.DefaultRequestHeaders.Add("Accept", "application/json");
                     client.DefaultRequestHeaders.Add("User-Agent", $"DaCollector/{systemService.Version.Version.ToSemanticVersioningString()}");
                     client.DefaultRequestHeaders.AcceptEncoding.ParseAdd("gzip");
@@ -495,14 +498,9 @@ public class SystemService : ISystemService
                     handler.AutomaticDecompression = DecompressionMethods.All;
                     handler.PooledConnectionLifetime = TimeSpan.FromMinutes(2);
                 });
-            services.AddAniDB();
-            services.AddSingleton<AnidbService>();
-            services.AddSingleton<IAnidbService>(sp => sp.GetRequiredService<AnidbService>());
-            services.AddSingleton<IAnidbAvdumpService>(sp => sp.GetRequiredService<AnidbService>());
+pluginManager.RegisterPlugins(services);
 
-            pluginManager.RegisterPlugins(services);
-
-            services.AddAPI(pluginManager);
+            services.AddAPI(pluginManager, settingsProvider);
         }
 
         public void Configure(IApplicationBuilder app)
@@ -577,17 +575,6 @@ public class SystemService : ISystemService
 
             if (cancellationToken.IsCancellationRequested)
                 return;
-
-            StartupMessage = "Initializing UDP Connection Handler...";
-            var udpConnectionHandler = _webHost.Services.GetRequiredService<IUDPConnectionHandler>();
-            try
-            {
-                udpConnectionHandler.Init();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error initializing UDP Connection Handler");
-            }
 
             if (cancellationToken.IsCancellationRequested)
                 return;
@@ -833,10 +820,6 @@ public class SystemService : ISystemService
 
             var fileWatcherService = _webHost.Services.GetRequiredService<FileWatcherService>();
             fileWatcherService.StopWatchingFiles();
-
-            var udpConnectionHandler = _webHost.Services.GetRequiredService<IUDPConnectionHandler>();
-            udpConnectionHandler.ForceLogout();
-            udpConnectionHandler.CloseConnections();
         }
 
         try
@@ -907,11 +890,6 @@ public class SystemService : ISystemService
             var actionService = _webHost!.Services.GetRequiredService<ActionService>();
 
             // TODO: Move all of these to Quartz
-            await actionService.CheckForUnreadNotifications(false);
-            await actionService.CheckForCalendarUpdate(false);
-            await actionService.CheckForAnimeUpdate();
-            await actionService.CheckForMyListSyncUpdate(false);
-            await actionService.CheckForAniDBFileUpdate(false);
             await actionService.CheckForPluginUpdates(false);
         }
         catch (Exception ex)

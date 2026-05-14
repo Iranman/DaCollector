@@ -15,7 +15,6 @@ using Sentry.AspNetCore;
 using DaCollector.Abstractions.Core;
 using DaCollector.Abstractions.Extensions;
 using DaCollector.Server.Plugin;
-using DaCollector.Server.Providers.AniDB.UDP.Exceptions;
 using DaCollector.Server.Server;
 using DaCollector.Server.Settings;
 
@@ -101,7 +100,6 @@ public static class SentryInit
         typeof(ArgumentOutOfRangeException),
         typeof(IndexOutOfRangeException),
         typeof(GenericADOException),
-        typeof(UnexpectedUDPResponseException)
     };
 
     private static SentryEvent? BeforeSentrySend(SentryEvent arg)

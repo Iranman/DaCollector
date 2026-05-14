@@ -16,7 +16,6 @@ using DaCollector.Server.Models.AniDB.Embedded;
 using DaCollector.Server.Models.CrossReference;
 using DaCollector.Server.Models.DaCollector;
 using DaCollector.Server.Models.TMDB;
-using DaCollector.Server.Providers.AniDB.Titles;
 using DaCollector.Server.Repositories;
 using DaCollector.Server.Utilities;
 
@@ -254,10 +253,6 @@ public class AniDB_Anime : IAnidbAnime
                 var title = _defaultTitle = Titles.FirstOrDefault(title => title.TitleType == TitleType.Main);
                 if (title is not null)
                     return _defaultTitle = title;
-
-                var titleHelper = Utils.ServiceContainer.GetRequiredService<AniDBTitleHelper>();
-                if (titleHelper.SearchAnimeID(AnimeID) is { } titleResponse)
-                    return _preferredTitle = titleResponse.Titles.First(title => title.TitleType == TitleType.Main);
 
                 return _preferredTitle = new TitleStub()
                 {
@@ -610,7 +605,7 @@ public class AniDB_Anime : IAnidbAnime
                 return null;
 
             // Hide broken cross-references and non-companies.
-            if (xref.Creator is not { Type: Providers.AniDB.CreatorType.Company } creator)
+            if (xref.Creator is not { Type: global::DaCollector.Abstractions.Metadata.Enums.CreatorType.Company } creator)
                 return null;
 
             return new AniDB_Studio(xref, creator, this);

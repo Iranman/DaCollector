@@ -26,7 +26,6 @@ using DaCollector.Server.Repositories.Cached.AniDB;
 using DaCollector.Server.Repositories.Direct;
 using DaCollector.Server.Scheduling;
 using DaCollector.Server.Scheduling.Jobs.Actions;
-using DaCollector.Server.Scheduling.Jobs.AniDB;
 using DaCollector.Server.Scheduling.Jobs.DaCollector;
 using DaCollector.Server.Services.Ogg;
 using DaCollector.Server.Settings;
@@ -654,9 +653,6 @@ public class VideoService : IVideoService
         {
             if (v?.Places?.Count <= 1)
             {
-                if (updateMyListStatus)
-                    await ScheduleRemovalFromMyList(v);
-
                 try
                 {
                     DaCollectorEventHandler.Instance.OnFileDeleted(place.ManagedFolder!, place, v);
@@ -716,9 +712,6 @@ public class VideoService : IVideoService
 
         if (v?.Places?.Count <= 1)
         {
-            if (updateMyListStatus)
-                await ScheduleRemovalFromMyList(v);
-
             var eps = v.AnimeEpisodes?.WhereNotNull().ToList();
             eps?.DistinctBy(a => a.MediaSeriesID).Select(a => a.MediaSeries).WhereNotNull().ToList().ForEach(seriesToUpdate.Add);
 
@@ -759,41 +752,6 @@ public class VideoService : IVideoService
                 _videoLocalPlaceRepository.DeleteWithOpenTransaction(session, place);
                 transaction.Commit();
             });
-        }
-    }
-
-    public async Task ScheduleRemovalFromMyList(VideoLocal video)
-    {
-        var scheduler = await _schedulerFactory.GetScheduler();
-        if (_storedReleaseInfoRepository.GetByEd2kAndFileSize(video.Hash, video.FileSize) is { ReleaseURI: not null } releaseInfo && releaseInfo.ReleaseURI.StartsWith(AnidbReleaseProvider.ReleasePrefix))
-        {
-            await scheduler.StartJob<DeleteFileFromMyListJob>(c =>
-                {
-                    c.Hash = video.Hash;
-                    c.FileSize = video.FileSize;
-                }
-            );
-        }
-        else
-        {
-            var xrefs = video.EpisodeCrossReferences;
-            foreach (var xref in xrefs)
-            {
-                if (xref.AnimeID is 0)
-                    continue;
-
-                var ep = _anidbEpisodeRepository.GetByEpisodeID(xref.EpisodeID);
-                if (ep is null)
-                    continue;
-
-                await scheduler.StartJob<DeleteFileFromMyListJob>(c =>
-                    {
-                        c.AnimeID = xref.AnimeID;
-                        c.EpisodeType = ep.EpisodeType;
-                        c.EpisodeNumber = ep.EpisodeNumber;
-                    }
-                );
-            }
         }
     }
 

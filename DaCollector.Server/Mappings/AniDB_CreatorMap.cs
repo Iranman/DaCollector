@@ -1,6 +1,6 @@
 using FluentNHibernate.Mapping;
+using DaCollector.Abstractions.Metadata.Enums;
 using DaCollector.Server.Models.AniDB;
-using DaCollector.Server.Providers.AniDB;
 
 namespace DaCollector.Server.Mappings;
 

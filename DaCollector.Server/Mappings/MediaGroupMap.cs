@@ -13,6 +13,7 @@ public class MediaGroupMap : ClassMap<MediaGroup>
         Map(x => x.MediaGroupParentID);
         Map(x => x.DefaultMediaSeriesID);
         Map(x => x.MainAniDBAnimeID);
+        Map(x => x.TmdbCollectionID);
         Map(x => x.DateTimeCreated).Not.Nullable();
         Map(x => x.DateTimeUpdated).Not.Nullable();
         Map(x => x.Description).CustomType("StringClob").CustomSqlType("nvarchar(max)");

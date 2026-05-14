@@ -82,6 +82,7 @@
 // ──────────────────────────────────────────────────────────
 let currentStep = 0;
 let reConfigMode = false;
+let rcStep = 0; // re-config sub-step: 0 = Diagnostics, 1 = Import Folders
 
 const state = {
     username: '', password: '',
@@ -126,18 +127,27 @@ async function api(method, path, body) {
 function renderNav() {
     const nav = document.getElementById('step-nav');
     if (reConfigMode) {
-        nav.innerHTML = `<div style="padding:8px 10px">
-            <div style="font-size:11px;font-weight:700;color:#4B5563;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:12px">Settings</div>
-            <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;background:#C9A22712">
-                <div style="width:26px;height:26px;border-radius:50%;background:#C9A22722;border:2px solid #C9A227;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#C9A227" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-                    </svg>
-                </div>
-                <span style="font-size:13px;color:#FFFFFF;font-weight:600">Import Folders</span>
-            </div>
+        const rcLabels = ['Diagnostics', 'Import Folders'];
+        nav.innerHTML = `<div style="padding:0 4px 12px">
+            <div style="font-size:10px;font-weight:700;color:#4B5563;letter-spacing:0.08em;text-transform:uppercase;padding:2px 8px 10px">Settings</div>
+            ${rcLabels.map((label, i) => {
+                const done = i < rcStep, active = i === rcStep;
+                const circleBg = done ? '#C9A227' : active ? '#C9A22722' : 'transparent';
+                const circleBdr = done ? 'none' : active ? '2px solid #C9A227' : '2px solid #2A2A2A';
+                const icon = done ? svg('M20 6 9 17 4 12', 'polyline', 'white')
+                    : `<span style="font-size:11px;color:${active ? '#C9A227' : '#4B5563'};font-weight:600">${i + 1}</span>`;
+                const bg = active ? '#C9A22712' : 'transparent';
+                const color = active ? '#FFFFFF' : done ? '#9CA3AF' : '#4B5563';
+                const weight = active ? '600' : '400';
+                return `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;background:${bg}">
+                    <div style="width:26px;height:26px;border-radius:50%;background:${circleBg};border:${circleBdr};display:flex;align-items:center;justify-content:center;flex-shrink:0">${icon}</div>
+                    <span style="font-size:13px;color:${color};font-weight:${weight}">${label}</span>
+                </div>`;
+            }).join('')}
         </div>`;
-        document.getElementById('btn-back').style.display = 'none';
+        const backBtn = document.getElementById('btn-back');
+        backBtn.style.display = rcStep > 0 ? 'inline-block' : 'none';
+        if (rcStep > 0) backBtn.onclick = () => { rcStep = 0; showRcStep(); };
         return;
     }
     nav.innerHTML = STEPS.map((s, i) => {
@@ -180,6 +190,17 @@ async function nextStep() {
 
 function prevStep() {
     if (currentStep > 0) { currentStep--; showStep(); }
+}
+
+function showRcStep() {
+    renderNav();
+    const el = document.getElementById('step-content');
+    el.classList.remove('fade-in');
+    void el.offsetWidth;
+    el.classList.add('fade-in');
+    el.innerHTML = '';
+    if (rcStep === 0) renderDiagnostics(el);
+    else renderFolders(el);
 }
 
 async function validateStep() {
@@ -515,7 +536,7 @@ function renderFolders(el) {
     document.getElementById('btn-next').onclick = reConfigMode
         ? () => window.location.replace('/webui/dashboard.html')
         : finishSetup;
-    document.getElementById('btn-back').style.display = 'none';
+    if (!reConfigMode) document.getElementById('btn-back').style.display = 'none';
 
     el.innerHTML = `
         <div style="max-width:620px">
@@ -1048,6 +1069,92 @@ document.addEventListener('focusout', e => {
 });
 
 // ──────────────────────────────────────────────────────────
+// Repair / Diagnostics
+// ──────────────────────────────────────────────────────────
+async function renderDiagnostics(el) {
+    document.getElementById('btn-next').textContent = 'Next';
+    document.getElementById('btn-next').onclick = () => { rcStep = 1; showRcStep(); };
+    document.getElementById('btn-next').disabled = false;
+
+    el.innerHTML = `
+        <div style="max-width:560px">
+            <h1 style="font-size:26px;font-weight:700;color:#FFFFFF;margin:0 0 8px">Diagnostics</h1>
+            <p style="color:#6B7280;font-size:14px;margin:0 0 24px">Checking server health and configuration.</p>
+            <div id="diag-checks" style="display:flex;flex-direction:column;gap:12px">
+                <div style="color:#6B7280;font-size:14px;display:flex;align-items:center;gap:8px">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="spin"><path d="M21 12a9 9 0 1 1-6.2-8.6"/></svg>
+                    Loading…
+                </div>
+            </div>
+        </div>`;
+
+    try {
+        const r = await fetch('/api/v3/Init/Repair/Status', { headers: { 'apikey': state.apiKey } });
+        if (!r.ok) throw new Error(await r.text() || r.statusText);
+        renderDiagChecks(await r.json());
+    } catch (e) {
+        const checks = document.getElementById('diag-checks');
+        if (checks) checks.innerHTML = `<div style="color:#EF4444;font-size:14px">Failed to load diagnostics: ${esc(e.message)}</div>`;
+    }
+}
+
+function renderDiagChecks(status) {
+    const checks = document.getElementById('diag-checks');
+    if (!checks) return;
+    checks.innerHTML = [
+        diagRow('Database',       status.databaseOk,
+            status.databaseOk ? 'Connected and healthy' : 'Connection failed'),
+        diagRow('WebUI Files',    status.webUIUpToDate,
+            status.webUIUpToDate
+                ? `Up to date (v${esc(status.webUIVersion || '?')})`
+                : `Outdated — installed v${esc(status.webUIVersion || '?')}, bundled v${esc(status.webUIBundledVersion || '?')}`,
+            !status.webUIUpToDate),
+        diagRow('Import Folders', status.managedFolderCount > 0,
+            status.managedFolderCount > 0 ? `${status.managedFolderCount} folder(s) configured` : 'No import folders configured'),
+        diagRow('TMDB',           status.tmdbConfigured,
+            status.tmdbConfigured ? 'API key configured' : 'Using built-in key'),
+        diagRow('Plex',           status.plexConfigured,
+            status.plexConfigured ? 'Connected' : 'Not connected (optional)'),
+    ].join('');
+}
+
+function diagRow(label, ok, description, showRepair) {
+    const color = ok ? '#34D399' : '#F59E0B';
+    const icon = ok
+        ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`
+        : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`;
+    const repairBtn = showRepair
+        ? `<button id="btn-repair-webui" onclick="repairWebUI()" style="font-size:12px;padding:6px 14px;border-radius:6px;border:1px solid #C9A22750;background:#C9A22712;color:#C9A227;cursor:pointer;white-space:nowrap">Repair</button>`
+        : '';
+    return `<div style="background:#1C1C1C;border-radius:10px;border:1px solid #2A2A2A;padding:14px 18px;display:flex;align-items:center;gap:12px">
+        <div style="flex-shrink:0">${icon}</div>
+        <div style="flex:1;min-width:0">
+            <div style="font-size:14px;font-weight:600;color:#FFFFFF">${label}</div>
+            <div style="font-size:12px;color:#6B7280;margin-top:2px">${description}</div>
+        </div>
+        ${repairBtn}
+    </div>`;
+}
+
+async function repairWebUI() {
+    const btn = document.getElementById('btn-repair-webui');
+    if (btn) { btn.textContent = 'Repairing…'; btn.disabled = true; }
+    try {
+        const r = await fetch('/api/v3/Init/Repair/WebUI', {
+            method: 'POST',
+            headers: { 'apikey': state.apiKey },
+        });
+        if (!r.ok) throw new Error(await r.text() || r.statusText);
+        const r2 = await fetch('/api/v3/Init/Repair/Status', { headers: { 'apikey': state.apiKey } });
+        if (r2.ok) { renderDiagChecks(await r2.json()); return; }
+        if (btn) { btn.textContent = 'Done — reload to apply'; btn.style.color = '#34D399'; btn.disabled = false; }
+    } catch (e) {
+        if (btn) { btn.textContent = 'Repair'; btn.disabled = false; }
+        alert('Repair failed: ' + e.message);
+    }
+}
+
+// ──────────────────────────────────────────────────────────
 // Re-configuration mode (server already running)
 // ──────────────────────────────────────────────────────────
 async function enterReConfigMode() {
@@ -1060,8 +1167,8 @@ async function enterReConfigMode() {
     if (savedKey) {
         state.apiKey = savedKey;
         await loadExistingFolders();
-        currentStep = STEPS.length - 1;
-        showStep();
+        rcStep = 0;
+        showRcStep();
     } else {
         showReConfigLogin();
     }
@@ -1105,8 +1212,8 @@ async function doReConfigLogin() {
         if (!state.apiKey) throw new Error('No API key returned');
         localStorage.setItem('apiKey', state.apiKey);
         await loadExistingFolders();
-        currentStep = STEPS.length - 1;
-        showStep();
+        rcStep = 0;
+        showRcStep();
     } catch (e) {
         err.textContent = e.message; err.style.display = 'block';
         btn.disabled = false; btn.textContent = 'Log In';
