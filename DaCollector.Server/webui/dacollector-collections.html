@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -7,19 +7,36 @@
     <style>
         :root {
             color-scheme: dark;
-            --bg: #10151b;
-            --side: #0c1117;
-            --panel: #171f29;
-            --panel-2: #202a36;
-            --field: #0f151d;
-            --line: #304052;
-            --text: #eef3f8;
-            --muted: #aab7c6;
-            --gold: #d7aa47;
+            --bg: #0A0A0A;
+            --side: #0D0D0D;
+            --panel: #1C1C1C;
+            --panel-2: #141414;
+            --field: #0D0D0D;
+            --line: #2A2A2A;
+            --text: #D4C5A9;
+            --muted: #9CA3AF;
+            --gold: #C9A227;
             --blue: #6fb7ff;
             --green: #76d49b;
             --red: #f17878;
             --purple: #bf9cff;
+        }
+
+        [data-theme="light"] {
+            color-scheme: light;
+            --bg: #F5F5F5;
+            --side: #EAEAEA;
+            --panel: #FFFFFF;
+            --panel-2: #F0F0F0;
+            --field: #FAFAFA;
+            --line: #E0E0E0;
+            --text: #111111;
+            --muted: #555555;
+            --gold: #B8860B;
+            --blue: #1a7fd4;
+            --green: #2d8a5e;
+            --red: #c0392b;
+            --purple: #7c4dbb;
         }
 
         * { box-sizing: border-box; }
@@ -130,15 +147,12 @@
         }
 
         .mark {
-            display: grid;
-            place-items: center;
             width: 2.5rem;
             height: 2.5rem;
-            border: 1px solid #7e642d;
-            border-radius: 50%;
-            background: #171207;
-            color: var(--gold);
-            font-weight: 900;
+            border-radius: 9px;
+            object-fit: cover;
+            flex-shrink: 0;
+            border: 1px solid #C9A22740;
         }
 
         .brand h1 {
@@ -380,6 +394,23 @@
             color: #f4d79a;
         }
 
+        .theme-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+            width: 100%;
+            margin-top: 0.75rem;
+            padding: 0.5rem;
+            background: transparent;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            color: var(--gold);
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
         .hidden {
             display: none;
         }
@@ -407,12 +438,13 @@
             }
         }
     </style>
+    <script src="theme.js"></script>
 </head>
 <body>
 <div class="shell">
     <aside class="side">
         <div class="brand">
-            <div class="mark">DC</div>
+            <img class="mark" src="icon.png" alt="DaCollector">
             <h1>DaCollector</h1>
         </div>
         <nav class="nav" aria-label="DaCollector admin">
@@ -421,6 +453,10 @@
             <a href="/webui/dacollector-duplicates.html">Duplicates</a>
             <a href="/swagger">API</a>
         </nav>
+        <button class="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode">
+            <svg class="theme-sun" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+            <svg class="theme-moon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
     </aside>
 
     <main class="main">

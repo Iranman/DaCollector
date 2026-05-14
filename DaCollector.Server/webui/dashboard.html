@@ -1,81 +1,158 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DaCollector — Dashboard</title>
+    <script src="theme.js"></script>
     <style>
+        /* ── Theme variables ── */
+        :root {
+            --bg:     #0A0A0A;
+            --side:   #0D0D0D;
+            --main:   #141414;
+            --card:   #1C1C1C;
+            --card2:  #141414;
+            --bdr:    #2A2A2A;
+            --gold:   #C9A227;
+            --gold-a: #C9A22722;
+            --gold-b: #C9A22718;
+            --gold-c: #C9A22730;
+            --gold-d: #C9A22712;
+            --gold-e: #C9A22720;
+            --gold-f: #C9A22740;
+            --gold-g: #C9A22750;
+            --text:   #D4C5A9;
+            --hi:     #FFFFFF;
+            --mid:    #9CA3AF;
+            --lo:     #6B7280;
+            --faint:  #4B5563;
+            --btn-fg: #0D0D0D;
+            color-scheme: dark;
+        }
+        [data-theme="light"] {
+            --bg:     #F5F5F5;
+            --side:   #EAEAEA;
+            --main:   #F0F0F0;
+            --card:   #FFFFFF;
+            --card2:  #F5F5F5;
+            --bdr:    #E0E0E0;
+            --gold:   #B8860B;
+            --gold-a: #B8860B22;
+            --gold-b: #B8860B18;
+            --gold-c: #B8860B30;
+            --gold-d: #B8860B12;
+            --gold-e: #B8860B20;
+            --gold-f: #B8860B40;
+            --gold-g: #B8860B50;
+            --text:   #333333;
+            --hi:     #111111;
+            --mid:    #555555;
+            --lo:     #777777;
+            --faint:  #999999;
+            --btn-fg: #FFFFFF;
+            color-scheme: light;
+        }
+
+        /* ── Base ── */
         * { box-sizing: border-box; }
-        body { margin:0; background:#0A0A0A; color:#D4C5A9; font-family:system-ui,-apple-system,sans-serif; height:100vh; display:flex; overflow:hidden; }
+        body { margin:0; background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,sans-serif; height:100vh; display:flex; overflow:hidden; }
         ::-webkit-scrollbar { width:5px; height:5px; }
         ::-webkit-scrollbar-track { background:transparent; }
-        ::-webkit-scrollbar-thumb { background:#C9A22740; border-radius:3px; }
+        ::-webkit-scrollbar-thumb { background:var(--gold-f); border-radius:3px; }
         @keyframes spin { to { transform:rotate(360deg); } }
         .spin { animation:spin 1s linear infinite; }
         @keyframes fadeIn { from { opacity:0; transform:translateY(5px); } to { opacity:1; transform:translateY(0); } }
         .fade-in { animation:fadeIn 0.2s ease; }
 
-        /* Sidebar nav */
-        .nav-item { display:flex; align-items:center; gap:9px; padding:8px 12px; border-radius:8px; font-size:13px; font-weight:500; color:#6B7280; text-decoration:none; cursor:pointer; border:none; background:none; width:100%; }
-        .nav-item:hover { background:#C9A22712; color:#D4C5A9; }
-        .nav-item.active { background:#C9A22718; color:#C9A227; }
+        /* ── Sidebar nav ── */
+        .nav-item { display:flex; align-items:center; gap:9px; padding:8px 12px; border-radius:8px; font-size:13px; font-weight:500; color:var(--lo); text-decoration:none; cursor:pointer; border:none; background:none; width:100%; }
+        .nav-item:hover { background:var(--gold-d); color:var(--text); }
+        .nav-item.active { background:var(--gold-b); color:var(--gold); }
 
-        /* Horizontal scroll rows */
+        /* ── Horizontal scroll rows ── */
         .h-scroll { display:flex; gap:12px; overflow-x:auto; padding-bottom:6px; }
         .h-scroll::-webkit-scrollbar { height:4px; }
 
-        /* Episode card */
-        .ep-card { flex-shrink:0; width:136px; cursor:default; }
-        .ep-poster-wrap { border-radius:8px; overflow:hidden; background:#1C1C1C; border:1px solid #2A2A2A; position:relative; aspect-ratio:2/3; margin-bottom:7px; }
+        /* ── Episode card ── */
+        .ep-card { flex-shrink:0; width:136px; }
+        .ep-poster-wrap { border-radius:8px; overflow:hidden; background:var(--card); border:1px solid var(--bdr); position:relative; aspect-ratio:2/3; margin-bottom:7px; }
         .ep-poster-wrap img { width:100%; height:100%; object-fit:cover; display:block; }
         .ep-poster-wrap img.hidden { display:none; }
-        .ep-duration { position:absolute; bottom:5px; right:5px; background:rgba(0,0,0,0.78); border-radius:4px; padding:2px 6px; font-size:10px; color:#FFFFFF; }
-        .ep-progress { position:absolute; bottom:0; left:0; right:0; height:3px; background:#2A2A2A; }
-        .ep-progress-fill { height:100%; background:#C9A227; }
-        .ep-card .ep-num { font-size:11px; color:#6B7280; margin-bottom:2px; }
-        .ep-card .ep-title { font-size:12px; color:#FFFFFF; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-        .ep-card .ep-series { font-size:11px; color:#9CA3AF; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .ep-duration { position:absolute; bottom:5px; right:5px; background:rgba(0,0,0,0.78); border-radius:4px; padding:2px 6px; font-size:10px; color:#fff; }
+        .ep-progress { position:absolute; bottom:0; left:0; right:0; height:3px; background:var(--bdr); }
+        .ep-progress-fill { height:100%; background:var(--gold); }
+        .ep-num   { font-size:11px; color:var(--lo); margin-bottom:2px; }
+        .ep-title { font-size:12px; color:var(--hi); font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .ep-series{ font-size:11px; color:var(--mid); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
-        /* Stat card */
-        .stat-card { background:#1C1C1C; border:1px solid #2A2A2A; border-radius:10px; padding:16px 18px; }
-        .stat-card.warn { border-color:#F59E0B40; }
-        .stat-card.ok   { border-color:#34D39920; }
-        .stat-label { font-size:10px; color:#6B7280; text-transform:uppercase; letter-spacing:0.07em; margin-bottom:8px; }
-        .stat-value { font-size:22px; font-weight:700; color:#FFFFFF; }
+        /* ── Stat cards ── */
+        .stat-card      { background:var(--card); border:1px solid var(--bdr); border-radius:10px; padding:16px 18px; }
+        .stat-card.warn { border-color:rgba(245,158,11,0.4); }
+        .stat-card.ok   { border-color:rgba(52,211,153,0.2); }
+        .stat-label { font-size:10px; color:var(--faint); text-transform:uppercase; letter-spacing:0.07em; margin-bottom:8px; }
+        .stat-value      { font-size:22px; font-weight:700; color:var(--hi); }
         .stat-value.warn { color:#F59E0B; font-size:18px; }
         .stat-value.ok   { color:#34D399; font-size:18px; }
-        .stat-value.muted { color:#D4C5A9; font-size:18px; }
+        .stat-value.muted{ color:var(--text); font-size:18px; }
 
-        /* Section header */
+        /* ── Section header ── */
         .section-hdr { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
-        .section-hdr h2 { font-size:15px; font-weight:600; color:#FFFFFF; margin:0; }
+        .section-hdr h2 { font-size:15px; font-weight:600; color:var(--hi); margin:0; }
 
-        /* Queue job row */
-        .job-row { display:flex; align-items:flex-start; gap:10px; background:#141414; border-radius:8px; padding:10px 12px; }
+        /* ── Folder card ── */
+        .folder-card { background:var(--card); border:1px solid var(--bdr); border-radius:12px; padding:18px 20px; display:flex; flex-direction:column; gap:12px; }
 
-        /* Bar chart row */
-        .bar-row { display:flex; flex-direction:column; gap:5px; margin-bottom:4px; }
-        .bar-track { height:6px; background:#2A2A2A; border-radius:3px; overflow:hidden; }
-        .bar-fill { height:100%; border-radius:3px; transition:width 0.6s ease; }
+        /* ── Job row ── */
+        .job-row { display:flex; align-items:flex-start; gap:10px; background:var(--card2); border-radius:8px; padding:10px 12px; }
+
+        /* ── Bar chart ── */
+        .bar-track { height:6px; background:var(--bdr); border-radius:3px; overflow:hidden; }
+        .bar-fill  { height:100%; border-radius:3px; transition:width 0.6s ease; }
+
+        /* ── Action button ── */
+        .action-btn { background:var(--card2); border:1px solid var(--bdr); border-radius:7px; padding:8px; font-size:12px; font-weight:500; color:var(--mid); cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; flex:1; }
+        .action-btn:hover { border-color:var(--gold-c); color:var(--text); }
+        .action-btn.danger { color:#EF4444; flex:none; padding:8px 12px; }
+        .action-btn.danger:hover { border-color:rgba(239,68,68,0.4); }
+
+        /* ── Gold primary button ── */
+        .btn-gold { background:var(--gold); border:none; border-radius:8px; padding:10px 22px; font-size:13px; font-weight:600; color:var(--btn-fg); cursor:pointer; }
+        .btn-ghost { background:var(--card); border:1px solid var(--bdr); border-radius:8px; padding:10px 20px; font-size:13px; color:var(--mid); cursor:pointer; }
+
+        /* ── Theme toggle icon ── */
+        .theme-sun  { display:none; }
+        .theme-moon { display:block; }
+        [data-theme="light"] .theme-sun  { display:block; }
+        [data-theme="light"] .theme-moon { display:none; }
+
+        /* ── Input ── */
+        .inp { background:var(--card2); border:1px solid var(--bdr); border-radius:8px; padding:10px 14px; font-size:14px; color:var(--hi); outline:none; width:100%; font-family:inherit; }
+        .inp:focus { border-color:var(--gold); }
+
+        /* ── Modal overlay ── */
+        .overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.88); z-index:200; align-items:center; justify-content:center; }
+        .modal-box { background:var(--card); border:1px solid var(--bdr); border-radius:14px; padding:28px 32px; max-height:90vh; overflow-y:auto; }
+        .modal-label { display:block; font-size:11px; font-weight:600; color:var(--mid); text-transform:uppercase; letter-spacing:0.07em; margin-bottom:8px; }
     </style>
 </head>
 <body>
 
 <!-- ══════════════════ SIDEBAR ══════════════════ -->
-<aside style="width:236px;flex-shrink:0;background:#0D0D0D;border-right:1px solid #1C1C1C;display:flex;flex-direction:column;padding:22px 14px;overflow-y:auto">
+<aside style="width:236px;flex-shrink:0;background:var(--side);border-right:1px solid var(--bdr);display:flex;flex-direction:column;padding:22px 14px;overflow-y:auto">
 
     <!-- Branding -->
     <div style="display:flex;align-items:center;gap:11px;padding:0 4px;margin-bottom:28px">
-        <div style="width:36px;height:36px;background:#C9A227;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px;color:#0D0D0D;flex-shrink:0">D</div>
+        <img src="icon.png" alt="DaCollector" style="width:40px;height:40px;border-radius:9px;object-fit:cover;flex-shrink:0;border:1px solid var(--gold-c)">
         <div>
-            <div style="font-weight:600;font-size:15px;color:#FFFFFF;line-height:1.2">DaCollector</div>
-            <div id="version-text" style="font-size:11px;color:#4B5563">…</div>
+            <div style="font-weight:700;font-size:15px;color:var(--hi);line-height:1.2">DaCollector</div>
+            <div id="version-text" style="font-size:11px;color:var(--faint)">…</div>
         </div>
     </div>
 
     <!-- Nav -->
     <div style="flex:1;display:flex;flex-direction:column;gap:2px">
-        <div style="font-size:10px;font-weight:700;color:#4B5563;letter-spacing:0.08em;text-transform:uppercase;padding:2px 12px 6px">Main</div>
+        <div style="font-size:10px;font-weight:700;color:var(--faint);letter-spacing:0.08em;text-transform:uppercase;padding:2px 12px 6px">Main</div>
 
         <a href="dashboard.html" class="nav-item active">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -101,7 +178,7 @@
             Duplicates
         </a>
 
-        <div style="font-size:10px;font-weight:700;color:#4B5563;letter-spacing:0.08em;text-transform:uppercase;padding:14px 12px 6px">Server</div>
+        <div style="font-size:10px;font-weight:700;color:var(--faint);letter-spacing:0.08em;text-transform:uppercase;padding:14px 12px 6px">Server</div>
 
         <button class="nav-item" onclick="scrollTo('folders-section')">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -130,25 +207,29 @@
     <!-- Bottom links -->
     <div style="display:flex;flex-direction:column;gap:6px;margin-top:20px">
         <a href="https://discord.gg/vpeHDsg" target="_blank"
-           style="background:#1C1C1C;border:1px solid #2A2A2A;border-radius:8px;padding:8px 14px;text-align:center;font-size:12px;color:#6B7280;text-decoration:none">
-            Discord
-        </a>
+           style="background:var(--card);border:1px solid var(--bdr);border-radius:8px;padding:8px 14px;text-align:center;font-size:12px;color:var(--lo);text-decoration:none">Discord</a>
         <a href="https://github.com/Iranman/DaCollector#readme" target="_blank"
-           style="background:#1C1C1C;border:1px solid #2A2A2A;border-radius:8px;padding:8px 14px;text-align:center;font-size:12px;color:#6B7280;text-decoration:none">
-            Docs
-        </a>
+           style="background:var(--card);border:1px solid var(--bdr);border-radius:8px;padding:8px 14px;text-align:center;font-size:12px;color:var(--lo);text-decoration:none">Docs</a>
     </div>
 </aside>
 
 <!-- ══════════════════ MAIN ══════════════════ -->
-<main style="flex:1;display:flex;flex-direction:column;overflow:hidden;background:#141414">
+<main style="flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--main)">
 
     <!-- Top bar -->
-    <div style="background:#141414;border-bottom:1px solid #1C1C1C;padding:13px 36px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;position:sticky;top:0;z-index:10">
-        <h1 style="font-size:17px;font-weight:600;color:#FFFFFF;margin:0">Dashboard</h1>
-        <div style="display:flex;align-items:center;gap:10px">
-            <div id="queue-badge" style="display:none;background:#C9A22720;border:1px solid #C9A22740;border-radius:20px;padding:3px 12px;font-size:12px;color:#C9A227;cursor:pointer" onclick="scrollTo('queue-section')"></div>
-            <button onclick="refreshAll()" style="background:#1C1C1C;border:1px solid #2A2A2A;border-radius:8px;padding:7px 14px;font-size:13px;color:#9CA3AF;cursor:pointer;display:flex;align-items:center;gap:6px">
+    <div style="background:var(--main);border-bottom:1px solid var(--bdr);padding:13px 36px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+        <h1 style="font-size:17px;font-weight:600;color:var(--hi);margin:0">Dashboard</h1>
+        <div style="display:flex;align-items:center;gap:8px">
+            <div id="queue-badge" style="display:none;background:var(--gold-a);border:1px solid var(--gold-c);border-radius:20px;padding:3px 12px;font-size:12px;color:var(--gold);cursor:pointer" onclick="scrollTo('queue-section')"></div>
+            <!-- Theme toggle -->
+            <button onclick="toggleTheme()" title="Toggle light/dark mode"
+                style="background:var(--card);border:1px solid var(--bdr);border-radius:8px;padding:7px 9px;cursor:pointer;display:flex;align-items:center;color:var(--lo)">
+                <!-- Sun (shown in dark mode to switch to light) -->
+                <svg class="theme-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                <!-- Moon (shown in light mode to switch to dark) -->
+                <svg class="theme-moon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            </button>
+            <button onclick="refreshAll()" style="background:var(--card);border:1px solid var(--bdr);border-radius:8px;padding:7px 14px;font-size:13px;color:var(--mid);cursor:pointer;display:flex;align-items:center;gap:6px">
                 <svg id="refresh-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.5 15a9 9 0 1 1-2.8-9.4L23 10"/></svg>
                 Refresh
             </button>
@@ -156,171 +237,135 @@
     </div>
 
     <!-- Scrollable content -->
-    <div id="page-content" style="flex:1;overflow-y:auto;padding:28px 36px;display:flex;flex-direction:column;gap:36px">
+    <div style="flex:1;overflow-y:auto;padding:28px 36px;display:flex;flex-direction:column;gap:36px">
 
-        <!-- ── Collection Stats ── -->
+        <!-- Collection Stats -->
         <section id="stats-section">
             <div class="section-hdr"><h2>Collection Stats</h2></div>
-            <div id="stats-content"><div style="color:#4B5563;font-size:13px">Loading…</div></div>
+            <div id="stats-content" style="color:var(--faint);font-size:13px">Loading…</div>
         </section>
 
-        <!-- ── Continue Watching ── -->
+        <!-- Continue Watching -->
         <section id="continue-section" style="display:none">
             <div class="section-hdr"><h2>Continue Watching</h2></div>
             <div class="h-scroll" id="continue-list"></div>
         </section>
 
-        <!-- ── Next Up ── -->
+        <!-- Next Up -->
         <section id="nextup-section" style="display:none">
             <div class="section-hdr"><h2>Next Up</h2></div>
             <div class="h-scroll" id="nextup-list"></div>
         </section>
 
-        <!-- ── Recently Added ── -->
+        <!-- Recently Added -->
         <section id="recent-section">
             <div class="section-hdr"><h2>Recently Added</h2></div>
-            <div class="h-scroll" id="recent-list"><div style="color:#4B5563;font-size:13px">Loading…</div></div>
+            <div class="h-scroll" id="recent-list" style="color:var(--faint);font-size:13px">Loading…</div>
         </section>
 
-        <!-- ── Bottom row: Series Breakdown + Queue ── -->
+        <!-- Summary + Queue -->
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
-
-            <!-- Series Summary -->
             <section id="summary-section">
                 <div class="section-hdr"><h2>Collection Breakdown</h2></div>
-                <div style="background:#1C1C1C;border:1px solid #2A2A2A;border-radius:12px;padding:22px" id="summary-content">
-                    <div style="color:#4B5563;font-size:13px">Loading…</div>
+                <div style="background:var(--card);border:1px solid var(--bdr);border-radius:12px;padding:22px" id="summary-content">
+                    <div style="color:var(--faint);font-size:13px">Loading…</div>
                 </div>
             </section>
-
-            <!-- Queue -->
             <section id="queue-section">
                 <div class="section-hdr"><h2>Queue</h2></div>
-                <div style="background:#1C1C1C;border:1px solid #2A2A2A;border-radius:12px;padding:22px" id="queue-content">
-                    <div style="color:#4B5563;font-size:13px">Loading…</div>
+                <div style="background:var(--card);border:1px solid var(--bdr);border-radius:12px;padding:22px" id="queue-content">
+                    <div style="color:var(--faint);font-size:13px">Loading…</div>
                 </div>
             </section>
-
         </div>
 
-        <!-- ── Import Folders ── -->
+        <!-- Import Folders -->
         <section id="folders-section">
             <div class="section-hdr">
                 <h2>Import Folders</h2>
-                <button onclick="openFolderModal(null)"
-                    style="background:#C9A227;border:none;border-radius:8px;padding:7px 16px;font-size:13px;font-weight:600;color:#0D0D0D;cursor:pointer;display:flex;align-items:center;gap:6px">
+                <button class="btn-gold" onclick="openFolderModal(null)" style="display:flex;align-items:center;gap:6px;padding:7px 16px;font-size:13px">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                     Add Folder
                 </button>
             </div>
             <div id="folders-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px">
-                <div style="color:#4B5563;font-size:13px">Loading…</div>
+                <div style="color:var(--faint);font-size:13px">Loading…</div>
             </div>
         </section>
 
-    </div><!-- /page-content -->
+    </div>
 </main>
 
 <!-- ══════════════════ FOLDER MODAL ══════════════════ -->
-<div id="folder-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:200;align-items:center;justify-content:center">
-    <div style="background:#1C1C1C;border:1px solid #2A2A2A;border-radius:14px;padding:28px 32px;width:480px;max-height:90vh;overflow-y:auto">
-        <div style="font-size:17px;font-weight:700;color:#FFFFFF;margin-bottom:22px" id="folder-modal-title">Add Import Folder</div>
-
+<div id="folder-modal" class="overlay">
+    <div class="modal-box" style="width:480px">
+        <div style="font-size:17px;font-weight:700;color:var(--hi);margin-bottom:22px" id="folder-modal-title">Add Import Folder</div>
         <div style="display:flex;flex-direction:column;gap:18px">
-
-            <!-- Name -->
             <div>
-                <label style="display:block;font-size:11px;font-weight:600;color:#9CA3AF;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:8px">
-                    Display Name <span style="color:#4B5563;text-transform:none;letter-spacing:0;font-weight:400">(optional)</span>
-                </label>
-                <input id="fm-name" type="text" placeholder="e.g. Movies, TV Shows"
-                    style="background:#141414;border:1px solid #2A2A2A;border-radius:8px;padding:10px 14px;font-size:14px;color:#FFFFFF;outline:none;width:100%;font-family:inherit">
+                <label class="modal-label">Display Name <span style="color:var(--faint);text-transform:none;letter-spacing:0;font-weight:400">(optional)</span></label>
+                <input id="fm-name" class="inp" type="text" placeholder="e.g. Movies, TV Shows">
             </div>
-
-            <!-- Path -->
             <div>
-                <label style="display:block;font-size:11px;font-weight:600;color:#9CA3AF;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:8px">
-                    Folder Path <span style="color:#EF4444">*</span>
-                </label>
-                <input id="fm-path" type="text" placeholder="/mnt/media/Movies  or  C:\Media\Movies"
-                    style="background:#141414;border:1px solid #2A2A2A;border-radius:8px;padding:10px 14px;font-size:14px;color:#FFFFFF;outline:none;width:100%;font-family:inherit">
-                <div style="font-size:11px;color:#4B5563;margin-top:5px">Path must exist on the server filesystem.</div>
+                <label class="modal-label">Folder Path <span style="color:#EF4444">*</span></label>
+                <input id="fm-path" class="inp" type="text" placeholder="/mnt/media/Movies  or  C:\Media\Movies">
+                <div style="font-size:11px;color:var(--faint);margin-top:5px">Path must exist on the server filesystem.</div>
             </div>
-
             <!-- Watch toggle -->
-            <div style="display:flex;align-items:center;justify-content:space-between;background:#141414;border:1px solid #2A2A2A;border-radius:10px;padding:14px 16px">
+            <div style="display:flex;align-items:center;justify-content:space-between;background:var(--card2);border:1px solid var(--bdr);border-radius:10px;padding:14px 16px">
                 <div>
-                    <div style="font-size:13px;font-weight:500;color:#FFFFFF;margin-bottom:2px">Watch for New Files</div>
-                    <div style="font-size:12px;color:#6B7280">Auto-import files added to this folder</div>
+                    <div style="font-size:13px;font-weight:500;color:var(--hi);margin-bottom:2px">Watch for New Files</div>
+                    <div style="font-size:12px;color:var(--lo)">Auto-import files added to this folder</div>
                 </div>
                 <button id="fm-watch-btn" onclick="toggleFmWatch()"
-                    style="width:44px;height:24px;border-radius:12px;border:none;cursor:pointer;position:relative;background:#2A2A2A;flex-shrink:0">
-                    <div id="fm-watch-dot" style="width:18px;height:18px;background:white;border-radius:50%;position:absolute;top:3px;left:3px;transition:left 0.15s"></div>
+                    style="width:44px;height:24px;border-radius:12px;border:none;cursor:pointer;position:relative;background:var(--bdr);flex-shrink:0">
+                    <div id="fm-watch-dot" style="width:18px;height:18px;background:#fff;border-radius:50%;position:absolute;top:3px;left:3px;transition:left 0.15s"></div>
                 </button>
             </div>
-
-            <!-- Drop folder role -->
+            <!-- Drop role -->
             <div>
-                <label style="display:block;font-size:11px;font-weight:600;color:#9CA3AF;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:10px">Drop Folder Role</label>
-                <div style="display:flex;gap:8px;flex-wrap:wrap" id="fm-drop-btns">
-                    <button onclick="setFmDrop('None')"        id="fm-drop-None"        style="font-size:12px;padding:7px 13px;border-radius:6px;border:1px solid #C9A227;background:#C9A22722;color:#C9A227;cursor:pointer">No Role</button>
-                    <button onclick="setFmDrop('Source')"      id="fm-drop-Source"      style="font-size:12px;padding:7px 13px;border-radius:6px;border:1px solid #2A2A2A;background:transparent;color:#6B7280;cursor:pointer">Drop Source</button>
-                    <button onclick="setFmDrop('Destination')" id="fm-drop-Destination" style="font-size:12px;padding:7px 13px;border-radius:6px;border:1px solid #2A2A2A;background:transparent;color:#6B7280;cursor:pointer">Drop Destination</button>
-                    <button onclick="setFmDrop('Both')"        id="fm-drop-Both"        style="font-size:12px;padding:7px 13px;border-radius:6px;border:1px solid #2A2A2A;background:transparent;color:#6B7280;cursor:pointer">Source &amp; Destination</button>
+                <label class="modal-label">Drop Folder Role</label>
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                    <button onclick="setFmDrop('None')"        id="fm-drop-None"        class="drop-opt active-drop">No Role</button>
+                    <button onclick="setFmDrop('Source')"      id="fm-drop-Source"      class="drop-opt">Drop Source</button>
+                    <button onclick="setFmDrop('Destination')" id="fm-drop-Destination" class="drop-opt">Drop Destination</button>
+                    <button onclick="setFmDrop('Both')"        id="fm-drop-Both"        class="drop-opt">Source &amp; Dest</button>
                 </div>
-                <div style="font-size:11px;color:#4B5563;margin-top:8px">
-                    Drop Source files are moved to a Drop Destination during import.
-                </div>
+                <div style="font-size:11px;color:var(--faint);margin-top:8px">Drop Source files are moved to a Drop Destination during import.</div>
             </div>
-
-            <!-- Error -->
             <div id="fm-err" style="color:#EF4444;font-size:13px;display:none"></div>
-
-            <!-- Buttons -->
             <div style="display:flex;gap:10px;justify-content:flex-end;padding-top:4px">
-                <button onclick="closeFolderModal()"
-                    style="background:#141414;border:1px solid #2A2A2A;border-radius:8px;padding:10px 20px;font-size:13px;color:#9CA3AF;cursor:pointer">
-                    Cancel
-                </button>
-                <button id="fm-save-btn" onclick="saveFolderModal()"
-                    style="background:#C9A227;border:none;border-radius:8px;padding:10px 22px;font-size:13px;font-weight:600;color:#0D0D0D;cursor:pointer">
-                    Save
-                </button>
+                <button class="btn-ghost" onclick="closeFolderModal()">Cancel</button>
+                <button class="btn-gold" id="fm-save-btn" onclick="saveFolderModal()">Save</button>
             </div>
         </div>
     </div>
 </div>
+<style>
+    .drop-opt { font-size:12px;padding:7px 13px;border-radius:6px;border:1px solid var(--bdr);background:transparent;color:var(--lo);cursor:pointer; }
+    .drop-opt.active-drop { border-color:var(--gold);background:var(--gold-a);color:var(--gold); }
+</style>
 
 <!-- ══════════════════ LOGIN OVERLAY ══════════════════ -->
-<div id="login-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:200;align-items:center;justify-content:center">
-    <div style="background:#1C1C1C;border:1px solid #2A2A2A;border-radius:14px;padding:32px 40px;width:360px">
+<div id="login-overlay" class="overlay">
+    <div class="modal-box" style="width:360px">
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
-            <div style="width:36px;height:36px;background:#C9A227;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px;color:#0D0D0D">D</div>
+            <img src="icon.png" alt="" style="width:40px;height:40px;border-radius:9px;object-fit:cover;border:1px solid var(--gold-c)">
             <div>
-                <div style="font-size:17px;font-weight:700;color:#FFFFFF">Sign In</div>
-                <div style="font-size:12px;color:#6B7280">DaCollector Server</div>
+                <div style="font-size:17px;font-weight:700;color:var(--hi)">Sign In</div>
+                <div style="font-size:12px;color:var(--lo)">DaCollector Server</div>
             </div>
         </div>
         <div style="display:flex;flex-direction:column;gap:14px">
-            <input id="login-user" type="text" placeholder="Username" autocomplete="username"
-                onkeydown="if(event.key==='Enter')doLogin()"
-                style="background:#141414;border:1px solid #2A2A2A;border-radius:8px;padding:10px 14px;font-size:14px;color:#FFFFFF;outline:none;width:100%;font-family:inherit">
-            <input id="login-pass" type="password" placeholder="Password" autocomplete="current-password"
-                onkeydown="if(event.key==='Enter')doLogin()"
-                style="background:#141414;border:1px solid #2A2A2A;border-radius:8px;padding:10px 14px;font-size:14px;color:#FFFFFF;outline:none;width:100%;font-family:inherit">
+            <input id="login-user" class="inp" type="text" placeholder="Username" autocomplete="username" onkeydown="if(event.key==='Enter')doLogin()">
+            <input id="login-pass" class="inp" type="password" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
             <div id="login-err" style="color:#EF4444;font-size:13px;display:none"></div>
-            <button onclick="doLogin()"
-                style="background:#C9A227;border:none;border-radius:8px;padding:11px;font-size:14px;font-weight:600;color:#0D0D0D;cursor:pointer">
-                Sign In
-            </button>
+            <button class="btn-gold" onclick="doLogin()" style="padding:11px;font-size:14px;width:100%">Sign In</button>
         </div>
     </div>
 </div>
 
 <script>
-// ────────────────────────────────────────────────────────
-// Auth
-// ────────────────────────────────────────────────────────
+// ── Auth ──
 let apiKey = localStorage.getItem('apiKey') || '';
 
 async function authFetch(method, path, body) {
@@ -333,9 +378,7 @@ async function authFetch(method, path, body) {
     return ct.includes('json') ? r.json() : r.text();
 }
 
-function showLogin() {
-    document.getElementById('login-overlay').style.display = 'flex';
-}
+function showLogin() { document.getElementById('login-overlay').style.display = 'flex'; }
 
 async function doLogin() {
     const u = document.getElementById('login-user').value.trim();
@@ -355,24 +398,12 @@ async function doLogin() {
         localStorage.setItem('apiKey', apiKey);
         document.getElementById('login-overlay').style.display = 'none';
         init();
-    } catch (e) {
-        err.textContent = e.message;
-        err.style.display = 'block';
-    }
+    } catch (e) { err.textContent = e.message; err.style.display = 'block'; }
 }
 
-// ────────────────────────────────────────────────────────
-// Helpers
-// ────────────────────────────────────────────────────────
-function esc(s) {
-    return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-function imgUrl(img) {
-    if (!img || !img.available) return '';
-    return `/api/v3/Image/${img.source}/${img.type}/${img.id}?apikey=${encodeURIComponent(apiKey)}`;
-}
-
+// ── Helpers ──
+function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function imgUrl(img) { return (img && img.available) ? `/api/v3/Image/${img.source}/${img.type}/${img.id}?apikey=${encodeURIComponent(apiKey)}` : ''; }
 function fmtBytes(b) {
     if (!b) return '0 B';
     if (b < 1024) return b + ' B';
@@ -381,93 +412,72 @@ function fmtBytes(b) {
     if (b < 1024**4) return (b/1024**3).toFixed(2) + ' GB';
     return (b/1024**4).toFixed(2) + ' TB';
 }
-
 function fmtDur(ts) {
     if (!ts) return '';
-    const parts = ts.split(':');
-    if (parts.length < 2) return ts;
-    const h = parseInt(parts[0]), m = parseInt(parts[1]);
-    if (h > 0) return `${h}h ${m}m`;
-    return `${m}m`;
+    const p = ts.split(':');
+    const h = parseInt(p[0]), m = parseInt(p[1]);
+    return h > 0 ? `${h}h ${m}m` : `${m}m`;
 }
-
-function durSeconds(ts) {
+function durSec(ts) {
     if (!ts) return 0;
     const p = ts.split(':');
     return (parseInt(p[0])||0)*3600 + (parseInt(p[1])||0)*60 + (parseFloat(p[2])||0);
 }
+function scrollTo(id) { document.getElementById(id)?.scrollIntoView({ behavior:'smooth', block:'start' }); }
 
-function scrollTo(id) {
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
-// ────────────────────────────────────────────────────────
-// Stats
-// ────────────────────────────────────────────────────────
+// ── Stats ──
 async function loadStats() {
     const el = document.getElementById('stats-content');
     try {
         const s = await authFetch('GET', 'Dashboard/Stats');
         el.innerHTML = `
             <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:11px;margin-bottom:11px">
-                ${statCard('Files',            s.fileCount.toLocaleString(),         false, false)}
-                ${statCard('Series',           s.seriesCount.toLocaleString(),        false, false)}
-                ${statCard('Groups',           s.groupCount.toLocaleString(),         false, false)}
-                ${statCard('Collection Size',  fmtBytes(s.fileSize),                  false, false)}
-                ${statCard('Episodes Watched', s.watchedEpisodes.toLocaleString(),    false, false)}
-                ${statCard('Hours Watched',    s.watchedHours.toLocaleString() + 'h', false, false)}
+                ${sc('Files',            s.fileCount.toLocaleString(),          false,false)}
+                ${sc('Series',           s.seriesCount.toLocaleString(),         false,false)}
+                ${sc('Groups',           s.groupCount.toLocaleString(),          false,false)}
+                ${sc('Collection Size',  fmtBytes(s.fileSize),                   false,false)}
+                ${sc('Episodes Watched', s.watchedEpisodes.toLocaleString(),     false,false)}
+                ${sc('Hours Watched',    s.watchedHours.toLocaleString()+'h',    false,false)}
             </div>
             <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:11px">
-                ${statCard('Missing Episodes',   s.missingEpisodes,          s.missingEpisodes > 0,         false)}
-                ${statCard('Unrecognized Files', s.unrecognizedFiles,        s.unrecognizedFiles > 0,       false)}
-                ${statCard('Missing Links',      s.seriesWithMissingLinks,   s.seriesWithMissingLinks > 0,  false)}
-                ${statCard('Multiple Files',     s.episodesWithMultipleFiles,false,                         false)}
-                ${statCard('Dup. Locations',     s.filesWithDuplicateLocations, s.filesWithDuplicateLocations > 0, false)}
-                ${statCard('Series Completed',   s.finishedSeries,           false,                         true)}
+                ${sc('Missing Episodes',   s.missingEpisodes,              s.missingEpisodes>0,             false)}
+                ${sc('Unrecognized Files', s.unrecognizedFiles,            s.unrecognizedFiles>0,           false)}
+                ${sc('Missing Links',      s.seriesWithMissingLinks,       s.seriesWithMissingLinks>0,      false)}
+                ${sc('Multiple Files',     s.episodesWithMultipleFiles,    false,                           false)}
+                ${sc('Dup. Locations',     s.filesWithDuplicateLocations,  s.filesWithDuplicateLocations>0, false)}
+                ${sc('Series Completed',  s.finishedSeries,               false,                           true)}
             </div>`;
-    } catch (e) {
-        el.innerHTML = errMsg('Stats', e.message);
-    }
+    } catch (e) { el.innerHTML = errMsg('Stats', e.message); }
 }
 
-function statCard(label, value, isWarn, isOk) {
-    const cls = isWarn ? 'warn' : isOk ? 'ok' : '';
-    const valCls = isWarn ? 'warn' : isOk ? 'ok' : (cls ? 'muted' : '');
-    const isSmall = isWarn || isOk;
+function sc(label, value, warn, ok) {
+    const cls = warn ? 'warn' : ok ? 'ok' : '';
+    const vCls = warn ? 'warn' : ok ? 'ok' : (cls ? 'muted' : '');
     return `<div class="stat-card ${cls}">
         <div class="stat-label">${label}</div>
-        <div class="stat-value ${valCls}" style="${isSmall ? 'font-size:18px' : ''}">${esc(String(value))}</div>
+        <div class="stat-value ${vCls}">${esc(String(value))}</div>
     </div>`;
 }
 
-// ────────────────────────────────────────────────────────
-// Episode cards
-// ────────────────────────────────────────────────────────
+// ── Episode cards ──
 function episodeCard(ep) {
-    const poster  = imgUrl(ep.seriesPoster);
-    const thumb   = imgUrl(ep.thumbnail);
-    const artSrc  = thumb || poster;
-    const dur     = fmtDur(ep.duration);
-    const totSec  = durSeconds(ep.duration);
-    const resSec  = durSeconds(ep.resumePosition);
-    const pct     = totSec > 0 ? Math.round(resSec / totSec * 100) : 0;
-    const airDate = ep.airDate ? ep.airDate.substring(0, 10) : '';
-    const episodeLabel = ep.type === 'Special' ? 'Sp. ' + ep.number : 'Ep. ' + ep.number;
-
+    const src   = imgUrl(ep.thumbnail) || imgUrl(ep.seriesPoster);
+    const dur   = fmtDur(ep.duration);
+    const pct   = durSec(ep.duration) > 0 ? Math.round(durSec(ep.resumePosition)/durSec(ep.duration)*100) : 0;
+    const label = ep.type === 'Special' ? 'Sp. '+ep.number : 'Ep. '+ep.number;
     return `<div class="ep-card">
         <div class="ep-poster-wrap">
-            ${artSrc
-                ? `<img src="${esc(artSrc)}" alt="" loading="lazy" onerror="this.classList.add('hidden')">`
-                : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center">
-                       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2A2A2A" stroke-width="1.5"><rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="17 2 12 7 7 2"/></svg>
-                   </div>`}
+            ${src ? `<img src="${esc(src)}" alt="" loading="lazy" onerror="this.classList.add('hidden')">` :
+              `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--bdr)" stroke-width="1.5"><rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="17 2 12 7 7 2"/></svg>
+               </div>`}
             ${dur ? `<div class="ep-duration">${esc(dur)}</div>` : ''}
-            ${pct > 0 ? `<div class="ep-progress"><div class="ep-progress-fill" style="width:${pct}%"></div></div>` : ''}
+            ${pct>0 ? `<div class="ep-progress"><div class="ep-progress-fill" style="width:${pct}%"></div></div>` : ''}
         </div>
-        <div class="ep-num">${esc(episodeLabel)}</div>
+        <div class="ep-num">${esc(label)}</div>
         <div class="ep-title" title="${esc(ep.title)}">${esc(ep.title)}</div>
         <div class="ep-series" title="${esc(ep.seriesTitle)}">${esc(ep.seriesTitle)}</div>
-        ${airDate ? `<div style="font-size:10px;color:#4B5563;margin-top:2px">${esc(airDate)}</div>` : ''}
+        ${ep.airDate ? `<div style="font-size:10px;color:var(--faint);margin-top:2px">${ep.airDate.substring(0,10)}</div>` : ''}
     </div>`;
 }
 
@@ -476,137 +486,85 @@ async function loadEpisodes(endpoint, listId, sectionId) {
         const result = await authFetch('GET', endpoint);
         const items = result.list || result;
         const section = document.getElementById(sectionId);
-        const list    = document.getElementById(listId);
-        if (!items || items.length === 0) {
-            section.style.display = 'none';
-            return;
-        }
+        if (!items || !items.length) { section.style.display = 'none'; return; }
         section.style.display = '';
-        list.innerHTML = items.map(episodeCard).join('');
-    } catch (_) {
-        document.getElementById(sectionId).style.display = 'none';
-    }
+        document.getElementById(listId).innerHTML = items.map(episodeCard).join('');
+    } catch (_) { document.getElementById(sectionId).style.display = 'none'; }
 }
 
-// ────────────────────────────────────────────────────────
-// Series Summary
-// ────────────────────────────────────────────────────────
+// ── Series Summary ──
 async function loadSummary() {
     const el = document.getElementById('summary-content');
     try {
         const s = await authFetch('GET', 'Dashboard/SeriesSummary');
         const rows = [
-            { label: 'TV Series',     value: s.series,              color: '#01B4E4' },
-            { label: 'Movies',        value: s.movie,               color: '#C9A227' },
-            { label: 'Specials',      value: s.special,             color: '#4DB6AC' },
-            { label: 'Web / ONA',     value: s.web,                 color: '#A78BFA' },
-            { label: 'Music Videos',  value: s.musicVideo,          color: '#F472B6' },
-            { label: 'Other',         value: s.other + s.unknown,   color: '#6B7280' },
+            { label:'TV Series',    value:s.series,            color:'#01B4E4' },
+            { label:'Movies',       value:s.movie,             color:'var(--gold)' },
+            { label:'Specials',     value:s.special,           color:'#4DB6AC' },
+            { label:'Web / ONA',    value:s.web,               color:'#A78BFA' },
+            { label:'Music Videos', value:s.musicVideo,        color:'#F472B6' },
+            { label:'Other',        value:s.other+s.unknown,   color:'var(--lo)' },
         ].filter(r => r.value > 0);
-
-        if (rows.length === 0) {
-            el.innerHTML = '<div style="color:#4B5563;font-size:13px;text-align:center;padding:20px">No series in your collection yet.</div>';
-            return;
-        }
-
-        const total = rows.reduce((a, r) => a + r.value, 0);
-        el.innerHTML = `
-            <div style="display:flex;flex-direction:column;gap:14px">
-                ${rows.map(r => {
-                    const pct = Math.max(1, Math.round(r.value / total * 100));
-                    return `<div>
-                        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
-                            <span style="font-size:13px;color:#D4C5A9">${r.label}</span>
-                            <span style="font-size:12px;color:#6B7280">${r.value.toLocaleString()}</span>
-                        </div>
-                        <div class="bar-track">
-                            <div class="bar-fill" style="width:${pct}%;background:${r.color}"></div>
-                        </div>
-                    </div>`;
-                }).join('')}
-                <div style="font-size:12px;color:#4B5563;padding-top:4px;border-top:1px solid #2A2A2A">
-                    Total: ${total.toLocaleString()} series
-                </div>
-            </div>`;
-    } catch (e) {
-        el.innerHTML = errMsg('Summary', e.message);
-    }
+        if (!rows.length) { el.innerHTML = '<div style="color:var(--faint);font-size:13px;text-align:center;padding:20px">No series in collection yet.</div>'; return; }
+        const total = rows.reduce((a,r) => a+r.value, 0);
+        el.innerHTML = `<div style="display:flex;flex-direction:column;gap:14px">
+            ${rows.map(r => {
+                const pct = Math.max(1, Math.round(r.value/total*100));
+                return `<div>
+                    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
+                        <span style="font-size:13px;color:var(--text)">${r.label}</span>
+                        <span style="font-size:12px;color:var(--lo)">${r.value.toLocaleString()}</span>
+                    </div>
+                    <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${r.color}"></div></div>
+                </div>`;
+            }).join('')}
+            <div style="font-size:12px;color:var(--faint);padding-top:4px;border-top:1px solid var(--bdr)">Total: ${total.toLocaleString()} series</div>
+        </div>`;
+    } catch (e) { el.innerHTML = errMsg('Summary', e.message); }
 }
 
-// ────────────────────────────────────────────────────────
-// Queue
-// ────────────────────────────────────────────────────────
+// ── Queue ──
 async function loadQueue() {
     const el    = document.getElementById('queue-content');
     const badge = document.getElementById('queue-badge');
     try {
         const q = await authFetch('GET', 'Queue');
         const total = q.totalCount || 0;
-
-        if (total > 0) {
-            badge.textContent = total + ' job' + (total === 1 ? '' : 's') + ' queued';
-            badge.style.display = '';
-        } else {
-            badge.style.display = 'none';
-        }
-
+        if (total > 0) { badge.textContent = total+' job'+(total===1?'':'s')+' queued'; badge.style.display = ''; }
+        else { badge.style.display = 'none'; }
         const running = q.currentlyExecuting || [];
         el.innerHTML = `
-            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px">
-                ${queueStat('Waiting',  q.waitingCount  || 0)}
-                ${queueStat('Blocked',  q.blockedCount  || 0)}
-                ${queueStat('Threads',  q.threadCount   || 0)}
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:${running.length?'18':'0'}px">
+                ${qStat('Waiting', q.waitingCount||0)}
+                ${qStat('Blocked', q.blockedCount||0)}
+                ${qStat('Threads', q.threadCount||0)}
             </div>
-            ${running.length === 0
-                ? `<div style="text-align:center;padding:16px 0;color:#4B5563;font-size:13px">
-                       Queue is idle
-                   </div>`
+            ${running.length===0
+                ? `<div style="text-align:center;padding:16px 0;color:var(--faint);font-size:13px">Queue is idle</div>`
                 : `<div>
-                       <div style="font-size:10px;font-weight:700;color:#4B5563;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:10px">
-                           Currently Running
-                       </div>
-                       <div style="display:flex;flex-direction:column;gap:6px;max-height:200px;overflow-y:auto">
-                           ${running.map(job => `
-                           <div class="job-row">
-                               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#C9A227" stroke-width="2" class="spin" style="flex-shrink:0;margin-top:1px">
-                                   <path d="M21 12a9 9 0 1 1-6.2-8.6"/>
-                               </svg>
-                               <div style="min-width:0">
-                                   <div style="font-size:12px;color:#D4C5A9;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(job.title)}</div>
-                                   ${job.type ? `<div style="font-size:11px;color:#6B7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(job.type)}</div>` : ''}
-                               </div>
-                           </div>`).join('')}
-                       </div>
+                    <div style="font-size:10px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:10px">Currently Running</div>
+                    <div style="display:flex;flex-direction:column;gap:6px;max-height:200px;overflow-y:auto">
+                        ${running.map(j => `<div class="job-row">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2" class="spin" style="flex-shrink:0;margin-top:1px"><path d="M21 12a9 9 0 1 1-6.2-8.6"/></svg>
+                            <div style="min-width:0">
+                                <div style="font-size:12px;color:var(--text);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(j.title)}</div>
+                                ${j.type ? `<div style="font-size:11px;color:var(--lo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(j.type)}</div>` : ''}
+                            </div>
+                        </div>`).join('')}
+                    </div>
                    </div>`
             }`;
-    } catch (e) {
-        el.innerHTML = errMsg('Queue', e.message);
-    }
+    } catch (e) { el.innerHTML = errMsg('Queue', e.message); }
 }
 
-function queueStat(label, value) {
-    return `<div style="background:#141414;border-radius:8px;padding:12px;text-align:center">
-        <div style="font-size:20px;font-weight:700;color:#FFFFFF">${value}</div>
-        <div style="font-size:10px;color:#6B7280;text-transform:uppercase;letter-spacing:0.06em;margin-top:4px">${label}</div>
+function qStat(label, value) {
+    return `<div style="background:var(--card2);border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:20px;font-weight:700;color:var(--hi)">${value}</div>
+        <div style="font-size:10px;color:var(--lo);text-transform:uppercase;letter-spacing:0.06em;margin-top:4px">${label}</div>
     </div>`;
 }
 
-// ────────────────────────────────────────────────────────
-// Version
-// ────────────────────────────────────────────────────────
-async function loadVersion() {
-    try {
-        const v = await authFetch('GET', 'Init/Version');
-        const ver = v?.server?.version;
-        document.getElementById('version-text').textContent = ver ? 'v' + ver : '';
-    } catch (_) {
-        document.getElementById('version-text').textContent = '';
-    }
-}
-
-// ────────────────────────────────────────────────────────
-// Import Folders
-// ────────────────────────────────────────────────────────
+// ── Import Folders ──
 let _editingFolderID = null;
 let _fmWatch = false;
 let _fmDrop  = 'None';
@@ -615,221 +573,143 @@ async function loadFolders() {
     const el = document.getElementById('folders-list');
     try {
         const folders = await authFetch('GET', 'ManagedFolder');
-        if (!folders || folders.length === 0) {
-            el.innerHTML = `<div style="background:#1C1C1C;border:1px dashed #2A2A2A;border-radius:12px;padding:32px;text-align:center;color:#4B5563;font-size:13px">
-                No import folders configured. Click <strong style="color:#C9A227">Add Folder</strong> to get started.
+        if (!folders || !folders.length) {
+            el.innerHTML = `<div style="background:var(--card);border:1px dashed var(--bdr);border-radius:12px;padding:32px;text-align:center;color:var(--faint);font-size:13px">
+                No import folders configured. Click <strong style="color:var(--gold)">Add Folder</strong> to get started.
             </div>`;
             return;
         }
         el.innerHTML = folders.map(folderCard).join('');
-    } catch (e) {
-        el.innerHTML = `<div style="color:#EF4444;font-size:13px">Failed to load folders: ${esc(e.message)}</div>`;
-    }
+    } catch (e) { el.innerHTML = errMsg('Import Folders', e.message); }
 }
 
 function folderCard(f) {
     const drop = f.dropFolderType || 'None';
-    const hasWatch = f.watchForNewFiles;
-    const hasDrop  = drop !== 'None';
-    const dropLabel = drop === 'Both' ? 'Source &amp; Destination'
-                    : drop === 'Source' ? 'Drop Source'
-                    : drop === 'Destination' ? 'Drop Destination' : '';
-    const size = fmtBytes(f.fileSize);
+    const hasDrop = drop !== 'None';
+    const dropLabel = drop==='Both' ? 'Source &amp; Destination' : drop==='Source' ? 'Drop Source' : drop==='Destination' ? 'Drop Destination' : '';
     const name = f.name || f.path;
-
-    return `<div style="background:#1C1C1C;border:1px solid #2A2A2A;border-radius:12px;padding:18px 20px;display:flex;flex-direction:column;gap:12px">
-
-        <!-- Header row -->
+    return `<div class="folder-card">
         <div style="display:flex;align-items:flex-start;gap:12px">
-            <div style="width:38px;height:38px;border-radius:9px;background:#C9A22718;border:1px solid #C9A22730;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C9A227" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <div style="width:38px;height:38px;border-radius:9px;background:var(--gold-b);border:1px solid var(--gold-c);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
                 </svg>
             </div>
             <div style="flex:1;min-width:0">
-                <div style="font-size:14px;font-weight:600;color:#FFFFFF;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(name)}">${esc(name)}</div>
-                <div style="font-size:12px;color:#6B7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(f.path)}">${esc(f.path)}</div>
+                <div style="font-size:14px;font-weight:600;color:var(--hi);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(name)}">${esc(name)}</div>
+                <div style="font-size:12px;color:var(--lo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(f.path)}">${esc(f.path)}</div>
             </div>
         </div>
-
-        <!-- Meta row -->
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-            ${hasWatch ? `<span style="font-size:11px;background:#C9A22718;color:#C9A227;border-radius:4px;padding:3px 9px;border:1px solid #C9A22730">Watched</span>` : `<span style="font-size:11px;background:#1C1C1C;color:#4B5563;border-radius:4px;padding:3px 9px;border:1px solid #2A2A2A">Not Watched</span>`}
-            ${hasDrop ? `<span style="font-size:11px;background:#34D39918;color:#34D399;border-radius:4px;padding:3px 9px;border:1px solid #34D39930">${dropLabel}</span>` : ''}
-            <span style="font-size:11px;color:#6B7280;margin-left:auto">${size}</span>
+            ${f.watchForNewFiles
+                ? `<span style="font-size:11px;background:var(--gold-b);color:var(--gold);border-radius:4px;padding:3px 9px;border:1px solid var(--gold-c)">Watched</span>`
+                : `<span style="font-size:11px;background:var(--card2);color:var(--faint);border-radius:4px;padding:3px 9px;border:1px solid var(--bdr)">Not Watched</span>`}
+            ${hasDrop ? `<span style="font-size:11px;background:rgba(52,211,153,.12);color:#34D399;border-radius:4px;padding:3px 9px;border:1px solid rgba(52,211,153,.25)">${dropLabel}</span>` : ''}
+            <span style="font-size:11px;color:var(--lo);margin-left:auto">${fmtBytes(f.fileSize)}</span>
         </div>
-
-        <!-- Action row -->
-        <div style="display:flex;gap:8px;padding-top:4px;border-top:1px solid #2A2A2A">
-            <button onclick="scanFolder(${f.id})" id="scan-btn-${f.id}"
-                style="flex:1;background:#141414;border:1px solid #2A2A2A;border-radius:7px;padding:8px;font-size:12px;font-weight:500;color:#9CA3AF;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><polyline points="21 21 16.65 16.65"/></svg>
-                Scan
+        <div style="display:flex;gap:8px;padding-top:4px;border-top:1px solid var(--bdr)">
+            <button class="action-btn" onclick="scanFolder(${f.id})" id="scan-btn-${f.id}">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Scan
             </button>
-            <button onclick="openFolderModal(${f.id})"
-                style="flex:1;background:#141414;border:1px solid #2A2A2A;border-radius:7px;padding:8px;font-size:12px;font-weight:500;color:#9CA3AF;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                Edit
+            <button class="action-btn" onclick="openFolderModal(${f.id})">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit
             </button>
-            <button onclick="deleteFolder(${f.id}, '${esc(name).replace(/'/g, "\\'")}')"
-                style="background:#141414;border:1px solid #2A2A2A;border-radius:7px;padding:8px 12px;font-size:12px;color:#EF4444;cursor:pointer;display:flex;align-items:center;gap:5px">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+            <button class="action-btn danger" onclick="deleteFolder(${f.id},'${esc(name).replace(/'/g,"\\'")}')">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
             </button>
         </div>
     </div>`;
 }
 
 async function scanFolder(id) {
-    const btn = document.getElementById('scan-btn-' + id);
-    const origHTML = btn.innerHTML;
+    const btn = document.getElementById('scan-btn-'+id);
+    const orig = btn.innerHTML;
     btn.disabled = true;
-    btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#C9A227" stroke-width="2" class="spin"><path d="M21 12a9 9 0 1 1-6.2-8.6"/></svg> Scanning…`;
+    btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2" class="spin"><path d="M21 12a9 9 0 1 1-6.2-8.6"/></svg> Scanning…`;
     try {
         await authFetch('GET', `ManagedFolder/${id}/Scan`);
         btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Queued`;
-        setTimeout(() => { btn.disabled = false; btn.innerHTML = origHTML; }, 3000);
-    } catch (e) {
+    } catch (_) {
         btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> Failed`;
-        setTimeout(() => { btn.disabled = false; btn.innerHTML = origHTML; }, 3000);
     }
+    setTimeout(() => { btn.disabled = false; btn.innerHTML = orig; }, 3000);
 }
 
 async function deleteFolder(id, name) {
-    if (!confirm(`Remove import folder "${name}"?\n\nThis will remove the folder record. Files already in your collection will not be deleted from disk.`))
-        return;
-    try {
-        await authFetch('DELETE', `ManagedFolder/${id}?removeRecords=false`);
-        await loadFolders();
-    } catch (e) {
-        alert('Failed to remove folder: ' + e.message);
-    }
+    if (!confirm(`Remove import folder "${name}"?\n\nFile records will be kept. The folder entry will be removed.`)) return;
+    try { await authFetch('DELETE', `ManagedFolder/${id}?removeRecords=false`); await loadFolders(); }
+    catch (e) { alert('Failed to remove folder: '+e.message); }
 }
 
-// ── Modal ──
-const _folderCache = {};
-
 async function openFolderModal(id) {
-    _editingFolderID = id || null;
-    const modal = document.getElementById('folder-modal');
-    const title = document.getElementById('folder-modal-title');
-    const err   = document.getElementById('fm-err');
+    _editingFolderID = id||null;
+    const err = document.getElementById('fm-err');
     err.style.display = 'none';
-
+    document.getElementById('folder-modal-title').textContent = id ? 'Edit Import Folder' : 'Add Import Folder';
     document.getElementById('fm-name').value = '';
     document.getElementById('fm-path').value = '';
-    _fmWatch = false;
-    _fmDrop  = 'None';
-    applyFmWatch();
-    applyFmDrop();
-
+    _fmWatch = false; _fmDrop = 'None';
+    applyFmWatch(); applyFmDrop();
     if (id) {
-        title.textContent = 'Edit Import Folder';
         try {
             const f = await authFetch('GET', `ManagedFolder/${id}`);
             document.getElementById('fm-name').value = f.name || '';
             document.getElementById('fm-path').value = f.path || '';
             _fmWatch = f.watchForNewFiles || false;
-            _fmDrop  = f.dropFolderType   || 'None';
-            applyFmWatch();
-            applyFmDrop();
-        } catch (e) {
-            err.textContent = 'Could not load folder: ' + e.message;
-            err.style.display = 'block';
-        }
-    } else {
-        title.textContent = 'Add Import Folder';
+            _fmDrop  = f.dropFolderType  || 'None';
+            applyFmWatch(); applyFmDrop();
+        } catch (e) { err.textContent = 'Could not load: '+e.message; err.style.display = 'block'; }
     }
-
-    modal.style.display = 'flex';
+    document.getElementById('folder-modal').style.display = 'flex';
 }
 
-function closeFolderModal() {
-    document.getElementById('folder-modal').style.display = 'none';
-    _editingFolderID = null;
-}
+function closeFolderModal() { document.getElementById('folder-modal').style.display = 'none'; _editingFolderID = null; }
 
-function toggleFmWatch() {
-    _fmWatch = !_fmWatch;
-    applyFmWatch();
-}
-
+function toggleFmWatch() { _fmWatch = !_fmWatch; applyFmWatch(); }
 function applyFmWatch() {
     const btn = document.getElementById('fm-watch-btn');
     const dot = document.getElementById('fm-watch-dot');
-    btn.style.background = _fmWatch ? '#C9A227' : '#2A2A2A';
+    btn.style.background = _fmWatch ? 'var(--gold)' : 'var(--bdr)';
     dot.style.left = _fmWatch ? '23px' : '3px';
 }
-
-function setFmDrop(value) {
-    _fmDrop = value;
-    applyFmDrop();
-}
-
+function setFmDrop(v) { _fmDrop = v; applyFmDrop(); }
 function applyFmDrop() {
     ['None','Source','Destination','Both'].forEach(v => {
-        const btn = document.getElementById('fm-drop-' + v);
+        const btn = document.getElementById('fm-drop-'+v);
         if (!btn) return;
-        const active = v === _fmDrop;
-        btn.style.borderColor = active ? '#C9A227' : '#2A2A2A';
-        btn.style.background  = active ? '#C9A22722' : 'transparent';
-        btn.style.color       = active ? '#C9A227'   : '#6B7280';
+        btn.classList.toggle('active-drop', v === _fmDrop);
     });
 }
-
 async function saveFolderModal() {
     const name = document.getElementById('fm-name').value.trim();
     const path = document.getElementById('fm-path').value.trim();
     const err  = document.getElementById('fm-err');
     const btn  = document.getElementById('fm-save-btn');
     err.style.display = 'none';
-
-    if (!path) {
-        err.textContent = 'Folder path is required.';
-        err.style.display = 'block';
-        document.getElementById('fm-path').focus();
-        return;
-    }
-
-    btn.disabled = true;
-    btn.textContent = 'Saving…';
-
+    if (!path) { err.textContent = 'Folder path is required.'; err.style.display = 'block'; return; }
+    btn.disabled = true; btn.textContent = 'Saving…';
     try {
         if (_editingFolderID) {
-            await authFetch('PUT', 'ManagedFolder', {
-                id: _editingFolderID,
-                name: name || path,
-                path,
-                watchForNewFiles: _fmWatch,
-                dropFolderType: _fmDrop,
-                fileSize: 0,
-            });
+            await authFetch('PUT', 'ManagedFolder', { id:_editingFolderID, name:name||path, path, watchForNewFiles:_fmWatch, dropFolderType:_fmDrop, fileSize:0 });
         } else {
-            await authFetch('POST', 'ManagedFolder', {
-                name: name || path,
-                path,
-                watchForNewFiles: _fmWatch,
-                dropFolderType: _fmDrop,
-            });
+            await authFetch('POST', 'ManagedFolder', { name:name||path, path, watchForNewFiles:_fmWatch, dropFolderType:_fmDrop });
         }
-        closeFolderModal();
-        await loadFolders();
-    } catch (e) {
-        err.textContent = e.message || 'Save failed.';
-        err.style.display = 'block';
-    } finally {
-        btn.disabled = false;
-        btn.textContent = 'Save';
-    }
+        closeFolderModal(); await loadFolders();
+    } catch (e) { err.textContent = e.message||'Save failed.'; err.style.display = 'block'; }
+    finally { btn.disabled = false; btn.textContent = 'Save'; }
+}
+document.getElementById('folder-modal').addEventListener('click', e => { if (e.target === document.getElementById('folder-modal')) closeFolderModal(); });
+
+// ── Version ──
+async function loadVersion() {
+    try {
+        const v = await authFetch('GET', 'Init/Version');
+        const ver = v?.server?.version;
+        document.getElementById('version-text').textContent = ver ? 'v'+ver : '';
+    } catch (_) { document.getElementById('version-text').textContent = ''; }
 }
 
-// Close modal when clicking backdrop
-document.getElementById('folder-modal').addEventListener('click', e => {
-    if (e.target === document.getElementById('folder-modal')) closeFolderModal();
-});
-
-// ────────────────────────────────────────────────────────
-// Refresh
-// ────────────────────────────────────────────────────────
+// ── Refresh / load all ──
 async function refreshAll() {
     const icon = document.getElementById('refresh-icon');
     icon.classList.add('spin');
@@ -838,33 +718,23 @@ async function refreshAll() {
 
 async function loadAll() {
     await Promise.all([
-        loadStats(),
-        loadSummary(),
-        loadQueue(),
-        loadFolders(),
+        loadStats(), loadSummary(), loadQueue(), loadFolders(),
         loadEpisodes('Dashboard/ContinueWatchingEpisodes?pageSize=20', 'continue-list', 'continue-section'),
         loadEpisodes('Dashboard/NextUpEpisodes?pageSize=20',            'nextup-list',   'nextup-section'),
         loadEpisodes('Dashboard/RecentlyAddedEpisodes?pageSize=20',     'recent-list',   'recent-section'),
     ]);
 }
 
-// ────────────────────────────────────────────────────────
-// Error helper
-// ────────────────────────────────────────────────────────
 function errMsg(section, msg) {
     return `<div style="color:#EF4444;font-size:13px">Failed to load ${section}: ${esc(msg)}</div>`;
 }
 
-// ────────────────────────────────────────────────────────
-// Init
-// ────────────────────────────────────────────────────────
+// ── Init ──
 let queueTimer = null;
-
 async function init() {
     if (!apiKey) { showLogin(); return; }
     await loadVersion();
     await loadAll();
-    // Poll queue every 5 seconds
     clearInterval(queueTimer);
     queueTimer = setInterval(loadQueue, 5000);
 }
