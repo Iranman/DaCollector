@@ -40,6 +40,9 @@ on:
         description: DaCollector-WebUI git ref to bundle into the image.
         default: main
         required: true
+  repository_dispatch:
+    types:
+      - webui-updated
 
 permissions:
   contents: read
@@ -72,23 +75,35 @@ jobs:
       - name: Compute image metadata
         id: meta
         shell: bash
+        env:
+          DISPATCH_IMAGE_TAG: ${{ github.event.client_payload.image_tag }}
+          DISPATCH_WEBUI_REF: ${{ github.event.client_payload.webui_ref }}
+          INPUT_WEBUI_REF: ${{ github.event.inputs.webui_ref }}
         run: |
           short_sha="${GITHUB_SHA::7}"
           commit_date="$(git --no-pager show -s --date='format-local:%Y-%m-%dT%H:%M:%SZ' --format=%cd "${GITHUB_SHA}")"
-          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
+          if [ "${GITHUB_EVENT_NAME}" = "repository_dispatch" ]; then
+            image_tag="${DISPATCH_IMAGE_TAG:-latest}"
+            channel="webui"
+            webui_ref="${DISPATCH_WEBUI_REF:-main}"
+          elif [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
             image_tag="${{ github.event.inputs.tag }}"
             channel="manual"
+            webui_ref="${INPUT_WEBUI_REF:-main}"
           elif [ "${GITHUB_REF_NAME}" = "main" ] || [ "${GITHUB_REF_NAME}" = "daccollector-main" ]; then
             image_tag="latest"
             channel="main"
+            webui_ref="main"
           else
             image_tag="$(echo "${GITHUB_REF_NAME}" | tr '/[:upper:]' '-[:lower:]')"
             channel="branch"
+            webui_ref="main"
           fi
           echo "short_sha=${short_sha}" >> "$GITHUB_OUTPUT"
           echo "commit_date=${commit_date}" >> "$GITHUB_OUTPUT"
           echo "image_tag=${image_tag}" >> "$GITHUB_OUTPUT"
           echo "channel=${channel}" >> "$GITHUB_OUTPUT"
+          echo "webui_ref=${webui_ref}" >> "$GITHUB_OUTPUT"
 
       - name: Set up QEMU
         if: matrix.arch == 'arm64'
@@ -119,7 +134,7 @@ jobs:
             ${{ env.IMAGE_NAME }}:sha-${{ steps.meta.outputs.short_sha }}-${{ matrix.arch }}
           build-args: |
             WEBUI_REPO=https://github.com/Iranman/DaCollector-WebUI.git
-            WEBUI_REF=${{ github.event.inputs.webui_ref || 'main' }}
+            WEBUI_REF=${{ steps.meta.outputs.webui_ref }}
             version=0.0.1
             channel=${{ steps.meta.outputs.channel }}
             commit=${{ github.sha }}
@@ -138,9 +153,13 @@ jobs:
       - name: Compute manifest tags
         id: meta
         shell: bash
+        env:
+          DISPATCH_IMAGE_TAG: ${{ github.event.client_payload.image_tag }}
         run: |
           short_sha="${GITHUB_SHA::7}"
-          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
+          if [ "${GITHUB_EVENT_NAME}" = "repository_dispatch" ]; then
+            image_tag="${DISPATCH_IMAGE_TAG:-latest}"
+          elif [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
             image_tag="${{ github.event.inputs.tag }}"
           elif [ "${GITHUB_REF_NAME}" = "main" ] || [ "${GITHUB_REF_NAME}" = "daccollector-main" ]; then
             image_tag="latest"

@@ -410,13 +410,7 @@ services.AddSingleton<IEventEmitter, AvdumpEventEmitter>();
             webUIUpdateService.LoadIncludedWebComponentVersionInformation() is { } includedVersion &&
             (
                 webUIUpdateService.LoadWebComponentVersionInformation() is not { } currentVersion ||
-                (
-                    new SemverVersionComparer().Compare(includedVersion.Version, currentVersion.Version) > 0 &&
-                    (
-                        (includedVersion.Channel is not ReleaseChannel.Debug && currentVersion.Channel is not ReleaseChannel.Debug) ||
-                        (includedVersion.Channel is ReleaseChannel.Debug && currentVersion.Channel is ReleaseChannel.Debug)
-                    )
-                )
+                ShouldReplaceWebUIWithIncluded(includedVersion, currentVersion)
             )
         )
         {
@@ -554,6 +548,29 @@ services.AddSingleton<IEventEmitter, AvdumpEventEmitter>();
 
         return app;
     }
+
+    private static bool ShouldReplaceWebUIWithIncluded(WebReleaseVersionInformation includedVersion, WebReleaseVersionInformation currentVersion)
+    {
+        var compatibleChannel =
+            (includedVersion.Channel is not ReleaseChannel.Debug && currentVersion.Channel is not ReleaseChannel.Debug) ||
+            (includedVersion.Channel is ReleaseChannel.Debug && currentVersion.Channel is ReleaseChannel.Debug);
+        if (!compatibleChannel)
+            return false;
+
+        var versionComparison = new SemverVersionComparer().Compare(includedVersion.Version, currentVersion.Version);
+        if (versionComparison > 0)
+            return true;
+        if (versionComparison < 0)
+            return false;
+
+        return HasDifferentWebUIBuildMetadata(includedVersion.SourceRevision, currentVersion.SourceRevision) ||
+               HasDifferentWebUIBuildMetadata(includedVersion.ReleaseTag, currentVersion.ReleaseTag) ||
+               includedVersion.ReleasedAt > currentVersion.ReleasedAt;
+    }
+
+    private static bool HasDifferentWebUIBuildMetadata(string includedValue, string currentValue)
+        => !string.IsNullOrWhiteSpace(includedValue) &&
+           !string.Equals(includedValue, currentValue, StringComparison.OrdinalIgnoreCase);
 
     private static void CopyFilesRecursively(DirectoryInfo source, DirectoryInfo target)
     {

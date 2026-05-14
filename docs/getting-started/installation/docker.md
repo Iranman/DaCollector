@@ -149,7 +149,11 @@ docker compose -f docker-compose.yml pull
 docker compose -f docker-compose.yml up -d
 ```
 
-The named data volume is preserved. Database migrations run automatically on startup. Back up the data volume before testing a release that may run migrations:
+The named data volume is preserved. Database migrations run automatically on startup. The pulled image is self-contained: it includes the DaCollector Server binaries and the React Web UI assets bundled into `/app/webui`, and startup copies those bundled assets into the data volume when the bundled Web UI is newer than the installed one.
+
+When `DaCollector-WebUI` is updated on `main`, its CI dispatches the server GHCR workflow to rebuild `ghcr.io/iranman/dacollector:latest` with that Web UI commit. After that workflow finishes, the same `docker compose pull && docker compose up -d` update path installs the new Web UI with the server image. The cross-repo dispatch requires the `DaCollector-WebUI` repository secret `DACOLLECTOR_SERVER_DISPATCH_TOKEN` with permission to create repository dispatch events in `Iranman/DaCollector`.
+
+Back up the data volume before testing a release that may run migrations:
 
 ```bash
 docker compose -f docker-compose.yml down
