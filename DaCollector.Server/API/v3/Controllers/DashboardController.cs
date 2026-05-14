@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using DaCollector.Abstractions.Metadata;
 using DaCollector.Abstractions.Metadata.Enums;
 using DaCollector.Abstractions.Extensions;
 using DaCollector.Server.API.Annotations;
@@ -63,37 +64,45 @@ public class DashboardController : BaseController
         // Count local watched series in the user's collection.
         var watchedSeries = allSeries.Count((Func<MediaSeries, bool>)(series =>
         {
-            // If we don't have an anime entry then something is very wrong, but
-            // we don't care about that right now, so just skip it.
-            var anime = series.AniDB_Anime;
-            if (anime == null)
-                return false;
-
-            // If the series doesn't have any episodes, then skip it.
-            if (anime.EpisodeCountNormal == 0)
-                return false;
-
-            // If all the normal episodes are still missing, then skip it.
             var missingNormalEpisodesTotal = series.MissingEpisodeCount + series.HiddenMissingEpisodeCount;
-            if (anime.EpisodeCountNormal == missingNormalEpisodesTotal)
-                return false;
+            var anime = series.AniDB_Anime;
+
+            int totalWatchableNormalEpisodes;
+            if (anime != null)
+            {
+                // If the series doesn't have any episodes, then skip it.
+                if (anime.EpisodeCountNormal == 0)
+                    return false;
+
+                // If all the normal episodes are still missing, then skip it.
+                if (anime.EpisodeCountNormal == missingNormalEpisodesTotal)
+                    return false;
+
+                totalWatchableNormalEpisodes = anime.EpisodeCountNormal - missingNormalEpisodesTotal;
+            }
+            else
+            {
+                // TMDB-native series: use locally-present episodes as the baseline.
+                totalWatchableNormalEpisodes = episodeDict[series].Count(e => e.VideoLocals.Count > 0);
+                if (totalWatchableNormalEpisodes == 0)
+                    return false;
+            }
 
             // If we don't have a user record for the series, then skip it.
             var record = _seriesUser.GetByUserAndSeriesID(User.JMMUserID, series.MediaSeriesID);
             if (record == null)
                 return false;
 
-            // Check if we've watched more or equal to the number of watchable
-            // normal episodes.
-            var totalWatchableNormalEpisodes = anime.EpisodeCountNormal - missingNormalEpisodesTotal;
+            // Check if we've watched more or equal to the number of watchable normal episodes.
             var count = episodeDict[series]
-                .Count((Func<MediaEpisode, bool>)(episode => episode.AniDB_Episode.EpisodeType == EpisodeType.Episode &&
-                                  episode.GetUserRecord(User.JMMUserID)?.WatchedDate != null));
+                .Count((Func<MediaEpisode, bool>)(episode =>
+                    (episode.AniDB_Episode?.EpisodeType ?? EpisodeType.Episode) == EpisodeType.Episode &&
+                    episode.GetUserRecord(User.JMMUserID)?.WatchedDate != null));
             return count >= totalWatchableNormalEpisodes;
         }));
         // Calculate watched hours for both local episodes and non-local episodes.
         var hoursWatched = Math.Round(
-            (decimal)watchedEpisodes.Sum(a => a.VideoLocals.FirstOrDefault()?.DurationTimeSpan.TotalHours ?? new TimeSpan(0, 0, a.AniDB_Episode?.LengthSeconds ?? 0).TotalHours),
+            (decimal)watchedEpisodes.Sum(a => a.VideoLocals.FirstOrDefault()?.DurationTimeSpan.TotalHours ?? ((IEpisode)a).Runtime.TotalHours),
             1, MidpointRounding.AwayFromZero);
         // We cache the video local here since it may be gone later if the files are actively being removed.
         var places = files
@@ -134,6 +143,9 @@ public class DashboardController : BaseController
 
     private static bool MissingTMDBLink(MediaSeries ser)
     {
+        if (ser.TMDB_MovieID.HasValue || ser.TMDB_ShowID.HasValue)
+            return false;
+
         if (MissingTmdbLinkExpression.AnimeTypes.Contains(ser.AniDB_Anime?.MediaType ?? MediaType.Unknown))
             return false;
 
@@ -231,18 +243,16 @@ public class DashboardController : BaseController
             .Select(tuple => tuple.episode.MediaSeries)
             .Where(series => series != null && user.AllowedSeries(series))
             .ToDictionary(series => series.MediaSeriesID);
-        var animeDict = seriesDict.Values
-            .ToDictionary(series => series.MediaSeriesID, series => series.AniDB_Anime);
         return episodeList
             .Where(tuple =>
             {
-                if (!animeDict.TryGetValue(tuple.episode.MediaSeriesID, out var anime))
+                if (!seriesDict.TryGetValue(tuple.episode.MediaSeriesID, out var series))
                     return false;
 
                 if (includeRestricted is not IncludeOnlyFilter.True)
                 {
                     var onlyRestricted = includeRestricted is IncludeOnlyFilter.Only;
-                    var isRestricted = anime.IsRestricted;
+                    var isRestricted = series.AniDB_Anime?.IsRestricted ?? false;
                     if (onlyRestricted != isRestricted)
                         return false;
                 }
@@ -250,7 +260,7 @@ public class DashboardController : BaseController
                 return true;
             })
             .ToListResult(
-                tuple => GetEpisodeDetailsForSeriesAndEpisode(user, tuple.episode, seriesDict[tuple.episode.MediaSeriesID], animeDict[tuple.episode.MediaSeriesID], tuple.file),
+                tuple => GetEpisodeDetailsForSeriesAndEpisode(user, tuple.episode, seriesDict[tuple.episode.MediaSeriesID], file: tuple.file),
                 page,
                 pageSize
             );
@@ -279,13 +289,13 @@ public class DashboardController : BaseController
             .Select(RepoFactory.MediaSeries.GetByID)
             .Where(series =>
             {
-                if (series?.AniDB_Anime is not { } anime || !user.AllowedAnime(anime))
+                if (series == null || !user.AllowedSeries(series))
                     return false;
 
                 if (includeRestricted is not IncludeOnlyFilter.True)
                 {
                     var onlyRestricted = includeRestricted is IncludeOnlyFilter.Only;
-                    var isRestricted = anime.IsRestricted;
+                    var isRestricted = series.AniDB_Anime?.IsRestricted ?? false;
                     if (onlyRestricted != isRestricted)
                         return false;
                 }
@@ -320,13 +330,13 @@ public class DashboardController : BaseController
             .Select(record => RepoFactory.MediaSeries.GetByID(record.MediaSeriesID))
             .Where(series =>
             {
-                if (series?.AniDB_Anime is not { } anime || !user.AllowedAnime(anime))
+                if (series == null || !user.AllowedSeries(series))
                     return false;
 
                 if (includeRestricted is not IncludeOnlyFilter.True)
                 {
                     var onlyRestricted = includeRestricted is IncludeOnlyFilter.Only;
-                    var isRestricted = anime.IsRestricted;
+                    var isRestricted = series.AniDB_Anime?.IsRestricted ?? false;
                     if (onlyRestricted != isRestricted)
                         return false;
                 }
@@ -371,13 +381,13 @@ public class DashboardController : BaseController
             .Select(record => RepoFactory.MediaSeries.GetByID(record.MediaSeriesID))
             .Where(series =>
             {
-                if (series?.AniDB_Anime is not { } anime || !user.AllowedAnime(anime))
+                if (series == null || !user.AllowedSeries(series))
                     return false;
 
                 if (includeRestricted is not IncludeOnlyFilter.True)
                 {
                     var onlyRestricted = includeRestricted is IncludeOnlyFilter.Only;
-                    var isRestricted = anime.IsRestricted;
+                    var isRestricted = series.AniDB_Anime?.IsRestricted ?? false;
                     if (onlyRestricted != isRestricted)
                         return false;
                 }
@@ -403,10 +413,10 @@ public class DashboardController : BaseController
 
     [NonAction]
     public Dashboard.Episode GetEpisodeDetailsForSeriesAndEpisode(JMMUser user, MediaEpisode episode,
-        MediaSeries series, AniDB_Anime anime = null, VideoLocal file = null)
+        MediaSeries series, AniDB_Anime? anime = null, VideoLocal? file = null)
     {
-        VideoLocal_User userRecord;
-        var MediaEpisode = episode.AniDB_Episode;
+        VideoLocal_User? userRecord;
+        var anidbEpisode = episode.AniDB_Episode;
         anime ??= series.AniDB_Anime;
 
         if (file is not null)
@@ -422,7 +432,10 @@ public class DashboardController : BaseController
                 .FirstOrDefault();
         }
 
-        return new Dashboard.Episode(MediaEpisode, anime, series, file, userRecord);
+        if (anidbEpisode != null && anime != null)
+            return new Dashboard.Episode(anidbEpisode, anime, series, file, userRecord);
+
+        return new Dashboard.Episode(episode, series, file, userRecord);
     }
 
     /// <summary>

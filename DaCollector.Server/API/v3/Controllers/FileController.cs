@@ -1214,6 +1214,8 @@ public class FileController(
         var series = RepoFactory.MediaSeries.GetByID(body.SeriesID);
         if (series == null)
             ModelState.AddModelError(nameof(body.SeriesID), $"Unable to find series with id {body.SeriesID}.");
+        else if (series.AniDB_ID is null or 0)
+            ModelState.AddModelError(nameof(body.SeriesID), "This linking method requires AniDB episode data; the series has none.");
 
         var (rangeStart, startType, startErrorMessage) = ModelHelper.GetEpisodeNumberAndTypeFromInput(body.RangeStart);
         if (!string.IsNullOrEmpty(startErrorMessage))
@@ -1332,6 +1334,8 @@ public class FileController(
         var series = RepoFactory.MediaSeries.GetByID(body.SeriesID);
         if (series == null)
             ModelState.AddModelError(nameof(body.SeriesID), $"Unable to find series with id {body.SeriesID}.");
+        else if (series.AniDB_ID is null or 0)
+            ModelState.AddModelError(nameof(body.SeriesID), "This linking method requires AniDB episode data; the series has none.");
 
         var (rangeStart, startType, startErrorMessage) = ModelHelper.GetEpisodeNumberAndTypeFromInput(body.RangeStart);
         if (!string.IsNullOrEmpty(startErrorMessage))
@@ -1466,7 +1470,7 @@ public class FileController(
 
         var MetadataEpisode = episode!.AniDB_Episode;
         if (MetadataEpisode == null)
-            return InternalError("Could not find the AniDB entry for episode");
+            return NotFound("Could not find the AniDB entry for episode; series may not have AniDB data.");
 
         var count = 0;
         var percentageRange = (int)Math.Round(1D / files.Count * 100);

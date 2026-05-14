@@ -370,21 +370,34 @@ public class TmdbMetadataService : ITmdbMetadataService
             if (ser.IsTMDBAutoMatchingDisabled)
                 continue;
 
-            if (ser.AniDB_Anime is not { } anime)
+            if (ser.AniDB_Anime is { } anime)
+            {
+                // AniDB-linked series: schedule a TMDB search if not yet linked.
+                if (anime.IsRestricted && !settings.TMDB.AutoLinkRestricted)
+                    continue;
+
+                if (anime.TmdbMovieCrossReferences is { Count: > 0 })
+                    continue;
+
+                if (anime.TmdbShowCrossReferences is { Count: > 0 })
+                    continue;
+
+                _logger.LogTrace("Found anime without TMDB association: {MainTitle}", anime.MainTitle);
+                await scheduler.StartJob<SearchTmdbJob>(c => c.AnimeID = ser.AniDB_ID ?? 0);
                 continue;
+            }
 
-            if (anime.IsRestricted && !settings.TMDB.AutoLinkRestricted)
-                continue;
-
-            if (anime.TmdbMovieCrossReferences is { Count: > 0 })
-                continue;
-
-            if (anime.TmdbShowCrossReferences is { Count: > 0 })
-                continue;
-
-            _logger.LogTrace("Found anime without TMDB association: {MainTitle}", anime.MainTitle);
-
-            await scheduler.StartJob<SearchTmdbJob>(c => c.AnimeID = ser.AniDB_ID ?? 0);
+            // TMDB-native series: refresh metadata if the cached provider record is absent.
+            if (ser.TMDB_MovieID.HasValue && _tmdbMovies.GetByTmdbMovieID(ser.TMDB_MovieID.Value) is null)
+            {
+                _logger.LogTrace("Scheduling metadata refresh for TMDB-native movie series {SeriesID} (TMDB movie {MovieID})", ser.MediaSeriesID, ser.TMDB_MovieID.Value);
+                await scheduler.StartJob<UpdateTmdbMovieJob>(c => c.TmdbMovieID = ser.TMDB_MovieID.Value);
+            }
+            else if (ser.TMDB_ShowID.HasValue && _tmdbShows.GetByTmdbShowID(ser.TMDB_ShowID.Value) is null)
+            {
+                _logger.LogTrace("Scheduling metadata refresh for TMDB-native show series {SeriesID} (TMDB show {ShowID})", ser.MediaSeriesID, ser.TMDB_ShowID.Value);
+                await scheduler.StartJob<UpdateTmdbShowJob>(c => c.TmdbShowID = ser.TMDB_ShowID.Value);
+            }
         }
     }
 

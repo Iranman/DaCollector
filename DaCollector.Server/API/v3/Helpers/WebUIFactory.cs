@@ -16,6 +16,8 @@ public class WebUIFactory
     public WebUI.WebUISeriesExtra GetWebUISeriesExtra(MediaSeries series)
     {
         var anime = series.AniDB_Anime;
+        if (anime is null)
+            return new WebUI.WebUISeriesExtra();
         var animeEpisodes = anime.AniDBEpisodes;
         var runtimeLength = GuessCorrectRuntimeLength(animeEpisodes);
         var cast = Series.GetCast(anime.AnimeID, [CreatorRoleType.Studio, CreatorRoleType.Producer]);

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DaCollector.Abstractions.Metadata;
 using DaCollector.Abstractions.Metadata.Enums;
 using DaCollector.Abstractions.Extensions;
 using DaCollector.Abstractions.Video.Enums;
@@ -225,9 +226,7 @@ public static class ModelHelper
 
     public static int GetTotalEpisodesForType(IEnumerable<MediaEpisode> episodeList, EpisodeType episodeType)
     {
-        return episodeList
-            .Select(episode => episode.AniDB_Episode)
-            .Count(MetadataEpisode => MetadataEpisode != null && (EpisodeType)MetadataEpisode.EpisodeType == episodeType);
+        return episodeList.Count(episode => episode.EpisodeType == episodeType);
     }
 
     public static SeriesSizes GenerateSeriesSizes(IEnumerable<MediaEpisode> episodeList, int userID)
@@ -294,23 +293,7 @@ public static class ModelHelper
                 continue;
             }
 
-            if (MetadataEpisode == null)
-            {
-                sizes.Total.Unknown++;
-                if (isLocal)
-                {
-                    sizes.Local.Unknown++;
-
-                    if (isWatched)
-                    {
-                        sizes.Watched.Unknown++;
-                    }
-                }
-
-                continue;
-            }
-
-            switch ((EpisodeType)MetadataEpisode.EpisodeType)
+            switch (episode.EpisodeType)
             {
                 case EpisodeType.Episode:
                     sizes.Total.Episodes++;
@@ -323,7 +306,7 @@ public static class ModelHelper
                             sizes.Watched.Episodes++;
                         }
                     }
-                    else if (MetadataEpisode.HasAired)
+                    else if (MetadataEpisode?.HasAired ?? (((IEpisode)episode).AirDate is { } d && d <= DateOnly.FromDateTime(DateTime.Today)))
                     {
                         sizes.Missing.Episodes++;
                     }
@@ -353,7 +336,7 @@ public static class ModelHelper
                             sizes.Watched.Specials++;
                         }
                     }
-                    else if (MetadataEpisode.HasAired)
+                    else if (MetadataEpisode?.HasAired ?? (((IEpisode)episode).AirDate is { } d2 && d2 <= DateOnly.FromDateTime(DateTime.Today)))
                     {
                         sizes.Missing.Specials++;
                     }
@@ -411,7 +394,8 @@ public static class ModelHelper
         foreach (var series in seriesList)
         {
             var anime = series.AniDB_Anime;
-            switch (anime?.MediaType)
+            var mediaType = anime?.MediaType ?? (series.TMDB_MovieID.HasValue ? MediaType.Movie : series.TMDB_ShowID.HasValue ? MediaType.TVSeries : MediaType.Unknown);
+            switch (mediaType)
             {
                 case MediaType.Other:
                     sizes.SeriesTypes.Other++;

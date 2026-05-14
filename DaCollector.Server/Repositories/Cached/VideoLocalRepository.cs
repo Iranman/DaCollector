@@ -466,6 +466,12 @@ public class VideoLocalRepository : BaseCachedRepository<VideoLocal, int>
                 if (a.IsIgnored)
                     return false;
 
+                // Check TMDB/TVDB cross-references first (native providers).
+                if (RepoFactory.CrossRef_File_TmdbMovie.GetByVideoLocalID(a.VideoLocalID).Count > 0 ||
+                    RepoFactory.CrossRef_File_TmdbEpisode.GetByVideoLocalID(a.VideoLocalID).Count > 0 ||
+                    RepoFactory.CrossRef_File_TvdbEpisode.GetByVideoLocalID(a.VideoLocalID).Count > 0)
+                    return false;
+
                 var xrefs = RepoFactory.CrossRef_File_Episode.GetByEd2k(a.Hash);
                 if (!xrefs.Any())
                     return true;
@@ -528,7 +534,11 @@ public class VideoLocalRepository : BaseCachedRepository<VideoLocal, int>
 
     public IReadOnlyList<VideoLocal> GetVideosWithoutEpisodeUnsorted()
         => ReadLock(() => Cache.Values
-            .Where(a => !a.IsIgnored && !RepoFactory.CrossRef_File_Episode.GetByEd2k(a.Hash).Any())
+            .Where(a => !a.IsIgnored
+                && RepoFactory.CrossRef_File_TmdbMovie.GetByVideoLocalID(a.VideoLocalID).Count == 0
+                && RepoFactory.CrossRef_File_TmdbEpisode.GetByVideoLocalID(a.VideoLocalID).Count == 0
+                && RepoFactory.CrossRef_File_TvdbEpisode.GetByVideoLocalID(a.VideoLocalID).Count == 0
+                && !RepoFactory.CrossRef_File_Episode.GetByEd2k(a.Hash).Any())
             .ToList()
         );
 

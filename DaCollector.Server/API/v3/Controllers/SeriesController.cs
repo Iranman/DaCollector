@@ -598,7 +598,7 @@ public class SeriesController : BaseController
         var anidb = series.AniDB_Anime;
         if (anidb == null)
         {
-            return InternalError(AnidbNotFoundForSeriesID);
+            return NotFound(AnidbNotFoundForSeriesID);
         }
 
         return new MetadataAnime(anidb, series);
@@ -626,7 +626,7 @@ public class SeriesController : BaseController
         var anidb = series.AniDB_Anime;
         if (anidb == null)
         {
-            return InternalError(AnidbNotFoundForSeriesID);
+            return NotFound(AnidbNotFoundForSeriesID);
         }
 
         return RepoFactory.AniDB_Anime_Similar.GetByAnimeID(anidb.AnimeID)
@@ -656,7 +656,7 @@ public class SeriesController : BaseController
         var anidb = series.AniDB_Anime;
         if (anidb == null)
         {
-            return InternalError(AnidbNotFoundForSeriesID);
+            return NotFound(AnidbNotFoundForSeriesID);
         }
 
         return RepoFactory.AniDB_Anime_Relation.GetByAnimeID(anidb.AnimeID).OfType<IRelatedMetadata>()
@@ -691,7 +691,7 @@ public class SeriesController : BaseController
         var anidb = series.AniDB_Anime;
         if (anidb == null)
         {
-            return InternalError(AnidbNotFoundForSeriesID);
+            return NotFound(AnidbNotFoundForSeriesID);
         }
 
         return RepoFactory.AniDB_Anime_Relation.GetByAnimeID(anidb.AnimeID).OfType<IRelatedMetadata>()
@@ -1003,7 +1003,8 @@ public class SeriesController : BaseController
 
         var anime = series.AniDB_Anime;
         if (anime is null)
-            return InternalError($"Unable to get MetadataAnime with ID {series.AniDB_ID?.ToString() ?? "unknown"} for Series with ID {series.MediaSeriesID}!");
+            // TMDB-native series are already linked via direct IDs; nothing to search for.
+            return Ok(new List<Search.AutoMatchResult>());
 
         var results = await _tmdbSearchService.SearchForAutoMatch(anime);
 
@@ -1031,7 +1032,8 @@ public class SeriesController : BaseController
             return Forbid(SeriesForbiddenForUser);
 
         if (series.AniDB_ID is null or 0)
-            return NotFound("Series does not have an AniDB link.");
+            // TMDB-native series are already linked via direct IDs; scheduling is a no-op.
+            return NoContent();
 
         await _tmdbMetadataService.ScheduleSearchForMatch(series.AniDB_ID.Value, force);
 
@@ -1888,7 +1890,7 @@ public class SeriesController : BaseController
         var anidb = series.AniDB_Anime;
         if (anidb == null)
         {
-            return InternalError(AnidbNotFoundForSeriesID);
+            return NotFound(AnidbNotFoundForSeriesID);
         }
 
         if (series.TmdbShowCrossReferences.Count == 0 && series.TmdbMovieCrossReferences.Count == 0)
@@ -1929,7 +1931,7 @@ public class SeriesController : BaseController
         var anidb = series.AniDB_Anime;
         if (anidb == null)
         {
-            return InternalError(AnidbNotFoundForSeriesID);
+            return NotFound(AnidbNotFoundForSeriesID);
         }
 
         if (series.TmdbShowCrossReferences.Count == 0 && series.TmdbMovieCrossReferences.Count == 0)
@@ -3072,7 +3074,8 @@ public class SeriesController : BaseController
             return;
         }
 
-        var titles = a.AniDB_Anime?.GetAllTitles();
+        var titles = a.AniDB_Anime?.GetAllTitles()
+            ?? (string.IsNullOrEmpty(a.Title) ? null : [a.Title]);
         if (titles is null || titles.Count == 0)
         {
             return;

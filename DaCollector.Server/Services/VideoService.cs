@@ -54,8 +54,6 @@ public class VideoService : IVideoService
 
     private readonly FileNameHashRepository _fileNameHashRepository;
 
-    private readonly AniDB_EpisodeRepository _anidbEpisodeRepository;
-
     private readonly StoredReleaseInfoRepository _storedReleaseInfoRepository;
 
     private readonly VideoHashingService _videoHashingService;
@@ -100,7 +98,6 @@ public class VideoService : IVideoService
         DaCollectorManagedFolderRepository managedFolderRepository,
         CrossRef_File_EpisodeRepository crossRefRepository,
         FileNameHashRepository fileNameHashRepository,
-        AniDB_EpisodeRepository anidbEpisodeRepository,
         StoredReleaseInfoRepository storedReleaseInfoRepository,
         IVideoHashingService videoHashingService,
         IVideoReleaseService videoReleaseService,
@@ -118,7 +115,6 @@ public class VideoService : IVideoService
         _managedFolderRepository = managedFolderRepository;
         _crossRefRepository = crossRefRepository;
         _fileNameHashRepository = fileNameHashRepository;
-        _anidbEpisodeRepository = anidbEpisodeRepository;
         _storedReleaseInfoRepository = storedReleaseInfoRepository;
         _videoHashingService = (VideoHashingService)videoHashingService;
         _videoReleaseService = videoReleaseService;

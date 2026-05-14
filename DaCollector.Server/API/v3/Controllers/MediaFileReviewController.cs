@@ -5,12 +5,15 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Quartz;
 using DaCollector.Abstractions.User.Services;
 using DaCollector.Server.API.Annotations;
 using DaCollector.Server.API.v3.Models.Common;
 using DaCollector.Server.Media;
 using DaCollector.Server.Models.Internal;
 using DaCollector.Server.Repositories;
+using DaCollector.Server.Scheduling;
+using DaCollector.Server.Scheduling.Jobs.TMDB;
 using DaCollector.Server.Settings;
 
 #nullable enable
@@ -27,7 +30,8 @@ public class MediaFileReviewController(
     ISettingsProvider settingsProvider,
     MediaFileReviewService reviewService,
     MediaFileMatchCandidateService candidateService,
-    IUserDataService userDataService
+    IUserDataService userDataService,
+    ISchedulerFactory schedulerFactory
 ) : BaseController(settingsProvider)
 {
     /// <summary>
@@ -128,7 +132,7 @@ public class MediaFileReviewController(
     /// </summary>
     [HttpPost("Files/{fileID}/ManualMatch")]
     [Authorize("admin")]
-    public ActionResult<MediaFileReviewItem> SetManualMatch(
+    public async Task<ActionResult<MediaFileReviewItem>> SetManualMatch(
         [FromRoute] int fileID,
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] ManualFileMatchRequest request
     )
@@ -145,7 +149,12 @@ public class MediaFileReviewController(
         if (string.IsNullOrWhiteSpace(request.ProviderID))
             return ValidationProblem("ProviderID is required.", nameof(request.ProviderID));
 
-        return reviewService.SetManualMatch(fileID, request) is { } item ? Ok(item) : NotFound();
+        if (reviewService.SetManualMatch(fileID, request) is not { } item)
+            return NotFound();
+
+        var scheduler = await schedulerFactory.GetScheduler().ConfigureAwait(false);
+        await scheduler.StartJob<ProcessFileTmdbJob>(c => c.VideoLocalID = fileID).ConfigureAwait(false);
+        return Ok(item);
     }
 
     /// <summary>
@@ -153,8 +162,15 @@ public class MediaFileReviewController(
     /// </summary>
     [HttpPost("Candidates/{candidateID}/Approve")]
     [Authorize("admin")]
-    public ActionResult<MediaFileReviewItem> ApproveCandidate([FromRoute] int candidateID)
-        => candidateService.ApproveCandidate(candidateID) is { } item ? Ok(item) : NotFound();
+    public async Task<ActionResult<MediaFileReviewItem>> ApproveCandidate([FromRoute] int candidateID)
+    {
+        if (candidateService.ApproveCandidate(candidateID) is not { } item)
+            return NotFound();
+
+        var scheduler = await schedulerFactory.GetScheduler().ConfigureAwait(false);
+        await scheduler.StartJob<ProcessFileTmdbJob>(c => c.VideoLocalID = item.FileID).ConfigureAwait(false);
+        return Ok(item);
+    }
 
     /// <summary>
     /// Rejects a provider candidate so it does not reappear during normal rescans.

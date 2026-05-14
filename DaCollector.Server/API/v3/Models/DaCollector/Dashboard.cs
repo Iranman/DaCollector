@@ -2,6 +2,8 @@ using System;
 using System.ComponentModel.DataAnnotations;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using DaCollector.Abstractions.Metadata;
+using MetaEnums = DaCollector.Abstractions.Metadata.Enums;
 using DaCollector.Server.API.v3.Helpers;
 using DaCollector.Server.API.v3.Models.AniDB;
 using DaCollector.Server.API.v3.Models.Common;
@@ -187,6 +189,33 @@ public static class Dashboard
             SeriesTitle = series?.Title ?? anime.Title;
             SeriesPoster = new Image(anime.PreferredOrDefaultPoster);
             Thumbnail = episode.PreferredOrDefaultThumbnail is { } image ? new Image(image) : null;
+        }
+
+        public Episode(MediaEpisode episode, MediaSeries series, VideoLocal? file = null, VideoLocal_User? userRecord = null)
+        {
+            var iEpisode = (IEpisode)episode;
+            IDs = new EpisodeDetailsIDs
+            {
+                ID = episode.MediaEpisodeID,
+                Series = series.AniDB_ID ?? 0,
+                DaCollectorFile = file?.VideoLocalID,
+                DaCollectorSeries = series.MediaSeriesID,
+                DaCollectorEpisode = episode.MediaEpisodeID,
+            };
+            Title = episode.Title;
+            Number = iEpisode.EpisodeNumber;
+            Type = episode.EpisodeType.ToV3Dto();
+            AirDate = iEpisode.AirDate;
+            Duration = file?.DurationTimeSpan ?? iEpisode.Runtime;
+            ResumePosition = userRecord?.ProgressPosition;
+            Watched = userRecord?.WatchedDate?.ToUniversalTime();
+            SeriesTitle = series.Title;
+            SeriesPoster = series.GetPreferredImageForType(MetaEnums.ImageEntityType.Poster) is { } poster
+                ? new Image(poster)
+                : new Image(0, MetaEnums.ImageEntityType.Poster, MetaEnums.DataSource.DaCollector);
+            Thumbnail = episode.GetPreferredImageForType(MetaEnums.ImageEntityType.Thumbnail) is { } thumb
+                ? new Image(thumb)
+                : null;
         }
 
         /// <summary>

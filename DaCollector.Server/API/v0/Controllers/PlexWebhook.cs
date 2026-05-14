@@ -12,6 +12,7 @@ using Newtonsoft.Json;
 using Quartz;
 using DaCollector.Server.Plex.Models.Connections;
 using DaCollector.Server.Plex.Models.Libraries;
+using DaCollector.Abstractions.Metadata;
 using DaCollector.Abstractions.Metadata.Enums;
 using DaCollector.Abstractions.User.Services;
 using DaCollector.Server.Extensions;
@@ -81,7 +82,7 @@ public class PlexWebhook : BaseController
             return;
         }
 
-        _logger.LogTrace("Got anime: {Anime}, ep: {EpisodeNumber}", anime, episode.AniDB_Episode.EpisodeNumber);
+        _logger.LogTrace("Got anime: {Anime}, ep: {EpisodeNumber}", anime, episode.AniDB_Episode?.EpisodeNumber ?? ((IEpisode)episode).EpisodeNumber);
 
         user ??= RepoFactory.JMMUser.GetAll().FirstOrDefault(u => u.GetPlexUsers().Contains(data.Account.Title));
         if (user == null)
