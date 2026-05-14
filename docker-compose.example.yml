@@ -62,7 +62,9 @@ services:
 
     volumes:
       # Application data: settings, SQLite databases, provider cache, Web UI files.
-      - dacollector-data:/home/dacollector/.dacollector
+      # Stored in ./dacollector-data/ next to this file.
+      # Full uninstall: docker compose down && rm -rf ./dacollector-data ./logs
+      - ./dacollector-data:/home/dacollector/.dacollector
 
       # Logs: bind-mounted to ./logs/ on the host so you can tail them directly.
       - ./logs:/home/dacollector/.dacollector/DaCollector/logs
@@ -76,6 +78,3 @@ services:
     # Required for host.docker.internal to resolve on Linux Docker hosts.
     extra_hosts:
       - "host.docker.internal:host-gateway"
-
-volumes:
-  dacollector-data:

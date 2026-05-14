@@ -6,10 +6,10 @@
         document.documentElement.setAttribute('data-theme', theme);
         localStorage.setItem(KEY, theme);
         document.querySelectorAll('.theme-sun').forEach(el => {
-            el.style.display = theme === 'dark' ? '' : 'none';
+            el.style.display = theme === 'dark' ? 'block' : 'none';
         });
         document.querySelectorAll('.theme-moon').forEach(el => {
-            el.style.display = theme === 'light' ? '' : 'none';
+            el.style.display = theme === 'light' ? 'block' : 'none';
         });
     }
 

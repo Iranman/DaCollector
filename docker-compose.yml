@@ -3,8 +3,14 @@
 # QUICK START
 #   1. Edit the environment values in this file.
 #   2. Uncomment the media volume lines below and set your real host paths.
-#   3. docker compose -f docker-compose.yml pull && docker compose -f docker-compose.yml up -d
+#   3. docker compose pull && docker compose up -d
 #   4. Open http://<server-ip>:38111/webui
+#
+# STOP (keep data):
+#   docker compose down
+#
+# FULL UNINSTALL (removes all data):
+#   docker compose down && rm -rf ./dacollector-data ./logs
 #
 # NOTE: This file runs the prebuilt self-contained image. The WebUI is already
 # included in ghcr.io/iranman/dacollector:latest, so a normal install does not
@@ -46,7 +52,8 @@ services:
 
     volumes:
       # Application data: settings, SQLite databases, provider cache, Web UI files.
-      - dacollector-data:/home/dacollector/.dacollector
+      # Stored in ./dacollector-data/ next to this file — delete that folder to fully uninstall.
+      - ./dacollector-data:/home/dacollector/.dacollector
 
       # Logs: written to ./logs/ on the host so you can tail them without docker exec.
       - ./logs:/home/dacollector/.dacollector/DaCollector/logs
@@ -59,6 +66,3 @@ services:
 
     extra_hosts:
       - "host.docker.internal:host-gateway"
-
-volumes:
-  dacollector-data:
