@@ -14,7 +14,7 @@ ARG version=0.0.1-local
 ARG channel=local
 ARG commit=local
 ARG tag=local
-ARG date=local
+ARG date=1970-01-01T00:00:00Z
 
 WORKDIR /src
 
