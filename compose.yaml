@@ -7,6 +7,8 @@ services:
       args:
         WEBUI_REPO: "${DACOLLECTOR_WEBUI_REPO:-https://github.com/Iranman/DaCollector-WebUI.git}"
         WEBUI_REF: "${DACOLLECTOR_WEBUI_REF:-main}"
+        RELAY_REPO: "${DACOLLECTOR_RELAY_REPO:-https://github.com/Iranman/DaCollector-Relay.git}"
+        RELAY_REF: "${DACOLLECTOR_RELAY_REF:-master}"
         version: "${DACOLLECTOR_BUILD_VERSION:-0.0.1-local}"
         channel: "${DACOLLECTOR_BUILD_CHANNEL:-local}"
         commit: "${DACOLLECTOR_BUILD_COMMIT:-local}"

@@ -6,6 +6,21 @@
 #   3. docker compose pull && docker compose up -d
 #   4. Open http://<server-ip>:38111/webui
 #
+# PLEX RELAY (optional)
+#   The DaCollector Relay Plex scanner/agent bundle is included in the image at
+#   /app/relay-bundle/DaCollector.Relay.bundle. Copy it to the Plex host once
+#   the container is running:
+#
+#   Linux/macOS:
+#     docker cp dacollector:/app/relay-bundle/DaCollector.Relay.bundle \
+#       "/path/to/Plex Media Server/Plug-ins/DaCollector.Relay.bundle"
+#
+#   Windows (PowerShell):
+#     docker cp dacollector:/app/relay-bundle/DaCollector.Relay.bundle `
+#       "$env:LOCALAPPDATA\Plex Media Server\Plug-ins\DaCollector.Relay.bundle"
+#
+#   See /app/relay-bundle/DaCollector.Relay.bundle/README.md for full setup.
+#
 # STOP (keep data):
 #   docker compose down
 #

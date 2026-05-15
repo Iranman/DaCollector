@@ -135,6 +135,8 @@ jobs:
           build-args: |
             WEBUI_REPO=https://github.com/Iranman/DaCollector-WebUI.git
             WEBUI_REF=${{ steps.meta.outputs.webui_ref }}
+            RELAY_REPO=https://github.com/Iranman/DaCollector-Relay.git
+            RELAY_REF=master
             version=0.0.1
             channel=${{ steps.meta.outputs.channel }}
             commit=${{ github.sha }}

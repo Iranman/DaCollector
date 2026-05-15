@@ -13,6 +13,8 @@ FROM node:20-bookworm-slim AS webui-build
 
 ARG WEBUI_REPO=https://github.com/Iranman/DaCollector-WebUI.git
 ARG WEBUI_REF=main
+ARG RELAY_REPO=https://github.com/Iranman/DaCollector-Relay.git
+ARG RELAY_REF=master
 ARG version=0.0.1-local
 
 RUN apt-get update \
@@ -44,6 +46,14 @@ RUN WEBUI_COMMIT="$(git rev-parse HEAD)" \
            "$version" "$version" "$WEBUI_COMMIT" "$WEBUI_DATE" \
            > dist/version.json; \
        fi
+
+# Fetch the DaCollector Relay bundle (Python scanner/agent — no build step needed).
+RUN git init /usr/src/app/relay \
+    && cd /usr/src/app/relay \
+    && git remote add origin "${RELAY_REPO}" \
+    && git fetch --depth 1 origin "${RELAY_REF}" \
+    && git checkout --detach FETCH_HEAD \
+    && rm -rf /usr/src/app/relay/.git
 
 # ---------------------------------------------------------------------------
 
@@ -129,6 +139,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 
 WORKDIR /app
 COPY --from=build /app/build .
+COPY --from=webui-build /usr/src/app/relay /app/relay-bundle/DaCollector.Relay.bundle
 COPY ./dockerentry.sh /dockerentry.sh
 
 VOLUME /home/dacollector/.dacollector/
