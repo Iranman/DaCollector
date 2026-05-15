@@ -570,7 +570,7 @@ public class DashboardController : BaseController
             .Distinct()
             .Where(anime => anime.AniDB_ID.HasValue)
             .ToDictionary(anime => anime.AniDB_ID!.Value);
-        return episodeList
+        var anidbEntries = episodeList
             .Where(episode =>
             {
                 if (!animeDict.TryGetValue(episode.AnimeID, out var anime) || !user.AllowedAnime(anime))
@@ -594,7 +594,6 @@ public class DashboardController : BaseController
 
                 return true;
             })
-            .OrderBy(episode => episode.GetAirDateAsDate())
             .Select(episode =>
             {
                 var anime = animeDict[episode.AnimeID];
@@ -606,8 +605,82 @@ public class DashboardController : BaseController
                 }
 
                 return new Dashboard.Episode(episode, anime);
-            })
+            });
+
+        var tmdbEntries = GetTmdbNativeCalendarEntries(startDate, endDate, includeMissing, includeRestricted, user);
+
+        return anidbEntries.Concat(tmdbEntries)
+            .OrderBy(ep => ep.AirDate)
             .ToList();
+    }
+
+    [NonAction]
+    private IEnumerable<Dashboard.Episode> GetTmdbNativeCalendarEntries(
+        DateOnly startDate, DateOnly endDate,
+        IncludeOnlyFilter includeMissing, IncludeOnlyFilter includeRestricted,
+        JMMUser? user)
+    {
+        // TMDB-native series are never restricted; exclude them when caller wants only restricted content
+        if (includeRestricted is IncludeOnlyFilter.Only)
+            yield break;
+
+        var showIdToSeries = RepoFactory.MediaSeries.GetAll()
+            .Where(s => s.TMDB_ShowID.HasValue)
+            .ToDictionary(s => s.TMDB_ShowID!.Value, s => s);
+        var movieIdToSeries = RepoFactory.MediaSeries.GetAll()
+            .Where(s => s.TMDB_MovieID.HasValue)
+            .ToDictionary(s => s.TMDB_MovieID!.Value, s => s);
+
+        var userID = user?.JMMUserID ?? 0;
+
+        // TMDB show episodes
+        foreach (var ep in RepoFactory.TMDB_Episode.GetAll()
+            .Where(e => e.SeasonNumber > 0 && e.AiredAt.HasValue
+                        && e.AiredAt.Value >= startDate && e.AiredAt.Value <= endDate))
+        {
+            showIdToSeries.TryGetValue(ep.TmdbShowID, out var series);
+            var isMissing = series == null;
+
+            if (includeMissing is not IncludeOnlyFilter.True)
+            {
+                if ((includeMissing is IncludeOnlyFilter.False) == isMissing)
+                    continue;
+            }
+
+            if (series == null) continue;
+            if (user != null && !user.AllowedSeries(series)) continue;
+
+            var xref = RepoFactory.CrossRef_File_TmdbEpisode.GetByTmdbEpisodeID(ep.TmdbEpisodeID).FirstOrDefault();
+            var file = xref != null ? RepoFactory.VideoLocal.GetByID(xref.VideoLocalID) : null;
+            var userRecord = file != null ? _vlUsers.GetByUserAndVideoLocalID(userID, file.VideoLocalID) : null;
+
+            yield return new Dashboard.Episode(ep, series, file, userRecord);
+        }
+
+        // TMDB movies
+        foreach (var movie in RepoFactory.TMDB_Movie.GetAll()
+            .Where(m => m.ReleasedAt.HasValue
+                        && m.ReleasedAt.Value >= startDate && m.ReleasedAt.Value <= endDate))
+        {
+            movieIdToSeries.TryGetValue(movie.TmdbMovieID, out var series);
+            var isMissing = series == null;
+
+            if (includeMissing is not IncludeOnlyFilter.True)
+            {
+                if ((includeMissing is IncludeOnlyFilter.False) == isMissing)
+                    continue;
+            }
+
+            if (series != null && user != null && !user.AllowedSeries(series))
+                continue;
+
+            var xref = RepoFactory.CrossRef_File_TmdbMovie.GetByTmdbMovieID(movie.TmdbMovieID).FirstOrDefault();
+            var file = xref != null ? RepoFactory.VideoLocal.GetByID(xref.VideoLocalID) : null;
+            var userRecord = file != null ? _vlUsers.GetByUserAndVideoLocalID(userID, file.VideoLocalID) : null;
+
+            if (series != null)
+                yield return new Dashboard.Episode(movie, series, file, userRecord);
+        }
     }
 
     public DashboardController(ISettingsProvider settingsProvider, QueueHandler queueHandler, MediaSeriesService seriesService, MediaSeries_UserRepository seriesUser, VideoLocal_UserRepository vlUsers) : base(settingsProvider)
