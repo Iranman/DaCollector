@@ -307,6 +307,25 @@ public class InitController : BaseController
     }
 
     /// <summary>
+    /// Resets the server to setup mode and restarts it.
+    /// </summary>
+    [Authorize(Roles = "admin")]
+    [HttpPost("ResetSetup")]
+    public ActionResult ResetSetup()
+    {
+        if (!_systemService.CanRestart)
+            return BadRequest("Restart is not available for this instance.");
+        if (_systemService.ShutdownPending)
+            return BadRequest("Shutdown already requested.");
+        var settings = SettingsProvider.GetSettings();
+        settings.FirstRun = true;
+        SettingsProvider.SaveSettings(settings);
+        if (!_systemService.RequestRestart())
+            return BadRequest("Restart request blocked.");
+        return Ok();
+    }
+
+    /// <summary>
     /// Test Database Connection with Current Settings
     /// </summary>
     /// <returns>200 if connection successful, 400 otherwise</returns>
