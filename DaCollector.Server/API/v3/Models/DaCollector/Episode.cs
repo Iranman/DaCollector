@@ -13,6 +13,7 @@ using DaCollector.Server.API.v3.Helpers;
 using DaCollector.Server.API.v3.Models.AniDB;
 using DaCollector.Server.API.v3.Models.Common;
 using DaCollector.Server.Models.DaCollector;
+using DaCollector.Server.Models.TMDB;
 using DaCollector.Server.Providers.TMDB;
 using DaCollector.Server.Repositories;
 using DaCollector.Server.Utilities;
@@ -247,6 +248,78 @@ public class Episode : BaseModel
                 .ToList();
         if (withXRefs)
             CrossReferences = FileCrossReference.From(episode.FileCrossReferences).FirstOrDefault()?.EpisodeIDs ?? [];
+    }
+
+    public Episode(HttpContext context, TMDB_Movie movie, MediaSeries series, HashSet<DataSourceType>? includeDataFrom = null, bool includeFiles = false, bool includeMediaInfo = false, bool includeAbsolutePaths = false)
+    {
+        includeDataFrom ??= [];
+        var userID = context.GetUser()?.JMMUserID ?? 0;
+        var xrefs = RepoFactory.CrossRef_File_TmdbMovie.GetByTmdbMovieID(movie.TmdbMovieID);
+        var files = xrefs.Select(xref => RepoFactory.VideoLocal.GetByID(xref.VideoLocalID)).WhereNotNull().ToList();
+        var (file, fileUserRecord) = files
+            .Select(f => (f, userRecord: RepoFactory.VideoLocalUser.GetByUserAndVideoLocalID(userID, f.VideoLocalID)))
+            .OrderByDescending(t => t.userRecord?.LastUpdated)
+            .FirstOrDefault();
+        IDs = new EpisodeIDs
+        {
+            ID = 0,
+            ParentSeries = series.MediaSeriesID,
+            SourceID = movie.TmdbMovieID,
+            TvDB = [],
+            IMDB = movie.ImdbMovieID is { Length: > 0 } imdbId ? [imdbId] : [],
+            TMDB = new() { Movie = [movie.TmdbMovieID], Episode = [], Show = [] },
+        };
+        HasCustomName = false;
+        Images = movie.GetImages().ToDto(includeThumbnails: true, preferredImages: true);
+        Duration = file?.DurationTimeSpan ?? movie.Runtime ?? TimeSpan.Zero;
+        ResumePosition = fileUserRecord?.ProgressPosition;
+        Watched = fileUserRecord?.WatchedDate?.ToUniversalTime();
+        WatchCount = fileUserRecord?.WatchedCount ?? 0;
+        IsFavorite = false;
+        IsHidden = false;
+        Name = movie.GetPreferredTitle()?.Value ?? movie.EnglishTitle;
+        Description = movie.GetPreferredOverview()?.Value ?? movie.EnglishOverview ?? string.Empty;
+        Size = files.Count;
+        Created = movie.CreatedAt.ToUniversalTime();
+        Updated = movie.LastUpdatedAt.ToUniversalTime();
+        if (includeFiles)
+            Files = files.Select(f => new File(context, f, false, false, includeMediaInfo, includeAbsolutePaths)).ToList();
+    }
+
+    public Episode(HttpContext context, TMDB_Episode episode, MediaSeries series, HashSet<DataSourceType>? includeDataFrom = null, bool includeFiles = false, bool includeMediaInfo = false, bool includeAbsolutePaths = false)
+    {
+        includeDataFrom ??= [];
+        var userID = context.GetUser()?.JMMUserID ?? 0;
+        var xrefs = RepoFactory.CrossRef_File_TmdbEpisode.GetByTmdbEpisodeID(episode.TmdbEpisodeID);
+        var files = xrefs.Select(xref => RepoFactory.VideoLocal.GetByID(xref.VideoLocalID)).WhereNotNull().ToList();
+        var (file, fileUserRecord) = files
+            .Select(f => (f, userRecord: RepoFactory.VideoLocalUser.GetByUserAndVideoLocalID(userID, f.VideoLocalID)))
+            .OrderByDescending(t => t.userRecord?.LastUpdated)
+            .FirstOrDefault();
+        IDs = new EpisodeIDs
+        {
+            ID = 0,
+            ParentSeries = series.MediaSeriesID,
+            SourceID = episode.TmdbEpisodeID,
+            TvDB = [],
+            IMDB = [],
+            TMDB = new() { Episode = [episode.TmdbEpisodeID], Movie = [], Show = [episode.TmdbShowID] },
+        };
+        HasCustomName = false;
+        Images = episode.GetImages().ToDto(includeThumbnails: true, preferredImages: true);
+        Duration = file?.DurationTimeSpan ?? episode.Runtime ?? TimeSpan.Zero;
+        ResumePosition = fileUserRecord?.ProgressPosition;
+        Watched = fileUserRecord?.WatchedDate?.ToUniversalTime();
+        WatchCount = fileUserRecord?.WatchedCount ?? 0;
+        IsFavorite = false;
+        IsHidden = false;
+        Name = episode.GetPreferredTitle()?.Value ?? episode.EnglishTitle;
+        Description = episode.GetPreferredOverview()?.Value ?? episode.EnglishOverview ?? string.Empty;
+        Size = files.Count;
+        Created = episode.CreatedAt.ToUniversalTime();
+        Updated = episode.LastUpdatedAt.ToUniversalTime();
+        if (includeFiles)
+            Files = files.Select(f => new File(context, f, false, false, includeMediaInfo, includeAbsolutePaths)).ToList();
     }
 
     public class EpisodeIDs : IDs

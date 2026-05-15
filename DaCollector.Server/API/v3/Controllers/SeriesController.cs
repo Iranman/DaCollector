@@ -29,6 +29,7 @@ using DaCollector.Server.API.v3.Models.TMDB.Input;
 using DaCollector.Server.Extensions;
 using DaCollector.Server.Models.AniDB;
 using DaCollector.Server.Models.DaCollector;
+using DaCollector.Server.Models.TMDB;
 using DaCollector.Server.Providers.TMDB;
 using DaCollector.Server.Repositories;
 using DaCollector.Server.Scheduling;
@@ -2002,6 +2003,9 @@ public class SeriesController : BaseController
         if (!User.AllowedSeries(series))
             return Forbid(SeriesForbiddenForUser);
 
+        if (series.AniDB_ID is null or 0)
+            return GetTmdbNativeEpisodesResult(series, includeDataFrom, type, includeMissing, includeUnaired, includeWatched, search, fuzzy, includeFiles, includeMediaInfo, includeAbsolutePaths, page, pageSize);
+
         return GetEpisodesInternal(series, includeMissing, includeUnaired, includeHidden, includeVoted, includeWatched, includeManuallyLinked, type, search, fuzzy)
             .ToListResult(a => new Episode(HttpContext, a, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths, includeXRefs), page, pageSize);
     }
@@ -2177,6 +2181,87 @@ public class SeriesController : BaseController
             .OrderBy(episode => episode.AniDB!.EpisodeType)
             .ThenBy(episode => episode.AniDB!.EpisodeNumber)
             .Select(a => a.DaCollector);
+    }
+
+    [NonAction]
+    private ActionResult<ListResult<Episode>> GetTmdbNativeEpisodesResult(
+        MediaSeries series,
+        HashSet<DataSourceType>? includeDataFrom,
+        HashSet<EpisodeType>? type,
+        IncludeOnlyFilter includeMissing,
+        IncludeOnlyFilter includeUnaired,
+        IncludeOnlyFilter includeWatched,
+        string? search,
+        bool fuzzy,
+        bool includeFiles,
+        bool includeMediaInfo,
+        bool includeAbsolutePaths,
+        int page,
+        int pageSize)
+    {
+        var userID = User.JMMUserID;
+        // TMDB-native episodes all map to EpisodeType.Episode; filter out if not requested
+        if (type is { Count: > 0 } && !type.Contains(EpisodeType.Episode))
+            return new ListResult<Episode>(0, []);
+
+        if (series.TMDB_MovieID.HasValue)
+        {
+            var movie = RepoFactory.TMDB_Movie.GetByTmdbMovieID(series.TMDB_MovieID.Value);
+            if (movie == null) return new ListResult<Episode>(0, []);
+            var files = RepoFactory.CrossRef_File_TmdbMovie.GetByTmdbMovieID(movie.TmdbMovieID)
+                .Select(x => RepoFactory.VideoLocal.GetByID(x.VideoLocalID)).WhereNotNull().ToList();
+            var hasFiles = files.Count > 0;
+            var hasAired = movie.ReleasedAt is { } r && r.ToDateTime(TimeOnly.MinValue) <= DateTime.Today;
+            var isWatched = files.Any(f => RepoFactory.VideoLocalUser.GetByUserAndVideoLocalID(userID, f.VideoLocalID)?.WatchedDate != null);
+
+            if (includeMissing != IncludeOnlyFilter.True && (includeMissing == IncludeOnlyFilter.False) == (!hasFiles && hasAired))
+                return new ListResult<Episode>(0, []);
+            if (includeUnaired != IncludeOnlyFilter.True && (includeUnaired == IncludeOnlyFilter.False) == (!hasFiles && !hasAired))
+                return new ListResult<Episode>(0, []);
+            if (includeWatched != IncludeOnlyFilter.True && (includeWatched == IncludeOnlyFilter.False) == isWatched)
+                return new ListResult<Episode>(0, []);
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var matched = new[] { movie }.Search(search, m => [m.GetPreferredTitle()?.Value ?? m.EnglishTitle], fuzzy);
+                if (!matched.Any()) return new ListResult<Episode>(0, []);
+            }
+
+            return new ListResult<Episode>(1, [new Episode(HttpContext, movie, series, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths)]);
+        }
+
+        if (series.TMDB_ShowID.HasValue)
+        {
+            var allEpisodes = RepoFactory.TMDB_Episode.GetByTmdbShowID(series.TMDB_ShowID.Value)
+                .Where(e => e.SeasonNumber > 0); // exclude specials (season 0)
+
+            IEnumerable<TMDB_Episode> filtered = allEpisodes.Where(ep =>
+            {
+                var epFiles = RepoFactory.CrossRef_File_TmdbEpisode.GetByTmdbEpisodeID(ep.TmdbEpisodeID)
+                    .Select(x => RepoFactory.VideoLocal.GetByID(x.VideoLocalID)).WhereNotNull().ToList();
+                var hasFiles = epFiles.Count > 0;
+                var hasAired = ep.AiredAt is { } a && a.ToDateTime(TimeOnly.MinValue) <= DateTime.Today;
+                var isWatched = epFiles.Any(f => RepoFactory.VideoLocalUser.GetByUserAndVideoLocalID(userID, f.VideoLocalID)?.WatchedDate != null);
+
+                if (includeMissing != IncludeOnlyFilter.True && (includeMissing == IncludeOnlyFilter.False) == (!hasFiles && hasAired))
+                    return false;
+                if (includeUnaired != IncludeOnlyFilter.True && (includeUnaired == IncludeOnlyFilter.False) == (!hasFiles && !hasAired))
+                    return false;
+                if (includeWatched != IncludeOnlyFilter.True && (includeWatched == IncludeOnlyFilter.False) == isWatched)
+                    return false;
+                return true;
+            });
+
+            if (!string.IsNullOrWhiteSpace(search))
+                filtered = filtered.Search(search, ep => [ep.GetPreferredTitle()?.Value ?? ep.EnglishTitle], fuzzy).Select(r => r.Result);
+            else
+                filtered = filtered.OrderBy(ep => ep.SeasonNumber).ThenBy(ep => ep.EpisodeNumber);
+
+            return filtered.ToListResult(
+                ep => new Episode(HttpContext, ep, series, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths),
+                page, pageSize);
+        }
+
+        return new ListResult<Episode>(0, []);
     }
 
     /// <summary>
