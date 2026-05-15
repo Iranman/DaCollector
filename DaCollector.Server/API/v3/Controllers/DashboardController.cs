@@ -14,7 +14,10 @@ using DaCollector.Server.API.v3.Models.DaCollector;
 using DaCollector.Server.Extensions;
 using DaCollector.Server.Filters.Info;
 using DaCollector.Server.Models.AniDB;
+using AniDbApiModels = DaCollector.Server.API.v3.Models.AniDB;
 using DaCollector.Server.Models.DaCollector;
+using DaCollector.Server.Models.TMDB;
+using DaCollector.Server.Models.TVDB;
 using DaCollector.Server.Repositories;
 using DaCollector.Server.Repositories.Cached;
 using DaCollector.Server.Scheduling;
@@ -237,16 +240,24 @@ public class DashboardController : BaseController
         var episodeList = RepoFactory.VideoLocal.GetAll()
             .Where(f => f.DateTimeImported.HasValue)
             .OrderByDescending(f => f.DateTimeImported)
-            .SelectMany(file => file.AnimeEpisodes.Select(episode => (file, episode)));
+            .SelectMany<VideoLocal, (VideoLocal file, MediaEpisode? episode, MediaSeries? series)>(file =>
+            {
+                if (file.AnimeEpisodes.Count > 0)
+                    return file.AnimeEpisodes.Select(ep => (file, (MediaEpisode?)ep, ep.MediaSeries));
+                return GetTmdbNativeSeries(file.VideoLocalID)
+                    .Select(s => (file, (MediaEpisode?)null, (MediaSeries?)s));
+            });
         var seriesDict = episodeList
-            .DistinctBy(tuple => tuple.episode.MediaSeriesID)
-            .Select(tuple => tuple.episode.MediaSeries)
-            .Where(series => series != null && user.AllowedSeries(series))
+            .Select(tuple => tuple.episode?.MediaSeries ?? tuple.series)
+            .WhereNotNull()
+            .DistinctBy(series => series.MediaSeriesID)
+            .Where(series => user.AllowedSeries(series))
             .ToDictionary(series => series.MediaSeriesID);
         return episodeList
             .Where(tuple =>
             {
-                if (!seriesDict.TryGetValue(tuple.episode.MediaSeriesID, out var series))
+                var seriesId = tuple.episode?.MediaSeriesID ?? tuple.series?.MediaSeriesID;
+                if (seriesId is null || !seriesDict.TryGetValue(seriesId.Value, out var series))
                     return false;
 
                 if (includeRestricted is not IncludeOnlyFilter.True)
@@ -260,7 +271,13 @@ public class DashboardController : BaseController
                 return true;
             })
             .ToListResult(
-                tuple => GetEpisodeDetailsForSeriesAndEpisode(user, tuple.episode, seriesDict[tuple.episode.MediaSeriesID], file: tuple.file),
+                tuple =>
+                {
+                    var series = tuple.episode?.MediaSeries ?? tuple.series!;
+                    return tuple.episode is not null
+                        ? GetEpisodeDetailsForSeriesAndEpisode(user, tuple.episode, series, file: tuple.file)
+                        : GetTmdbNativeEpisodeDetails(user, tuple.file, series);
+                },
                 page,
                 pageSize
             );
@@ -284,7 +301,9 @@ public class DashboardController : BaseController
         return RepoFactory.VideoLocal.GetAll()
             .Where(f => f.DateTimeImported.HasValue)
             .OrderByDescending(f => f.DateTimeImported)
-            .SelectMany(file => file.AnimeEpisodes.Select(episode => episode.MediaSeriesID))
+            .SelectMany(file => file.AnimeEpisodes.Count > 0
+                ? file.AnimeEpisodes.Select(ep => ep.MediaSeriesID)
+                : GetTmdbNativeSeries(file.VideoLocalID).Select(s => s.MediaSeriesID))
             .Distinct()
             .Select(RepoFactory.MediaSeries.GetByID)
             .Where(series =>
@@ -436,6 +455,73 @@ public class DashboardController : BaseController
             return new Dashboard.Episode(anidbEpisode, anime, series, file, userRecord);
 
         return new Dashboard.Episode(episode, series, file, userRecord);
+    }
+
+    [NonAction]
+    private Dashboard.Episode GetTmdbNativeEpisodeDetails(JMMUser user, VideoLocal file, MediaSeries series)
+    {
+        var userRecord = _vlUsers.GetByUserAndVideoLocalID(user.JMMUserID, file.VideoLocalID);
+
+        if (series.TMDB_MovieID.HasValue)
+        {
+            var movie = RepoFactory.TMDB_Movie.GetByTmdbMovieID(series.TMDB_MovieID.Value);
+            if (movie is not null)
+                return new Dashboard.Episode(movie, series, file, userRecord);
+        }
+
+        if (series.TMDB_ShowID.HasValue)
+        {
+            var tmdbEp = RepoFactory.CrossRef_File_TmdbEpisode.GetByVideoLocalID(file.VideoLocalID)
+                .Select(x => RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(x.TmdbEpisodeID))
+                .FirstOrDefault(e => e?.TmdbShowID == series.TMDB_ShowID.Value);
+            if (tmdbEp is not null)
+                return new Dashboard.Episode(tmdbEp, series, file, userRecord);
+        }
+
+        if (series.TvdbShowExternalID.HasValue)
+        {
+            var tvdbEp = RepoFactory.CrossRef_File_TvdbEpisode.GetByVideoLocalID(file.VideoLocalID)
+                .Select(x => RepoFactory.TVDB_Episode.GetByTvdbEpisodeID(x.TvdbEpisodeID))
+                .FirstOrDefault(e => e?.TvdbShowID == series.TvdbShowExternalID.Value);
+            if (tvdbEp is not null)
+                return new Dashboard.Episode(tvdbEp, series, file, userRecord);
+        }
+
+        return new Dashboard.Episode
+        {
+            IDs = new Dashboard.EpisodeDetailsIDs { ID = 0, Series = 0, DaCollectorFile = file.VideoLocalID, DaCollectorSeries = series.MediaSeriesID },
+            Title = series.Title,
+            Number = 1,
+            Type = AniDbApiModels.EpisodeType.Episode,
+            Duration = file.DurationTimeSpan,
+            ResumePosition = userRecord?.ProgressPosition,
+            Watched = userRecord?.WatchedDate?.ToUniversalTime(),
+            SeriesTitle = series.Title,
+            SeriesPoster = new Image(0, ImageEntityType.Poster, DataSource.DaCollector),
+        };
+    }
+
+    private static IEnumerable<MediaSeries> GetTmdbNativeSeries(int videoLocalId)
+    {
+        foreach (var xref in RepoFactory.CrossRef_File_TmdbMovie.GetByVideoLocalID(videoLocalId))
+        {
+            var s = RepoFactory.MediaSeries.GetAll().FirstOrDefault(x => x.TMDB_MovieID == xref.TmdbMovieID);
+            if (s is not null) yield return s;
+        }
+        foreach (var xref in RepoFactory.CrossRef_File_TmdbEpisode.GetByVideoLocalID(videoLocalId))
+        {
+            var ep = RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(xref.TmdbEpisodeID);
+            if (ep is null) continue;
+            var s = RepoFactory.MediaSeries.GetAll().FirstOrDefault(x => x.TMDB_ShowID == ep.TmdbShowID);
+            if (s is not null) yield return s;
+        }
+        foreach (var xref in RepoFactory.CrossRef_File_TvdbEpisode.GetByVideoLocalID(videoLocalId))
+        {
+            var ep = RepoFactory.TVDB_Episode.GetByTvdbEpisodeID(xref.TvdbEpisodeID);
+            if (ep is null) continue;
+            var s = RepoFactory.MediaSeries.GetAll().FirstOrDefault(x => x.TvdbShowExternalID == ep.TvdbShowID);
+            if (s is not null) yield return s;
+        }
     }
 
     /// <summary>

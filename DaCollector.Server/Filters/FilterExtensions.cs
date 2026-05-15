@@ -95,7 +95,8 @@ public static class FilterExtensions
                     .GroupBy(a => a.CrewRoleType)
                     .ToDictionary(a => a.Key, a => (IReadOnlySet<string>)a.Select(b => b.CreatorID.ToString()).ToHashSet()),
             HasTmdbLinkDelegate = () =>
-                series.TmdbShowCrossReferences.Count is > 0 || series.TmdbMovieCrossReferences.Count is > 0,
+                series.TmdbShowCrossReferences.Count is > 0 || series.TmdbMovieCrossReferences.Count is > 0
+                || series.TMDB_ShowID.HasValue || series.TMDB_MovieID.HasValue,
             HasTmdbAutoLinkingDisabledDelegate = () =>
                 series.IsTMDBAutoMatchingDisabled,
             AutomaticTmdbEpisodeLinksDelegate = () =>
@@ -112,7 +113,13 @@ public static class FilterExtensions
                 return series.AnimeEpisodes.Count(a => !allTmdbLinkedEpisodes.Contains(a.MediaEpisodeID));
             },
             IsFinishedDelegate = () =>
-                series.AniDB_Anime?.EndDate is { } endDate && endDate < now.Date,
+                series.AniDB_Anime?.EndDate is { } endDate && endDate < now.Date
+                || (series.TMDB_MovieID.HasValue
+                    && RepoFactory.TMDB_Movie.GetByTmdbMovieID(series.TMDB_MovieID.Value)?.ReleasedAt is { } relDate
+                    && relDate.ToDateTime(TimeOnly.MinValue) < now.Date)
+                || (series.TMDB_ShowID.HasValue
+                    && RepoFactory.TMDB_Show.GetByTmdbShowID(series.TMDB_ShowID.Value)?.LastAiredAt is { } lastAired
+                    && lastAired.ToDateTime(TimeOnly.MinValue) < now.Date),
             LastAirDateDelegate = () =>
                 series.EndDate ?? series.AllAnimeEpisodes.Select(a => a.AniDB_Episode?.GetAirDateAsDate()).WhereNotNull().DefaultIfEmpty().Max(),
             AddedDateDelegate = () =>
@@ -120,9 +127,15 @@ public static class FilterExtensions
             LastAddedDateDelegate = () =>
                 series.VideoLocals.Select(a => a.DateTimeCreated).DefaultIfEmpty().Max(),
             EpisodeCountDelegate = () =>
-                series.AniDB_Anime?.EpisodeCountNormal ?? 0,
+                series.AniDB_Anime?.EpisodeCountNormal
+                ?? (series.TMDB_ShowID.HasValue
+                    ? RepoFactory.TMDB_Episode.GetByTmdbShowID(series.TMDB_ShowID.Value).Count(e => e.SeasonNumber > 0)
+                    : series.TMDB_MovieID.HasValue ? 1 : 0),
             TotalEpisodeCountDelegate = () =>
-                series.AniDB_Anime?.EpisodeCount ?? 0,
+                series.AniDB_Anime?.EpisodeCount
+                ?? (series.TMDB_ShowID.HasValue
+                    ? RepoFactory.TMDB_Episode.GetByTmdbShowID(series.TMDB_ShowID.Value).Count
+                    : series.TMDB_MovieID.HasValue ? 1 : 0),
             LowestAniDBRatingDelegate = () =>
                 double.Round(Convert.ToDouble(series.AniDB_Anime?.Rating ?? 0) / 100, 1, MidpointRounding.AwayFromZero),
             HighestAniDBRatingDelegate = () =>

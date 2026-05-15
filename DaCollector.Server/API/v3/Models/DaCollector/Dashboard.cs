@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using DaCollector.Abstractions.Metadata;
@@ -10,6 +11,8 @@ using DaCollector.Server.API.v3.Models.Common;
 using DaCollector.Server.Extensions;
 using DaCollector.Server.Models.AniDB;
 using DaCollector.Server.Models.DaCollector;
+using DaCollector.Server.Models.TMDB;
+using DaCollector.Server.Models.TVDB;
 using DaCollector.Server.Repositories;
 
 #nullable enable
@@ -166,6 +169,8 @@ public static class Dashboard
     /// </summary>
     public class Episode
     {
+        public Episode() { }
+
         public Episode(AniDB_Episode episode, AniDB_Anime anime, MediaSeries? series = null,
             VideoLocal? file = null, VideoLocal_User? userRecord = null)
         {
@@ -216,6 +221,83 @@ public static class Dashboard
             Thumbnail = episode.GetPreferredImageForType(MetaEnums.ImageEntityType.Thumbnail) is { } thumb
                 ? new Image(thumb)
                 : null;
+        }
+
+        public Episode(TMDB_Movie movie, MediaSeries series, VideoLocal? file = null, VideoLocal_User? userRecord = null)
+        {
+            IDs = new EpisodeDetailsIDs
+            {
+                ID = movie.TmdbMovieID,
+                Series = movie.TmdbMovieID,
+                DaCollectorFile = file?.VideoLocalID,
+                DaCollectorSeries = series.MediaSeriesID,
+                DaCollectorEpisode = null,
+            };
+            Title = movie.GetPreferredTitle()?.Value ?? movie.EnglishTitle;
+            Number = 1;
+            Type = EpisodeType.Episode;
+            AirDate = movie.ReleasedAt;
+            Duration = file?.DurationTimeSpan ?? movie.Runtime ?? TimeSpan.Zero;
+            ResumePosition = userRecord?.ProgressPosition;
+            Watched = userRecord?.WatchedDate?.ToUniversalTime();
+            SeriesTitle = series.Title;
+            var moviePoster = movie.GetImages(MetaEnums.ImageEntityType.Poster).FirstOrDefault();
+            SeriesPoster = moviePoster is not null
+                ? new Image(moviePoster)
+                : new Image(0, MetaEnums.ImageEntityType.Poster, MetaEnums.DataSource.DaCollector);
+            var backdrop = movie.GetImages(MetaEnums.ImageEntityType.Backdrop).FirstOrDefault();
+            Thumbnail = backdrop is not null ? new Image(backdrop) : null;
+        }
+
+        public Episode(TMDB_Episode episode, MediaSeries series, VideoLocal? file = null, VideoLocal_User? userRecord = null)
+        {
+            var show = RepoFactory.TMDB_Show.GetByTmdbShowID(episode.TmdbShowID);
+            IDs = new EpisodeDetailsIDs
+            {
+                ID = episode.TmdbEpisodeID,
+                Series = episode.TmdbShowID,
+                DaCollectorFile = file?.VideoLocalID,
+                DaCollectorSeries = series.MediaSeriesID,
+                DaCollectorEpisode = null,
+            };
+            Title = episode.GetPreferredTitle()?.Value ?? episode.EnglishTitle;
+            Number = episode.EpisodeNumber;
+            Type = EpisodeType.Episode;
+            AirDate = episode.AiredAt;
+            Duration = file?.DurationTimeSpan ?? episode.Runtime ?? TimeSpan.Zero;
+            ResumePosition = userRecord?.ProgressPosition;
+            Watched = userRecord?.WatchedDate?.ToUniversalTime();
+            SeriesTitle = series.Title;
+            var showPoster = show?.GetImages(MetaEnums.ImageEntityType.Poster).FirstOrDefault();
+            SeriesPoster = showPoster is not null
+                ? new Image(showPoster)
+                : new Image(0, MetaEnums.ImageEntityType.Poster, MetaEnums.DataSource.DaCollector);
+            var thumb = episode.GetImages(MetaEnums.ImageEntityType.Thumbnail).FirstOrDefault();
+            Thumbnail = thumb is not null ? new Image(thumb) : null;
+        }
+
+        public Episode(TVDB_Episode episode, MediaSeries series, VideoLocal? file = null, VideoLocal_User? userRecord = null)
+        {
+            IDs = new EpisodeDetailsIDs
+            {
+                ID = episode.TvdbEpisodeID,
+                Series = episode.TvdbShowID,
+                DaCollectorFile = file?.VideoLocalID,
+                DaCollectorSeries = series.MediaSeriesID,
+                DaCollectorEpisode = null,
+            };
+            Title = episode.Name;
+            Number = episode.EpisodeNumber;
+            Type = EpisodeType.Episode;
+            AirDate = episode.AiredAt;
+            Duration = file?.DurationTimeSpan ?? (episode.RuntimeMinutes.HasValue
+                ? TimeSpan.FromMinutes(episode.RuntimeMinutes.Value)
+                : TimeSpan.Zero);
+            ResumePosition = userRecord?.ProgressPosition;
+            Watched = userRecord?.WatchedDate?.ToUniversalTime();
+            SeriesTitle = series.Title;
+            SeriesPoster = new Image(0, MetaEnums.ImageEntityType.Poster, MetaEnums.DataSource.DaCollector);
+            Thumbnail = null;
         }
 
         /// <summary>

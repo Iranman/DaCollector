@@ -56,6 +56,10 @@ public class VideoService : IVideoService
 
     private readonly StoredReleaseInfoRepository _storedReleaseInfoRepository;
 
+    private readonly MediaFileReviewStateRepository _reviewStateRepository;
+
+    private readonly MediaFileMatchCandidateRepository _candidateRepository;
+
     private readonly VideoHashingService _videoHashingService;
 
     private readonly IVideoReleaseService _videoReleaseService;
@@ -99,6 +103,8 @@ public class VideoService : IVideoService
         CrossRef_File_EpisodeRepository crossRefRepository,
         FileNameHashRepository fileNameHashRepository,
         StoredReleaseInfoRepository storedReleaseInfoRepository,
+        MediaFileReviewStateRepository reviewStateRepository,
+        MediaFileMatchCandidateRepository candidateRepository,
         IVideoHashingService videoHashingService,
         IVideoReleaseService videoReleaseService,
         IVideoRelocationService relocationService,
@@ -116,6 +122,8 @@ public class VideoService : IVideoService
         _crossRefRepository = crossRefRepository;
         _fileNameHashRepository = fileNameHashRepository;
         _storedReleaseInfoRepository = storedReleaseInfoRepository;
+        _reviewStateRepository = reviewStateRepository;
+        _candidateRepository = candidateRepository;
         _videoHashingService = (VideoHashingService)videoHashingService;
         _videoReleaseService = videoReleaseService;
         _relocationService = relocationService;
@@ -670,6 +678,31 @@ public class VideoService : IVideoService
                             .Select(a => a.MediaSeries)
                             .WhereNotNull()
                     );
+
+                    // Also collect TMDB/TVDB-linked series for stats refresh.
+                    var fileID = v.VideoLocalID;
+                    RepoFactory.CrossRef_File_TmdbMovie.GetByVideoLocalID(fileID)
+                        .Select(x => RepoFactory.MediaSeries.GetAll().FirstOrDefault(s2 => s2.TMDB_MovieID == x.TmdbMovieID))
+                        .WhereNotNull().DistinctBy(s2 => s2.MediaSeriesID).ToList().ForEach(seriesToUpdate.Add);
+                    RepoFactory.CrossRef_File_TmdbEpisode.GetByVideoLocalID(fileID)
+                        .Select(x => RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(x.TmdbEpisodeID))
+                        .WhereNotNull()
+                        .Select(ep => RepoFactory.MediaSeries.GetAll().FirstOrDefault(s2 => s2.TMDB_ShowID == ep.TmdbShowID))
+                        .WhereNotNull().DistinctBy(s2 => s2.MediaSeriesID).ToList().ForEach(seriesToUpdate.Add);
+                    RepoFactory.CrossRef_File_TvdbEpisode.GetByVideoLocalID(fileID)
+                        .Select(x => RepoFactory.TVDB_Episode.GetByTvdbEpisodeID(x.TvdbEpisodeID))
+                        .WhereNotNull()
+                        .Select(ep => RepoFactory.MediaSeries.GetAll().FirstOrDefault(s2 => s2.TvdbShowExternalID == ep.TvdbShowID))
+                        .WhereNotNull().DistinctBy(s2 => s2.MediaSeriesID).ToList().ForEach(seriesToUpdate.Add);
+
+                    // Clean up review queue state and match candidates for this file.
+                    var reviewState = _reviewStateRepository.GetByVideoLocalID(fileID);
+                    if (reviewState is not null)
+                        _reviewStateRepository.DeleteWithOpenTransaction(s, reviewState);
+                    var candidates = _candidateRepository.GetByVideoLocalID(fileID);
+                    foreach (var candidate in candidates)
+                        _candidateRepository.DeleteWithOpenTransaction(s, candidate);
+
                     _videoLocalRepository.DeleteWithOpenTransaction(s, v);
                     transaction.Commit();
                 });
@@ -711,6 +744,22 @@ public class VideoService : IVideoService
             var eps = v.AnimeEpisodes?.WhereNotNull().ToList();
             eps?.DistinctBy(a => a.MediaSeriesID).Select(a => a.MediaSeries).WhereNotNull().ToList().ForEach(seriesToUpdate.Add);
 
+            // Also collect TMDB/TVDB-linked series for stats refresh.
+            var id = v.VideoLocalID;
+            RepoFactory.CrossRef_File_TmdbMovie.GetByVideoLocalID(id)
+                .Select(x => RepoFactory.MediaSeries.GetAll().FirstOrDefault(s => s.TMDB_MovieID == x.TmdbMovieID))
+                .WhereNotNull().DistinctBy(s => s.MediaSeriesID).ToList().ForEach(seriesToUpdate.Add);
+            RepoFactory.CrossRef_File_TmdbEpisode.GetByVideoLocalID(id)
+                .Select(x => RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(x.TmdbEpisodeID))
+                .WhereNotNull()
+                .Select(ep => RepoFactory.MediaSeries.GetAll().FirstOrDefault(s => s.TMDB_ShowID == ep.TmdbShowID))
+                .WhereNotNull().DistinctBy(s => s.MediaSeriesID).ToList().ForEach(seriesToUpdate.Add);
+            RepoFactory.CrossRef_File_TvdbEpisode.GetByVideoLocalID(id)
+                .Select(x => RepoFactory.TVDB_Episode.GetByTvdbEpisodeID(x.TvdbEpisodeID))
+                .WhereNotNull()
+                .Select(ep => RepoFactory.MediaSeries.GetAll().FirstOrDefault(s => s.TvdbShowExternalID == ep.TvdbShowID))
+                .WhereNotNull().DistinctBy(s => s.MediaSeriesID).ToList().ForEach(seriesToUpdate.Add);
+
             try
             {
                 DaCollectorEventHandler.Instance.OnFileDeleted(place.ManagedFolder!, place, v);
@@ -725,6 +774,15 @@ public class VideoService : IVideoService
                 using var transaction = session.BeginTransaction();
                 _videoLocalPlaceRepository.DeleteWithOpenTransaction(session, place);
                 _videoLocalRepository.DeleteWithOpenTransaction(session, v);
+
+                // Clean up review queue state and match candidates for this file.
+                var reviewState = _reviewStateRepository.GetByVideoLocalID(v.VideoLocalID);
+                if (reviewState is not null)
+                    _reviewStateRepository.DeleteWithOpenTransaction(session, reviewState);
+                var candidates = _candidateRepository.GetByVideoLocalID(v.VideoLocalID);
+                foreach (var candidate in candidates)
+                    _candidateRepository.DeleteWithOpenTransaction(session, candidate);
+
                 transaction.Commit();
             });
         }
