@@ -14,8 +14,6 @@ FROM node:20-bookworm-slim AS webui-build
 ARG WEBUI_REPO=https://github.com/Iranman/DaCollector-WebUI.git
 ARG WEBUI_REF=main
 ARG version=0.0.1-local
-ARG commit=local
-ARG date=local
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends git ca-certificates \
@@ -34,11 +32,18 @@ WORKDIR /usr/src/app/webui
 RUN --mount=type=cache,target=/root/.npm \
     npm ci
 
-RUN npm run build
-
-RUN printf '{"package":"%s","minimumServerVersion":"0.0.1","tag":"v%s","git":"%s","date":"%s","channel":"Stable"}' \
-      "$version" "$version" "$commit" "$date" \
-    > dist/version.json
+RUN WEBUI_COMMIT="$(git rev-parse HEAD)" \
+    && WEBUI_DATE="$(TZ=UTC git --no-pager show -s --date='format-local:%Y-%m-%dT%H:%M:%SZ' --format=%cd HEAD)" \
+    && DACOLLECTOR_WEBUI_GIT="${WEBUI_COMMIT}" \
+       DACOLLECTOR_WEBUI_DATE="${WEBUI_DATE}" \
+       DACOLLECTOR_WEBUI_CHANNEL="Stable" \
+       DACOLLECTOR_MIN_SERVER_VERSION="${version}" \
+       npm run build \
+    && if [ ! -f dist/version.json ]; then \
+         printf '{"package":"%s","minimumServerVersion":"0.0.1","tag":"v%s","git":"%s","date":"%s","channel":"Stable"}' \
+           "$version" "$version" "$WEBUI_COMMIT" "$WEBUI_DATE" \
+           > dist/version.json; \
+       fi
 
 # ---------------------------------------------------------------------------
 
@@ -49,7 +54,7 @@ ARG version=0.0.1-local
 ARG channel=local
 ARG commit=local
 ARG tag=local
-ARG date=local
+ARG date=1970-01-01T00:00:00Z
 
 WORKDIR /src
 
