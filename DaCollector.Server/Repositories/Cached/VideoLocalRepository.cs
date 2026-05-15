@@ -38,6 +38,9 @@ public class VideoLocalRepository : BaseCachedRepository<VideoLocal, int>
             RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(ses, obj.Places.ToList());
             RepoFactory.VideoLocalUser.DeleteWithOpenTransaction(ses, RepoFactory.VideoLocalUser.GetByVideoLocalID(obj.VideoLocalID));
             RepoFactory.VideoLocalHashDigest.DeleteWithOpenTransaction(ses, RepoFactory.VideoLocalHashDigest.GetByVideoLocalID(obj.VideoLocalID));
+            RepoFactory.CrossRef_File_TmdbMovie.DeleteWithOpenTransaction(ses, RepoFactory.CrossRef_File_TmdbMovie.GetByVideoLocalID(obj.VideoLocalID).ToList());
+            RepoFactory.CrossRef_File_TmdbEpisode.DeleteWithOpenTransaction(ses, RepoFactory.CrossRef_File_TmdbEpisode.GetByVideoLocalID(obj.VideoLocalID).ToList());
+            RepoFactory.CrossRef_File_TvdbEpisode.DeleteWithOpenTransaction(ses, RepoFactory.CrossRef_File_TvdbEpisode.GetByVideoLocalID(obj.VideoLocalID).ToList());
         };
     }
 

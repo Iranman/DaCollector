@@ -284,7 +284,10 @@ public class MediaSeriesService
 
     private void UpdateWatchedStats(MediaSeries series, IReadOnlyList<MediaEpisode> eps, string name, ref DateTime start)
     {
-        _userDataService.UpdateWatchedStats(series, eps);
+        if (eps.Count == 0 && series.AniDB_ID is null or 0)
+            _userDataService.UpdateWatchedStatsTmdbNative(series);
+        else
+            _userDataService.UpdateWatchedStats(series, eps);
         var ts = DateTime.Now - start;
         _logger.LogTrace("Updated WATCHED stats for SERIES {Name} in {Elapsed}ms", name, ts.TotalMilliseconds);
         start = DateTime.Now;
@@ -294,30 +297,86 @@ public class MediaSeriesService
     {
         var latestLocalEpNumber = 0;
         DateTime? lastEpAirDate = null;
+        var today = DateOnly.FromDateTime(DateTime.Today);
 
-        foreach (var ep in eps.Where(e => e.EpisodeType == EpisodeType.Episode))
+        if (eps.Count > 0)
         {
-            var airDate = ((IEpisode)ep).AirDate;
-            // Skip episodes that haven't aired yet.
-            if (airDate is null || airDate.Value > DateOnly.FromDateTime(DateTime.Today))
-                continue;
-
-            var vids = ep.VideoLocals;
-            var hasFile = vids.Count > 0;
-            var epNum = ((IEpisode)ep).EpisodeNumber;
-
-            if (hasFile && epNum > latestLocalEpNumber)
-                latestLocalEpNumber = epNum;
-
-            var airDateTime = airDate.Value.ToDateTime(TimeOnly.MinValue);
-            if (lastEpAirDate is null || airDateTime > lastEpAirDate)
-                lastEpAirDate = airDateTime;
-
-            if (!hasFile)
+            foreach (var ep in eps.Where(e => e.EpisodeType == EpisodeType.Episode))
             {
-                if (ep.IsHidden)
-                    series.HiddenMissingEpisodeCount++;
-                else
+                var airDate = ((IEpisode)ep).AirDate;
+                if (airDate is null || airDate.Value > today)
+                    continue;
+
+                var vids = ep.VideoLocals;
+                var hasFile = vids.Count > 0;
+                var epNum = ((IEpisode)ep).EpisodeNumber;
+
+                if (hasFile && epNum > latestLocalEpNumber)
+                    latestLocalEpNumber = epNum;
+
+                var airDateTime = airDate.Value.ToDateTime(TimeOnly.MinValue);
+                if (lastEpAirDate is null || airDateTime > lastEpAirDate)
+                    lastEpAirDate = airDateTime;
+
+                if (!hasFile)
+                {
+                    if (ep.IsHidden)
+                        series.HiddenMissingEpisodeCount++;
+                    else
+                        series.MissingEpisodeCount++;
+                }
+            }
+
+            series.LatestLocalEpisodeNumber = latestLocalEpNumber;
+            series.LatestEpisodeAirDate = lastEpAirDate ?? series.AirDate;
+            return;
+        }
+
+        // No MediaEpisode records — compute stats directly from provider data.
+        if (series.TMDB_ShowID.HasValue)
+        {
+            foreach (var ep in RepoFactory.TMDB_Episode.GetByTmdbShowID(series.TMDB_ShowID.Value)
+                         .Where(e => e.SeasonNumber > 0))
+            {
+                var airDate = ep.AiredAt;
+                if (airDate is null || airDate.Value > today)
+                    continue;
+
+                var hasFile = RepoFactory.CrossRef_File_TmdbEpisode.GetByTmdbEpisodeID(ep.TmdbEpisodeID).Count > 0;
+                if (hasFile && ep.EpisodeNumber > latestLocalEpNumber)
+                    latestLocalEpNumber = ep.EpisodeNumber;
+
+                var airDateTime = airDate.Value.ToDateTime(TimeOnly.MinValue);
+                if (lastEpAirDate is null || airDateTime > lastEpAirDate)
+                    lastEpAirDate = airDateTime;
+
+                if (!hasFile)
+                {
+                    if (ep.IsHidden)
+                        series.HiddenMissingEpisodeCount++;
+                    else
+                        series.MissingEpisodeCount++;
+                }
+            }
+        }
+        else if (series.TvdbShowExternalID.HasValue)
+        {
+            foreach (var ep in RepoFactory.TVDB_Episode.GetByTvdbShowID(series.TvdbShowExternalID.Value)
+                         .Where(e => e.SeasonNumber > 0))
+            {
+                var airDate = ep.AiredAt;
+                if (airDate is null || airDate.Value > today)
+                    continue;
+
+                var hasFile = RepoFactory.CrossRef_File_TvdbEpisode.GetByTvdbEpisodeID(ep.TvdbEpisodeID).Count > 0;
+                if (hasFile && ep.EpisodeNumber > latestLocalEpNumber)
+                    latestLocalEpNumber = ep.EpisodeNumber;
+
+                var airDateTime = airDate.Value.ToDateTime(TimeOnly.MinValue);
+                if (lastEpAirDate is null || airDateTime > lastEpAirDate)
+                    lastEpAirDate = airDateTime;
+
+                if (!hasFile)
                     series.MissingEpisodeCount++;
             }
         }

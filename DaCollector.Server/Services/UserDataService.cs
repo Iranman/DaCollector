@@ -16,6 +16,7 @@ using DaCollector.Abstractions.User.Update;
 using DaCollector.Abstractions.Video;
 using DaCollector.Server.Models.DaCollector;
 using DaCollector.Server.Providers.TraktTV;
+using DaCollector.Server.Repositories;
 using DaCollector.Server.Repositories.Cached;
 using DaCollector.Server.Scheduling;
 using DaCollector.Server.Scheduling.Jobs.Trakt;
@@ -1004,6 +1005,89 @@ public class UserDataService(
         {
             newAnimeGroupUsers(userData, isNew, isUpdated);
         }
+    }
+
+    /// <summary>
+    /// Computes per-user watched stats for TMDB-native series (no AniDB data, no MediaEpisode records).
+    /// Uses CrossRef_File_TmdbMovie/TmdbEpisode/TvdbEpisode to find files and VideoLocal_User for watch state.
+    /// </summary>
+    internal void UpdateWatchedStatsTmdbNative(MediaSeries series)
+    {
+        var fileIDs = GetTmdbNativeFileIDs(series);
+
+        foreach (var user in userRepository.GetAll())
+        {
+            var userData = seriesUserDataRepository.GetByUserAndSeriesID(user.JMMUserID, series.MediaSeriesID)
+                ?? new() { JMMUserID = user.JMMUserID, MediaSeriesID = series.MediaSeriesID, LastUpdated = DateTime.Now };
+
+            var unwatchedCount = 0;
+            var watchedEpisodeCount = 0;
+            var watchedCount = 0;
+            DateTime? watchedDate = null;
+            DateTime? lastVideoUpdate = null;
+
+            foreach (var fileID in fileIDs)
+            {
+                var vud = videoUserDataRepository.GetByVideoLocalID(fileID)
+                    .FirstOrDefault(a => a.JMMUserID == user.JMMUserID);
+                var isWatched = vud?.WatchedDate.HasValue ?? false;
+
+                if (isWatched)
+                {
+                    watchedEpisodeCount++;
+                    watchedCount += vud!.WatchedCount;
+                    if (vud.WatchedDate.HasValue && (watchedDate is null || vud.WatchedDate.Value > watchedDate.Value))
+                        watchedDate = vud.WatchedDate;
+                    if (lastVideoUpdate is null || vud.LastUpdated > lastVideoUpdate.Value)
+                        lastVideoUpdate = vud.LastUpdated;
+                }
+                else
+                {
+                    unwatchedCount++;
+                }
+            }
+
+            var isNew = userData.MediaSeries_UserID is 0;
+            var isUpdated = isNew ||
+                userData.UnwatchedEpisodeCount != unwatchedCount ||
+                userData.WatchedEpisodeCount != watchedEpisodeCount ||
+                userData.WatchedCount != watchedCount ||
+                userData.WatchedDate != watchedDate ||
+                userData.LastVideoUpdate != lastVideoUpdate;
+
+            if (!isUpdated)
+                continue;
+
+            userData.UnwatchedEpisodeCount = unwatchedCount;
+            userData.WatchedEpisodeCount = watchedEpisodeCount;
+            userData.WatchedCount = watchedCount;
+            userData.WatchedDate = watchedDate;
+            userData.LastVideoUpdate = lastVideoUpdate;
+            userData.LastUpdated = DateTime.Now;
+            seriesUserDataRepository.Save(userData);
+        }
+    }
+
+    private static IReadOnlyList<int> GetTmdbNativeFileIDs(MediaSeries series)
+    {
+        if (series.TMDB_MovieID.HasValue)
+            return RepoFactory.CrossRef_File_TmdbMovie.GetByTmdbMovieID(series.TMDB_MovieID.Value)
+                .Select(x => x.VideoLocalID).ToList();
+
+        if (series.TMDB_ShowID.HasValue)
+            return RepoFactory.CrossRef_File_TmdbEpisode.GetAll()
+                .Where(x => RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(x.TmdbEpisodeID)?.TmdbShowID == series.TMDB_ShowID.Value)
+                .Select(x => x.VideoLocalID).Distinct().ToList();
+
+        if (series.TvdbShowExternalID.HasValue)
+            return RepoFactory.CrossRef_File_TvdbEpisode.GetAll()
+                .Where(x => RepoFactory.TVDB_Episode.GetByTvdbEpisodeID(x.TvdbEpisodeID)?.TvdbShowID == series.TvdbShowExternalID.Value)
+                .Select(x => x.VideoLocalID).Distinct().ToList();
+
+        if (series.TvdbMovieExternalID.HasValue)
+            return [];
+
+        return [];
     }
 
     #endregion
