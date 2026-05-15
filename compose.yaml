@@ -11,7 +11,7 @@ services:
         channel: "${DACOLLECTOR_BUILD_CHANNEL:-local}"
         commit: "${DACOLLECTOR_BUILD_COMMIT:-local}"
         tag: "${DACOLLECTOR_BUILD_TAG:-local}"
-        date: "${DACOLLECTOR_BUILD_DATE:-local}"
+        date: "${DACOLLECTOR_BUILD_DATE:-1970-01-01T00:00:00Z}"
     container_name: dacollector
     restart: unless-stopped
     ports:
