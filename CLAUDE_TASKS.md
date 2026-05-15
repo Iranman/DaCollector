@@ -408,13 +408,15 @@ Goal: determine whether DaCollector is actually runnable as a first-install serv
 Current status:
 - A local .NET SDK `10.0.203` was bootstrapped to `F:\Collection manager\.dotnet-sdk`.
 - `global.json` requires SDK `10.0.203` with `rollForward: latestFeature`.
-- Docker is not installed in the local Windows shell, so Docker validation must run on a Docker host such as TrueNAS.
+- Docker Desktop is installed locally. The daemon may need Docker Desktop launched first; direct service start can be denied by Windows.
+- Default local Docker verification now passes on host port `38111` after stopping a stale debug `DaCollector.CLI.exe` process that was holding the port.
 - P0.1 local build and tests pass (121/121 as of commit `e8f0a60`).
 - P0.5 startup crash (empty config file) has been identified and fixed in commit `6ef5b0e`.
 - Commit `ecccb2f` trims WebUI-facing public surface to TMDB/TVDB only by removing legacy provider actions, provider status entries, and builder catalog entries; tests updated to 121/121.
 - Commit `e8f0a60` makes the Docker build fully self-contained: `Dockerfile.combined` clones `DaCollector-WebUI` from GitHub (ARG WEBUI_REPO/WEBUI_REF), `compose.yaml` drops `additional_contexts`, and `docker-ghcr.yml` removes the WebUI checkout step. Anyone can now `docker compose up --build` from a single repo clone.
 - Commits `be06b42` and `2718071` opt all CI workflows into Node.js 24 (FORCE_JAVASCRIPT_ACTIONS_TO_NODE24) and bump v2 Docker actions to v3 / setup-dotnet to v4 to eliminate deprecation warnings.
 - **P0.6 (new)** — First-run setup still fails with "Error reading JToken from JsonReader. Path '', line 0, position 0." after `6ef5b0e` fix. Root cause: container is running an OLD image (pre-`6ef5b0e`) or the Docker volume has a stale empty `settings-server.json` left by a prior failed run. The fix in `6ef5b0e` handles the empty-file case; the container must be rebuilt/re-pulled AND the volume must be clean for the fix to take effect. See P0.6 below.
+- **P0.8 (new, fixed 2026-05-14 UTC)** — Local Docker build exposed two bundled WebUI metadata crashes: `date: "local"` could not deserialize as `DateTime`, then `package: "0.0.1-local"` could not parse as `System.Version`. `SystemUpdateService.WebUIVersionInfo` now tolerates non-parseable dates and semver prerelease suffixes, and Docker local date defaults are ISO-8601.
 
 Files in scope:
 - `global.json`
@@ -479,7 +481,7 @@ Notes:
 - Release build still emits one analyzer warning in `MediaDuplicateReviewServiceTests.cs` about using `Assert.Single` instead of `Assert.Equal` for collection size.
 - Integration test logs include repeated ASP.NET Data Protection DPAPI decrypt warnings, but the migration/startup test still passed. Investigate separately if these appear in normal installs.
 
-### ◐ P0.2 — Verify Combined Docker Build on TrueNAS/Linux Docker — GHCR TRIGGERED, HOST PENDING
+### ◐ P0.2 — Verify Combined Docker Build on TrueNAS/Linux Docker — LOCAL DOCKER PASS, TRUENAS PENDING
 
 GitHub Actions status:
 - Committed and pushed `904d0fe` to `main` which includes:
@@ -518,7 +520,14 @@ Acceptance criteria:
 - `/webui` returns the React WebUI (not the old static HTML fallback).
 - Startup reaches Kestrel on port `38111`.
 
-### ◐ P0.3 — Verify First-Run Endpoints — LOCAL PASS, DOCKER PENDING
+Local Docker result (2026-05-14 UTC):
+- Launched Docker Desktop and rebuilt with `docker compose -f compose.yaml up -d --build --force-recreate`.
+- Build completed successfully with React WebUI embedded from `DaCollector-WebUI`.
+- The rebuilt container started and stayed healthy on the default host port `38111`.
+- `scripts/verify-install.ps1 -Port 38111 -Docker` passed for `/api/v3/Init/Status`, `/webui`, and container health.
+- A stale debug `DaCollector.CLI.exe` process was stopped first because it was listening on `38111`.
+
+### ✅ P0.3 — Verify First-Run Endpoints — LOCAL AND DOCKER PASS
 
 Tasks:
 - Run from the Docker host:
@@ -548,11 +557,16 @@ Local result:
 - The temporary first-run server reported `State=Waiting`, which is expected before admin setup.
 
 Remaining:
-- Repeat this against the TrueNAS Docker container on port `38111`.
-- Confirm `/webui` is the React WebUI from `DaCollector-WebUI`, not only the bundled static fallback.
-- Complete first-run admin setup in a browser and confirm login/dashboard.
+- Repeat this endpoint smoke on the TrueNAS Docker host after deploying the fixed image.
 
-### ◐ P0.4 — Verify Minimal Plex Path — LOCAL PLEX PASS, DOCKER PENDING
+Docker result (2026-05-14 UTC):
+- Docker verification passed on `http://127.0.0.1:38111` after stopping the stale local debug process that held the port.
+- `/api/v3/Init/Status` returned HTTP `200`.
+- `/webui` returned HTTP `200` and served the embedded React WebUI.
+- First-run setup was completed through the API with temporary local Docker credentials, and `/api/v3/Init/Status` reported `State=Started`.
+- `/api/auth` returned an API key for the temporary account, and an authenticated status request returned `State=Started`.
+
+### ◐ P0.4 — Verify Minimal Plex Path — LOCAL PLEX PREVIOUS PASS, CURRENT DOCKER PLEX BLOCKED
 
 Tasks:
 - Configure Plex base URL, token, and section key.
@@ -576,10 +590,15 @@ Local result:
 - DaCollector Plex target endpoints successfully read Plex identity and library sections through the API.
 
 Remaining:
-- Repeat the Plex connectivity test from inside the TrueNAS Docker container.
+- Repeat the Plex connectivity test from inside the TrueNAS Docker container or a local host with Plex reachable.
 - In Docker, do not use `http://127.0.0.1:32400` for Plex unless Plex is running inside the same container. Use a host-reachable URL such as `http://host.docker.internal:32400` when available, or the TrueNAS/Plex LAN IP.
 - Run a collection preview/safe sync against section key `4`.
 - Run duplicate review in read-only mode and verify it reports results without enabling deletion behavior.
+
+Current Docker result (2026-05-14 UTC):
+- `docker exec dacollector curl -i --max-time 10 http://host.docker.internal:32400/identity` failed immediately with connection refused.
+- The Windows host did not have a listener on local port `32400` at verification time.
+- Full Plex API, collection preview, and duplicate review checks still require a reachable Plex base URL and token configured in the Docker environment.
 
 ### ✅ P0.5 — Document Any New Startup Issue — DONE
 
@@ -608,7 +627,7 @@ Result:
 Acceptance criteria:
 - Server readiness status is factual and reproducible.
 
-### 🚧 P0.6 — First-Run Setup Still Crashes After Empty-Config Fix — NEEDS DOCKER HOST VERIFICATION
+### ◐ P0.6 — First-Run Setup Still Crashes After Empty-Config Fix — LOCAL DOCKER PASS, TRUENAS PENDING
 
 Symptom (TrueNAS Docker, reported after `6ef5b0e`):
 - Setup screen renders (React WebUI), user enters credentials, "Setting up..." is displayed.
@@ -651,6 +670,12 @@ Acceptance criteria:
 - `/api/v3/Init/Status` returns `{"State":"Started"}`.
 - `/webui` loads the React UI.
 
+Local Docker result (2026-05-14 UTC):
+- The empty-config `JToken` crash did not reproduce with the rebuilt image.
+- The container reached setup mode, first-run setup completed, and the server transitioned to `State=Started`.
+- The rebuilt container stayed healthy on default host port `38111`, and `scripts/verify-install.ps1 -Port 38111 -Docker` passed.
+- The remaining user-host check is to repeat this on TrueNAS after pulling/rebuilding the fixed image and clearing any stale failed volume if needed.
+
 Note: if the error persists after a clean volume AND the new image, confirm which image digest is running:
 ```bash
 docker inspect dacollector --format '{{.Image}}'
@@ -671,6 +696,36 @@ Acceptance criteria:
 - Build succeeds and all 135 unit tests pass.
 - A crash during `SaveInternal` cannot leave `settings-server.json` at 0 bytes on the next clean boot.
 
+### ✅ P0.8 — Fix Local Docker WebUI Metadata Version Crash — DONE
+
+Context:
+- Local Docker builds generated bundled WebUI metadata with:
+  - `"date":"local"`
+  - `"package":"0.0.1-local"`
+- Startup crashed while loading `/app/webui/version.json`:
+  - `Could not convert string to DateTime: local. Path 'date'`
+  - `The input string '1-local' was not in a correct format.`
+
+Files fixed:
+- `DaCollector.Server/Services/SystemUpdateService.cs`
+- `DaCollector.Tests/SystemUpdateServiceTests.cs`
+- `Dockerfile`
+- `Dockerfile.aarch64`
+- `Dockerfile.combined`
+- `compose.yaml`
+
+Fix:
+- `WebUIVersionInfo.Date` now ignores invalid date strings instead of throwing during JSON deserialization.
+- `WebUIVersionInfo.VersionAsVersion` and `MinimumServerVersion` now parse semver-style suffixes such as `0.0.1-local` and `0.0.1-dev.5`.
+- Local Docker build date defaults now use `1970-01-01T00:00:00Z` instead of `local`.
+
+Verification:
+- `dotnet build DaCollector.sln -c Release --no-restore` passed.
+- `dotnet test DaCollector.Tests/DaCollector.Tests.csproj -c Release --no-build` passed: `157/157`.
+- `dotnet test DaCollector.IntegrationTests/DaCollector.IntegrationTests.csproj -c Release --no-build` passed: `1/1`.
+- `docker compose -f compose.yaml up -d --build --force-recreate` built successfully.
+- `scripts/verify-install.ps1 -Port 38111 -Docker` passed.
+
 ---
 
 ## P1 — DaCollector Relay and Movie/TV Source-of-Truth Track — DONE (scaffold)
@@ -689,7 +744,10 @@ Server tasks:
   - media image, cast/crew, tags/genres, collection, watched/rating endpoints
   - stable external ID DTOs for TMDB and TVDB now, with room for future legal metadata providers.
 - Add a local media matching queue for uncertain files, with candidate reasons and approve/reject endpoints.
-- Add missing-file, corrupt-file, and rename/move review endpoints as safe plans first; destructive changes must require explicit admin confirmation.
+- ✅ Add missing-file, corrupt-file, and rename/move review endpoints as safe plans first; destructive changes must require explicit admin confirmation.
+  - `GET /api/v3/MediaFileReview/Files/Missing` — files in DB with no available place on disk; delete via `DELETE /api/v3/File/{fileID}?removeFiles=false`
+  - `GET /api/v3/MediaFileReview/Files/Corrupt` — files on disk where MediaInfo ran and found zero duration, or file size is 0
+  - `GET /api/v3/MediaFileReview/Files/RenamePlan` — matched available files where the default renamer/mover would produce a different path; execute via `POST /api/v3/File/{fileID}/Action/AutoRelocate`
 - Keep provider matching TMDB/TVDB-first. Any IMDb or other source work must be introduced as a new provider module with tests, settings, docs, and no dependency on old anime-specific actions.
 
 Relay tasks:

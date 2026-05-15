@@ -18,6 +18,147 @@ public class MediaFileReviewService(
 {
     private const int MaxPageSize = 500;
 
+    public ListResult<MissingFileItem> GetMissingFiles(int page, int pageSize)
+    {
+        page = Math.Max(page, 1);
+        pageSize = Math.Clamp(pageSize, 1, MaxPageSize);
+
+        var missing = RepoFactory.VideoLocal
+            .GetAll()
+            .Where(v => v.Places.Count > 0 && v.Places.All(p => !p.IsAvailable))
+            .OrderByDescending(v => v.DateTimeImported ?? v.DateTimeCreated)
+            .ToList();
+
+        var total = missing.Count;
+        var items = missing
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(BuildMissingFileItem)
+            .ToList();
+
+        return new ListResult<MissingFileItem>(total, items);
+    }
+
+    private static MissingFileItem BuildMissingFileItem(VideoLocal video)
+    {
+        var locations = RepoFactory.VideoLocalPlace
+            .GetByVideoLocal(video.VideoLocalID)
+            .Select(MediaFileReviewLocation.FromPlace)
+            .ToList();
+
+        var links = new List<MissingFileLink>();
+
+        foreach (var xref in RepoFactory.CrossRef_File_TmdbMovie.GetByVideoLocalID(video.VideoLocalID))
+        {
+            var movie = xref.TmdbMovie;
+            links.Add(new MissingFileLink
+            {
+                Provider = "TMDB",
+                EntityType = "Movie",
+                ProviderID = xref.TmdbMovieID.ToString(),
+                Title = movie?.GetPreferredTitle()?.Value ?? movie?.EnglishTitle,
+            });
+        }
+
+        foreach (var xref in RepoFactory.CrossRef_File_TmdbEpisode.GetByVideoLocalID(video.VideoLocalID))
+        {
+            var ep = xref.TmdbEpisode;
+            var show = ep is null ? null : RepoFactory.TMDB_Show.GetByTmdbShowID(ep.TmdbShowID);
+            links.Add(new MissingFileLink
+            {
+                Provider = "TMDB",
+                EntityType = "Episode",
+                ProviderID = xref.TmdbEpisodeID.ToString(),
+                Title = show?.GetPreferredTitle()?.Value ?? show?.EnglishTitle ?? ep?.GetPreferredTitle()?.Value ?? ep?.EnglishTitle,
+            });
+        }
+
+        foreach (var xref in RepoFactory.CrossRef_File_TvdbEpisode.GetByVideoLocalID(video.VideoLocalID))
+        {
+            var ep = xref.TvdbEpisode;
+            var show = ep is null ? null : RepoFactory.TVDB_Show.GetByTvdbShowID(ep.TvdbShowID);
+            links.Add(new MissingFileLink
+            {
+                Provider = "TVDB",
+                EntityType = "Episode",
+                ProviderID = xref.TvdbEpisodeID.ToString(),
+                Title = show?.Name ?? ep?.Name,
+            });
+        }
+
+        foreach (var episode in video.AnimeEpisodes)
+        {
+            var series = episode.MediaSeries;
+            if (series is null) continue;
+            links.Add(new MissingFileLink
+            {
+                Provider = "Local",
+                EntityType = "Episode",
+                ProviderID = episode.MediaEpisodeID.ToString(),
+                Title = series.Title,
+            });
+        }
+
+        return new MissingFileItem
+        {
+            FileID = video.VideoLocalID,
+            Hash = video.Hash,
+            FileSize = video.FileSize,
+            DateImported = (video.DateTimeImported ?? video.DateTimeCreated).ToUniversalTime(),
+            Locations = locations,
+            LinkedTo = links,
+        };
+    }
+
+    public ListResult<CorruptFileItem> GetCorruptFiles(int page, int pageSize)
+    {
+        page = Math.Max(page, 1);
+        pageSize = Math.Clamp(pageSize, 1, MaxPageSize);
+
+        var corrupt = RepoFactory.VideoLocal
+            .GetAll()
+            .Where(v =>
+                v.Places.Any(p => p.IsAvailable) &&
+                (v.FileSize == 0 || (v.MediaVersion >= VideoLocal.MEDIA_VERSION && v.Duration == 0)))
+            .OrderByDescending(v => v.DateTimeImported ?? v.DateTimeCreated)
+            .ToList();
+
+        var total = corrupt.Count;
+        var items = corrupt
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(BuildCorruptFileItem)
+            .ToList();
+
+        return new ListResult<CorruptFileItem>(total, items);
+    }
+
+    private static CorruptFileItem BuildCorruptFileItem(VideoLocal video)
+    {
+        var locations = RepoFactory.VideoLocalPlace
+            .GetByVideoLocal(video.VideoLocalID)
+            .Select(MediaFileReviewLocation.FromPlace)
+            .ToList();
+
+        var reasons = new List<string>();
+        if (video.FileSize == 0)
+            reasons.Add("ZeroSize");
+        if (video.MediaVersion >= VideoLocal.MEDIA_VERSION && video.Duration == 0)
+            reasons.Add("ZeroDuration");
+
+        return new CorruptFileItem
+        {
+            FileID = video.VideoLocalID,
+            Hash = video.Hash,
+            FileSize = video.FileSize,
+            DurationMs = video.Duration,
+            MediaInfoVersion = video.MediaVersion,
+            DateImported = (video.DateTimeImported ?? video.DateTimeCreated).ToUniversalTime(),
+            Reasons = reasons,
+            Locations = locations,
+        };
+    }
+
     public ListResult<MediaFileReviewItem> GetUnmatchedFiles(
         bool includeIgnored,
         bool includeBrokenCrossReferences,
@@ -221,6 +362,52 @@ public class MediaFileReviewService(
         return video.FileName;
 #pragma warning restore CS0618
     }
+}
+
+public sealed class CorruptFileItem
+{
+    public int FileID { get; init; }
+
+    public string Hash { get; init; } = string.Empty;
+
+    public long FileSize { get; init; }
+
+    public long DurationMs { get; init; }
+
+    public int MediaInfoVersion { get; init; }
+
+    public DateTime DateImported { get; init; }
+
+    /// <summary>Reasons the file is flagged: "ZeroSize", "ZeroDuration".</summary>
+    public IReadOnlyList<string> Reasons { get; init; } = [];
+
+    public IReadOnlyList<MediaFileReviewLocation> Locations { get; init; } = [];
+}
+
+public sealed class MissingFileItem
+{
+    public int FileID { get; init; }
+
+    public string Hash { get; init; } = string.Empty;
+
+    public long FileSize { get; init; }
+
+    public DateTime DateImported { get; init; }
+
+    public IReadOnlyList<MediaFileReviewLocation> Locations { get; init; } = [];
+
+    public IReadOnlyList<MissingFileLink> LinkedTo { get; init; } = [];
+}
+
+public sealed class MissingFileLink
+{
+    public string Provider { get; init; } = string.Empty;
+
+    public string EntityType { get; init; } = string.Empty;
+
+    public string ProviderID { get; init; } = string.Empty;
+
+    public string? Title { get; init; }
 }
 
 public sealed class MediaFileReviewItem

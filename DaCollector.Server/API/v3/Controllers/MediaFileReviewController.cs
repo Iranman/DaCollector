@@ -1,12 +1,15 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Quartz;
 using DaCollector.Abstractions.User.Services;
+using DaCollector.Abstractions.Video.Relocation;
+using DaCollector.Abstractions.Video.Services;
 using DaCollector.Server.API.Annotations;
 using DaCollector.Server.API.v3.Models.Common;
 using DaCollector.Server.Media;
@@ -31,9 +34,33 @@ public class MediaFileReviewController(
     MediaFileReviewService reviewService,
     MediaFileMatchCandidateService candidateService,
     IUserDataService userDataService,
-    ISchedulerFactory schedulerFactory
+    ISchedulerFactory schedulerFactory,
+    IVideoRelocationService relocationService
 ) : BaseController(settingsProvider)
 {
+    /// <summary>
+    /// Returns local media files that are available on disk but appear corrupt:
+    /// zero file size, or MediaInfo ran successfully but reported zero duration.
+    /// Use <c>POST /api/v3/File/{fileID}/Rehash</c> to trigger a fresh hash + MediaInfo scan.
+    /// </summary>
+    [HttpGet("Files/Corrupt")]
+    public ActionResult<ListResult<CorruptFileItem>> GetCorruptFiles(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 100
+    )
+        => Ok(reviewService.GetCorruptFiles(page, pageSize));
+
+    /// <summary>
+    /// Returns local media files that are recorded in the database but no longer found on disk.
+    /// Use <c>DELETE /api/v3/File/{fileID}?removeFiles=false</c> to remove a record without touching the disk.
+    /// </summary>
+    [HttpGet("Files/Missing")]
+    public ActionResult<ListResult<MissingFileItem>> GetMissingFiles(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 100
+    )
+        => Ok(reviewService.GetMissingFiles(page, pageSize));
+
     /// <summary>
     /// Returns unlinked local media files with persisted parser guesses and review state.
     /// </summary>
@@ -212,6 +239,64 @@ public class MediaFileReviewController(
     }
 
     /// <summary>
+    /// Returns matched local media files where the configured renamer/mover would produce a different
+    /// name or destination than the file's current path. No files are moved or renamed.
+    /// To execute, call <c>POST /api/v3/File/{fileID}/Action/AutoRelocate</c> per file.
+    /// </summary>
+    [HttpGet("Files/RenamePlan")]
+    [Authorize("admin")]
+    public async Task<ActionResult<ListResult<RenamePlanItem>>> GetRenamePlan(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 100
+    )
+    {
+        if (relocationService.GetDefaultPipe() is not { ProviderInfo: { } } defaultPipe)
+            return Ok(new ListResult<RenamePlanItem>(0, []));
+
+        page = Math.Max(page, 1);
+        pageSize = Math.Clamp(pageSize, 1, 500);
+
+        var candidates = RepoFactory.VideoLocalPlace
+            .GetAll()
+            .Where(p => p.IsAvailable)
+            .OrderBy(p => p.RelativePath, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var results = new List<RenamePlanItem>();
+        foreach (var place in candidates)
+        {
+            var response = await relocationService.AutoRelocateFile(place, new AutoRelocateRequest
+            {
+                Preview = true,
+                Rename = relocationService.RenameOnImport,
+                Move = relocationService.MoveOnImport,
+                Pipe = defaultPipe,
+                AllowRelocationInsideDestination = relocationService.AllowRelocationInsideDestinationOnImport,
+            }).ConfigureAwait(false);
+
+            if (!response.Success || (!response.Renamed && !response.Moved))
+                continue;
+
+            results.Add(new RenamePlanItem
+            {
+                FileID = place.VideoID,
+                LocationID = place.ID,
+                ManagedFolderID = place.ManagedFolderID,
+                CurrentRelativePath = place.RelativePath,
+                ProposedRelativePath = response.RelativePath,
+                WouldRename = response.Renamed,
+                WouldMove = response.Moved,
+            });
+        }
+
+        var total = results.Count;
+        return Ok(new ListResult<RenamePlanItem>(
+            total,
+            results.Skip((page - 1) * pageSize).Take(pageSize).ToList()
+        ));
+    }
+
+    /// <summary>
     /// Sets the watched state for one local media file for the current user.
     /// </summary>
     [HttpPost("Files/{fileID}/WatchedState")]
@@ -236,6 +321,23 @@ public class MediaFileReviewController(
             LastUpdated      = data.LastUpdatedAt,
         });
     }
+}
+
+public sealed record RenamePlanItem
+{
+    public int FileID { get; init; }
+
+    public int LocationID { get; init; }
+
+    public int ManagedFolderID { get; init; }
+
+    public string CurrentRelativePath { get; init; } = string.Empty;
+
+    public string ProposedRelativePath { get; init; } = string.Empty;
+
+    public bool WouldRename { get; init; }
+
+    public bool WouldMove { get; init; }
 }
 
 public sealed record IgnoreFileRequest

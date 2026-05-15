@@ -43,13 +43,10 @@ public sealed class DatabaseMigrationFixture : IDisposable
         // No settings file yet — defaults are valid and pass schema validation.
         var systemService = new SystemService();
 
-        // Mutate the live settings: disable first-run, inject fake AniDB credentials so the
-        // settings custom-validator is satisfied, and move the web port away from 38111 so this
+        // Mutate the live settings: disable first-run and move the web port away from 38111 so this
         // doesn't conflict with a real DaCollector instance.
         var settings = Utils.SettingsProvider.GetSettings();
         settings.FirstRun = false;
-        settings.AniDb.Username = "integration-test";
-        settings.AniDb.Password = "integration-test";
         settings.Web.Port = 28111;
         Utils.SettingsProvider.SaveSettings(settings);
 
