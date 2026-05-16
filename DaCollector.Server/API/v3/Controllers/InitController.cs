@@ -307,23 +307,26 @@ public class InitController : BaseController
     }
 
     /// <summary>
-    /// Resets the server to setup mode and restarts it.
+    /// Resets the server to first-run setup mode.
+    /// Always saves the FirstRun flag. <c>Restarting</c> is true if the server
+    /// restart was also triggered; false means a manual server restart is required.
     /// </summary>
     [Authorize(Roles = "admin")]
     [HttpPost("ResetSetup")]
-    public ActionResult ResetSetup()
+    public ActionResult<ResetSetupResult> ResetSetup()
     {
-        if (!_systemService.CanRestart)
-            return BadRequest("Restart is not available for this instance.");
         if (_systemService.ShutdownPending)
             return BadRequest("Shutdown already requested.");
+
         var settings = SettingsProvider.GetSettings();
         settings.FirstRun = true;
         SettingsProvider.SaveSettings(settings);
-        if (!_systemService.RequestRestart())
-            return BadRequest("Restart request blocked.");
-        return Ok();
+
+        var restarting = _systemService.CanRestart && _systemService.RequestRestart();
+        return Ok(new ResetSetupResult(restarting));
     }
+
+    public record ResetSetupResult(bool Restarting);
 
     /// <summary>
     /// Test Database Connection with Current Settings
