@@ -94,6 +94,16 @@ public interface IServerSettings
     TraktSettings TraktTv { get; set; }
 
     /// <summary>
+    /// The Radarr integration settings.
+    /// </summary>
+    RadarrSettings Radarr { get; set; }
+
+    /// <summary>
+    /// The Sonarr integration settings.
+    /// </summary>
+    SonarrSettings Sonarr { get; set; }
+
+    /// <summary>
     /// The plugin settings.
     /// </summary>
     PluginSettings Plugins { get; set; }

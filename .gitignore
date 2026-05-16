@@ -178,3 +178,10 @@ UpgradeLog*.htm
 /DaCollector.Server.VC.db
 
 .env
+
+# Runtime data and logs
+dacollector-data/
+logs/
+
+# Claude Code project settings
+.claude/

@@ -405,6 +405,8 @@ public class SystemService : ISystemService
         services.AddSingleton<FilenameParserService>();
         services.AddSingleton<MediaCatalogService>();
             services.AddSingleton<PlexTargetService>();
+            services.AddSingleton<DaCollector.Server.Integrations.RadarrService>();
+            services.AddSingleton<DaCollector.Server.Integrations.SonarrService>();
             services.AddSingleton<DaCollectorStatusService>();
             services.AddSingleton<IFilterEvaluator, FilterEvaluator>();
             services.AddSingleton<LegacyFilterConverter>();
@@ -497,6 +499,16 @@ public class SystemService : ISystemService
                     handler.AllowAutoRedirect = true;
                     handler.AutomaticDecompression = DecompressionMethods.All;
                     handler.PooledConnectionLifetime = TimeSpan.FromMinutes(2);
+                });
+            services.AddHttpClient("Radarr", client =>
+                {
+                    client.DefaultRequestHeaders.Add("Accept", "application/json");
+                    client.Timeout = TimeSpan.FromSeconds(15);
+                });
+            services.AddHttpClient("Sonarr", client =>
+                {
+                    client.DefaultRequestHeaders.Add("Accept", "application/json");
+                    client.Timeout = TimeSpan.FromSeconds(15);
                 });
 pluginManager.RegisterPlugins(services);
 

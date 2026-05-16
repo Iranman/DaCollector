@@ -150,6 +150,12 @@ public class ServerSettings : IServerSettings, INewtonsoftJsonConfiguration, IHi
     public TraktSettings TraktTv { get; set; } = new();
 
     /// <inheritdoc />
+    public RadarrSettings Radarr { get; set; } = new();
+
+    /// <inheritdoc />
+    public SonarrSettings Sonarr { get; set; } = new();
+
+    /// <inheritdoc />
     public PluginSettings Plugins { get; set; } = new();
 
     /// <inheritdoc />

@@ -87,6 +87,10 @@ public sealed record DaCollectorWebUISettings
 
     public required CollectionManagerSettings CollectionManager { get; init; }
 
+    public required RadarrSettings Radarr { get; init; }
+
+    public required SonarrSettings Sonarr { get; init; }
+
     public static DaCollectorWebUISettings From(IServerSettings settings) => new()
     {
         AutoGroupSeries = settings.AutoGroupSeries,
@@ -99,5 +103,7 @@ public sealed record DaCollectorWebUISettings
         Plex = settings.Plex,
         TraktTv = settings.TraktTv,
         CollectionManager = settings.CollectionManager,
+        Radarr = settings.Radarr,
+        Sonarr = settings.Sonarr,
     };
 }
