@@ -23,9 +23,8 @@ public class ConnectivityService : IConnectivityService
 {
     private static readonly List<ConnectivityMonitorDefinition> _defaultDefinitions =
     [
-        new() { Name = "CloudFlare", Type = ConnectivityCheckType.Head, Address = "https://1.1.1.1/" },
-        new() { Name = "Mozilla", Type = ConnectivityCheckType.Head, Address = "https://detectportal.firefox.com/success.txt" },
-        new() { Name = "WeChat", Type = ConnectivityCheckType.Get, Address = "https://www.wechat.com/" },
+        new() { Name = "TMDB", Type = ConnectivityCheckType.Head, Address = "https://api.themoviedb.org/3/" },
+        new() { Name = "TVDB", Type = ConnectivityCheckType.Head, Address = "https://api4.thetvdb.com/v4/" },
     ];
 
     private readonly ILogger<ConnectivityService> _logger;
@@ -75,7 +74,7 @@ public class ConnectivityService : IConnectivityService
             }
         })
         {
-            Timeout = TimeSpan.FromSeconds(5)
+            Timeout = TimeSpan.FromSeconds(2)
         };
 
         var settings = _settingsProvider.GetSettings().Connectivity;
@@ -189,13 +188,7 @@ public class ConnectivityService : IConnectivityService
 
         _logger.LogInformation("Checking WAN Connectivity…");
 
-        var results = new bool[definitions.Count];
-        await Parallel.ForEachAsync(
-            Enumerable.Range(0, definitions.Count),
-            async (i, token) =>
-            {
-                results[i] = await CheckEndpointAsync(definitions[i], token);
-            });
+        var results = await Task.WhenAll(definitions.Select(d => CheckEndpointAsync(d, CancellationToken.None)));
 
         var connectedCount = results.Count(r => r);
         _logger.LogInformation("Successfully connected to {Count}/{Total} internet service endpoints", connectedCount, definitions.Count);
