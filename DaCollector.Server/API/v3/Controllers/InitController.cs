@@ -408,6 +408,32 @@ public class InitController : BaseController
     }
 
     /// <summary>
+    /// Tests the supplied TMDB API key without saving it.
+    /// </summary>
+    [Authorize(Roles = "admin")]
+    [HttpPost("Provider/TMDB/Test")]
+    public async Task<ActionResult<ProviderTestResult>> TestTmdbProvider([FromBody] TmdbProviderInput input, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(input.ApiKey))
+            return BadRequest("API key is required.");
+        var (success, error) = await _tmdbService.TestApiKey(input.ApiKey.Trim(), ct);
+        return Ok(new ProviderTestResult(success, error));
+    }
+
+    /// <summary>
+    /// Tests the supplied TVDB API key and PIN without saving them.
+    /// </summary>
+    [Authorize(Roles = "admin")]
+    [HttpPost("Provider/TVDB/Test")]
+    public async Task<ActionResult<ProviderTestResult>> TestTvdbProvider([FromBody] TvdbProviderInput input, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(input.ApiKey))
+            return BadRequest("API key is required.");
+        var (success, error) = await _tvdbService.TestCredentials(input.ApiKey.Trim(), input.Pin, ct);
+        return Ok(new ProviderTestResult(success, error));
+    }
+
+    /// <summary>
     /// Gets the current IMDb provider setup state.
     /// </summary>
     [Authorize("init")]
