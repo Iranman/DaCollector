@@ -1,6 +1,16 @@
 #!/bin/bash
 
-echo "Started DaCollector bootstrapping process..."
+cat << 'DACOLLECTOR_BANNER'
+
+  ____        ____      _ _           _
+ |  _ \  __ _/ ___|___ | | | ___  ___| |_ ___  _ __
+ | | | |/ _` \___ / _ \| | |/ _ \/ __| __/ _ \| '__|
+ | |_| | (_| |___) (_) | | |  __/ (__| || (_) | |
+ |____/ \__,_|____/\___/|_|_|\___|\___|\__\___/|_|
+
+         Plex Movie & TV Collection Manager
+
+DACOLLECTOR_BANNER
 
 # UID/GID for the server process.  Defaults match a typical Linux install.
 PUID=${PUID:-1000}
