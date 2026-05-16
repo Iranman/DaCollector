@@ -107,7 +107,8 @@ public static class Constants
 
     public struct TMDB
     {
-        // For local development, please replace the text below with your TMDB API key, or insert the key in your settings.
+        // Unused in production. Users must supply their own key via Settings → Metadata Sites.
+        // For local development only: replace with your own TMDB API key.
         public const string ApiKey = "TMDB_API_KEY_GOES_HERE";
     }
 }

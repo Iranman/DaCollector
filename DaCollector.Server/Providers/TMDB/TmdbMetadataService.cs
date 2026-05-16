@@ -178,11 +178,11 @@ public class TmdbMetadataService : ITmdbMetadataService
     private TMDbClient? _rawClient = null;
 
     // We lazy-init it on first use, this will give us time to set up the server before we attempt to init the tmdb client.
-    private TMDbClient CachedClient => _rawClient ??= new(_settingsProvider.GetSettings().TMDB.UserApiKey ?? (
-        Constants.TMDB.ApiKey != "TMDB_API_KEY_GOES_HERE"
-            ? Constants.TMDB.ApiKey
-            : throw new TmdbApiKeyUnavailableException()
-    ));
+    // UserApiKey must always be set by the user — there is no shared/fallback key.
+    private TMDbClient CachedClient => _rawClient ??= new(
+        _settingsProvider.GetSettings().TMDB.UserApiKey
+        ?? throw new TmdbApiKeyUnavailableException()
+    );
 
     // This policy will ensure only 10 requests can be in-flight at the same time.
     private readonly AsyncBulkheadPolicy _bulkheadPolicy;
